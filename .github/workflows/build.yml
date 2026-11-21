@@ -1,0 +1,448 @@
+name: Build Frio Toolkit APK
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Criar o projeto
+        run: |
+          set -e
+          mkdir -p FrioToolkit && cd FrioToolkit
+          mkdir -p app
+          cat > app/build.gradle.kts <<'FRIO_EOF'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "br.toolkit.frio"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "br.toolkit.frio"
+                  minSdk = 30
+                  targetSdk = 33
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+          }
+
+          dependencies {
+              implementation("dev.rikka.shizuku:api:13.1.5")
+              implementation("dev.rikka.shizuku:provider:13.1.5")
+          }
+          FRIO_EOF
+          mkdir -p app/src/main
+          cat > app/src/main/AndroidManifest.xml <<'FRIO_EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+              <queries>
+                  <package android:name="com.roblox.client" />
+                  <package android:name="moe.shizuku.privileged.api" />
+              </queries>
+
+              <application
+                  android:label="Frio Toolkit"
+                  android:theme="@android:style/Theme.DeviceDefault">
+
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+                  <service android:name=".Vigia" android:exported="false" />
+
+                  <provider
+                      android:name="rikka.shizuku.ShizukuProvider"
+                      android:authorities="${applicationId}.shizuku"
+                      android:multiprocess="false"
+                      android:enabled="true"
+                      android:exported="true"
+                      android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+              </application>
+          </manifest>
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/Limpa.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          import android.os.Environment
+          import android.os.StatFs
+
+          /** Limpeza segura: so caches. Nao toca em saves, contas ou dados dos apps. */
+          object Limpa {
+              private val cacheRoblox = "/sdcard/Android/data/${Perf.PKG}/cache"
+
+              private fun livre(): Long = StatFs(Environment.getDataDirectory().path).availableBytes
+
+              fun simular(): String {
+                  val kb = Sh.run("du -sk $cacheRoblox 2>/dev/null | cut -f1").trim().toLongOrNull() ?: 0L
+                  return "[simulacao] cache do Roblox: ~${kb / 1024} MB. Nada foi apagado."
+              }
+
+              fun limpar(): String {
+                  val antes = livre()
+                  Sh.run("pm trim-caches 999999999999")
+                  Sh.run("rm -rf $cacheRoblox/*")
+                  Thread.sleep(1500)
+                  val mb = (livre() - antes) / 1048576
+                  return "Limpeza concluida. Liberado: ~$mb MB (cache do Roblox + cache de todos os apps)."
+              }
+          }
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/MainActivity.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          import android.Manifest
+          import android.app.Activity
+          import android.content.Context
+          import android.content.Intent
+          import android.os.Bundle
+          import android.os.Handler
+          import android.os.Looper
+          import android.widget.Button
+          import android.widget.LinearLayout
+          import android.widget.ScrollView
+          import android.widget.TextView
+          import android.widget.Toast
+          import rikka.shizuku.Shizuku
+          import java.util.concurrent.Executors
+
+          class MainActivity : Activity() {
+              private lateinit var info: TextView
+              private lateinit var log: TextView
+              private lateinit var lblLimite: TextView
+              private lateinit var btnRes: Button
+              private val h = Handler(Looper.getMainLooper())
+              private val bg = Executors.newSingleThreadExecutor()
+              private val prefs by lazy { getSharedPreferences("cfg", Context.MODE_PRIVATE) }
+              private var pediu = false
+              private var ligou = false
+
+              private val atualizar = object : Runnable {
+                  override fun run() {
+                      val t = Temp.bateria(this@MainActivity)
+                      val carga = if (Temp.carregando(this@MainActivity)) "  |  CARREGANDO (esquenta mais)" else ""
+                      val sh = when {
+                          Sh.pronto() -> "Shizuku: conectado"
+                          Sh.rodando() -> "Shizuku: rodando, falta dar permissao (botao 1)"
+                          else -> "Shizuku: desligado (abra o app Shizuku e inicie)"
+                      }
+                      info.text = "Bateria: %.1f C  |  termico: %s%s\n%s".format(t, Temp.status(this@MainActivity), carga, sh)
+                      // tudo automatico: pede a permissao do Shizuku e liga o vigia sozinho
+                      if (Sh.rodando() && !Sh.pronto() && !pediu) {
+                          pediu = true
+                          try { Shizuku.requestPermission(100) } catch (e: Throwable) { }
+                      }
+                      if (Sh.pronto() && !ligou) {
+                          ligou = true
+                          startForegroundService(Intent(this@MainActivity, Vigia::class.java))
+                          log.append("Pronto! Vigia ligado automaticamente. Pode abrir o Roblox.\n\n")
+                      }
+                      h.postDelayed(this, 3000)
+                  }
+              }
+
+              private fun botao(txt: String, acao: () -> Unit) = Button(this).apply {
+                  text = txt
+                  setOnClickListener { acao() }
+              }
+
+              private fun rodar(acao: () -> String) {
+                  bg.execute {
+                      val r = acao()
+                      runOnUiThread { log.append(r + "\n\n") }
+                  }
+              }
+
+              private fun rotulos() {
+                  lblLimite.text = "Sobe para perfil Forte quando a bateria passar de ${prefs.getInt("limite", 42)} C"
+                  btnRes.text = "Reduzir resolucao: " + if (prefs.getBoolean("res", true)) "SIM" else "NAO"
+              }
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val raiz = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      setPadding(32, 48, 32, 32)
+                  }
+                  info = TextView(this).apply { textSize = 16f }
+                  log = TextView(this)
+                  lblLimite = TextView(this)
+                  btnRes = botao("") {
+                      prefs.edit().putBoolean("res", !prefs.getBoolean("res", true)).apply(); rotulos()
+                  }
+
+                  raiz.addView(info)
+                  raiz.addView(botao("Conectar ao Shizuku (se nao conectar sozinho)") {
+                      if (!Sh.rodando()) {
+                          val i = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
+                          if (i != null) startActivity(i)
+                          else Toast.makeText(this, "Instale e inicie o Shizuku primeiro", Toast.LENGTH_LONG).show()
+                      } else {
+                          try { Shizuku.requestPermission(100) } catch (t: Throwable) { }
+                      }
+                  })
+                  raiz.addView(botao("Ligar vigia manualmente") {
+                      startForegroundService(Intent(this, Vigia::class.java))
+                      log.append("Vigia ligado. Abra o Roblox normalmente.\n\n")
+                  })
+                  raiz.addView(botao("Parar vigia e restaurar tudo") {
+                      stopService(Intent(this, Vigia::class.java))
+                      rodar { "Restaurado: " + Perf.restaurar() }
+                  })
+                  raiz.addView(lblLimite)
+                  raiz.addView(botao("Limite de temperatura  -1") {
+                      prefs.edit().putInt("limite", (prefs.getInt("limite", 42) - 1).coerceAtLeast(36)).apply(); rotulos()
+                  })
+                  raiz.addView(botao("Limite de temperatura  +1") {
+                      prefs.edit().putInt("limite", (prefs.getInt("limite", 42) + 1).coerceAtMost(48)).apply(); rotulos()
+                  })
+                  raiz.addView(btnRes)
+                  raiz.addView(botao("Simular limpeza (nao apaga nada)") { rodar { Limpa.simular() } })
+                  raiz.addView(botao("Limpar caches agora") { rodar { Limpa.limpar() } })
+                  raiz.addView(log)
+
+                  setContentView(ScrollView(this).apply { addView(raiz) })
+                  rotulos()
+                  requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+              }
+
+              override fun onResume() { super.onResume(); h.post(atualizar) }
+              override fun onPause() { super.onPause(); h.removeCallbacks(atualizar) }
+          }
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/Perf.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          /** Perfis de desempenho do Roblox (equivale ao "Equilibrado Frio" do PC-Toolkit). */
+          object Perf {
+              const val PKG = "com.roblox.client"
+
+              /** forte=false: Leve (60 fps, 80%). forte=true: Forte (30 fps, 60%). */
+              fun aplicar(forte: Boolean, reduzirRes: Boolean): String {
+                  val ds = if (forte) "0.6" else "0.8"
+                  val fps = if (forte) 30 else 60
+                  val sb = StringBuilder()
+                  sb.appendLine(Sh.run("cmd game set --mode 3 --downscale $ds --fps $fps $PKG"))
+                  if (reduzirRes) sb.appendLine(resolucao(if (forte) 0.65 else 0.8))
+                  return sb.toString().trim()
+              }
+
+              private fun resolucao(fator: Double): String {
+                  val saida = Sh.run("wm size")
+                  val m = Regex("Physical size: (\\d+)x(\\d+)").find(saida) ?: return "nao consegui ler a resolucao"
+                  val w = (m.groupValues[1].toInt() * fator).toInt() / 2 * 2
+                  val h = (m.groupValues[2].toInt() * fator).toInt() / 2 * 2
+                  return Sh.run("wm size ${w}x$h")
+              }
+
+              fun restaurar(): String {
+                  val sb = StringBuilder()
+                  sb.appendLine(Sh.run("cmd game reset $PKG"))
+                  sb.appendLine(Sh.run("cmd game mode 1 $PKG"))
+                  sb.appendLine(Sh.run("wm size reset"))
+                  return sb.toString().trim()
+              }
+          }
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/Sh.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          import android.content.pm.PackageManager
+          import rikka.shizuku.Shizuku
+
+          /** Executa comandos de shell com a permissao do Shizuku (nivel ADB, sem root). */
+          object Sh {
+              fun rodando(): Boolean = try { Shizuku.pingBinder() } catch (t: Throwable) { false }
+
+              fun pronto(): Boolean = try {
+                  Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+              } catch (t: Throwable) { false }
+
+              fun run(cmd: String): String {
+                  return try {
+                      // newProcess e privado nas versoes novas da API; reflexao e o jeito padrao de usar.
+                      val m = Shizuku::class.java.getDeclaredMethod(
+                          "newProcess",
+                          Array<String>::class.java, Array<String>::class.java, String::class.java
+                      )
+                      m.isAccessible = true
+                      val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
+                      val out = p.inputStream.bufferedReader().readText()
+                      val err = p.errorStream.bufferedReader().readText()
+                      p.waitFor()
+                      (out + err).trim()
+                  } catch (t: Throwable) {
+                      "erro: " + t.message
+                  }
+              }
+          }
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/Temp.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          import android.content.Context
+          import android.content.Intent
+          import android.content.IntentFilter
+          import android.os.BatteryManager
+          import android.os.PowerManager
+
+          /** Leituras termicas que nao precisam de permissao especial. */
+          object Temp {
+              private fun bat(ctx: Context): Intent? =
+                  ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+
+              fun bateria(ctx: Context): Float =
+                  (bat(ctx)?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10f
+
+              fun carregando(ctx: Context): Boolean =
+                  (bat(ctx)?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
+
+              fun status(ctx: Context): String {
+                  val s = ctx.getSystemService(PowerManager::class.java).currentThermalStatus
+                  return when (s) {
+                      0 -> "normal"
+                      1 -> "leve"
+                      2 -> "moderado"
+                      3 -> "severo"
+                      4 -> "critico"
+                      5 -> "emergencia"
+                      else -> "maximo"
+                  }
+              }
+          }
+          FRIO_EOF
+          mkdir -p app/src/main/java/br/toolkit/frio
+          cat > app/src/main/java/br/toolkit/frio/Vigia.kt <<'FRIO_EOF'
+          package br.toolkit.frio
+
+          import android.app.Notification
+          import android.app.NotificationChannel
+          import android.app.NotificationManager
+          import android.app.Service
+          import android.content.Intent
+          import android.os.IBinder
+          import java.util.concurrent.Executors
+          import java.util.concurrent.TimeUnit
+
+          /**
+           * Equivale ao Modo Jogo + protecao termica do PC-Toolkit:
+           * detecta o Roblox abrindo, aplica o perfil Leve, sobe para Forte se esquentar
+           * e restaura tudo quando o jogo fecha.
+           */
+          class Vigia : Service() {
+              private val ex = Executors.newSingleThreadScheduledExecutor()
+              private var aplicado = false
+              private var forte = false
+
+              override fun onBind(i: Intent?): IBinder? = null
+
+              override fun onCreate() {
+                  super.onCreate()
+                  getSystemService(NotificationManager::class.java).createNotificationChannel(
+                      NotificationChannel("vigia", "Vigia do Roblox", NotificationManager.IMPORTANCE_LOW)
+                  )
+                  startForeground(1, nota("Vigiando o Roblox..."))
+                  ex.scheduleWithFixedDelay({ try { tick() } catch (t: Throwable) { } }, 0, 10, TimeUnit.SECONDS)
+              }
+
+              private fun nota(txt: String): Notification =
+                  Notification.Builder(this, "vigia")
+                      .setContentTitle("Frio Toolkit")
+                      .setContentText(txt)
+                      .setSmallIcon(android.R.drawable.ic_dialog_info)
+                      .setOngoing(true)
+                      .build()
+
+              private fun avisa(txt: String) =
+                  getSystemService(NotificationManager::class.java).notify(1, nota(txt))
+
+              private fun tick() {
+                  if (!Sh.pronto()) { avisa("Shizuku desconectado"); return }
+                  val p = getSharedPreferences("cfg", MODE_PRIVATE)
+                  val limite = p.getInt("limite", 42)
+                  val res = p.getBoolean("res", true)
+                  val t = Temp.bateria(this)
+                  val rodando = Regex("[0-9 ]+").matches(Sh.run("pidof ${Perf.PKG}").trim())
+
+                  if (rodando && !aplicado) {
+                      Perf.aplicar(false, res); aplicado = true
+                      avisa("Roblox aberto: perfil Leve (%.1f C)".format(t))
+                  } else if (rodando && aplicado && !forte && t >= limite) {
+                      Perf.aplicar(true, res); forte = true
+                      avisa("Esquentou (%.1f C): perfil Forte".format(t))
+                  } else if (!rodando && aplicado) {
+                      Perf.restaurar(); aplicado = false; forte = false
+                      avisa("Roblox fechado: tudo restaurado")
+                  } else if (rodando) {
+                      avisa("Roblox rodando | %.1f C".format(t))
+                  }
+              }
+
+              override fun onDestroy() {
+                  ex.shutdownNow()
+                  if (aplicado) Thread { Perf.restaurar() }.start()
+                  super.onDestroy()
+              }
+          }
+          FRIO_EOF
+          cat > build.gradle.kts <<'FRIO_EOF'
+          plugins {
+              id("com.android.application") version "8.5.2" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+          }
+          FRIO_EOF
+          cat > gradle.properties <<'FRIO_EOF'
+          org.gradle.jvmargs=-Xmx2g
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          FRIO_EOF
+          cat > settings.gradle.kts <<'FRIO_EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "FrioToolkit"
+          include(":app")
+          FRIO_EOF
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+          cache-disabled: true
+      - name: Compilar
+        working-directory: FrioToolkit
+        run: gradle assembleDebug --no-daemon
+      - name: Publicar o APK em Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Frio Toolkit ${{ github.run_number }}
+          files: FrioToolkit/app/build/outputs/apk/debug/app-debug.apk
