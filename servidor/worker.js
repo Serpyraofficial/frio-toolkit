@@ -222,7 +222,10 @@ async function versao(env) {
   return new Response(await r.text(), { headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" } });
 }
 async function baixarApk(env) {
-  const r = await github(env, "apk/SerpyraToolkit.apk");
+  // cada versão tem um arquivo com nome próprio (versao.json diz qual): nunca vem um APK desatualizado do cache
+  let arquivo = "SerpyraToolkit.apk";
+  try { const v = await (await github(env, "apk/versao.json")).json(); if (v.arquivo) arquivo = v.arquivo; } catch (e) { }
+  const r = await github(env, "apk/" + arquivo);
   if (!r.ok) return json({ erro: "APK indisponível (" + r.status + ")." }, 502);
   const h = { "content-type": "application/vnd.android.package-archive", "content-disposition": "attachment; filename=SerpyraToolkit.apk", "cache-control": "no-store" };
   const n = r.headers.get("content-length"); if (n) h["content-length"] = n;

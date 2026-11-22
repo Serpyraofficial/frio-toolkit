@@ -49,23 +49,29 @@ jobs:
       - name: Publicar a atualizacao (pasta apk/)
         if: env.SERPYRA_KS != ''
         run: |
-          mkdir -p apk
-          cp app/build/outputs/apk/release/app-release.apk apk/SerpyraToolkit.apk
           CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
           NOME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          SHA=$(sha256sum apk/SerpyraToolkit.apk | cut -d' ' -f1)
-          TAM=$(stat -c %s apk/SerpyraToolkit.apk)
-          python3 - "$CODE" "$NOME" "$SHA" "$TAM" <<'PY'
+          if [ -f apk/versao.json ] && grep -q '"arquivo"' apk/versao.json && grep -q "\"versionCode\": $CODE," apk/versao.json; then
+            echo "Versao $NOME ja publicada: nada a fazer (aumente o versionCode para lancar)."; exit 0
+          fi
+          mkdir -p apk
+          SHA=$(sha256sum app/build/outputs/apk/release/app-release.apk | cut -d' ' -f1)
+          ARQ="SerpyraToolkit-$NOME-${SHA:0:10}.apk"
+          ANTIGO=$(python3 -c "import json;print(json.load(open('apk/versao.json')).get('arquivo',''))" 2>/dev/null || true)
+          for f in apk/SerpyraToolkit*.apk; do [ -e "$f" ] || continue; b=$(basename "$f"); [ "$b" = "$ANTIGO" ] || { [ -z "$ANTIGO" ] && [ "$b" = "SerpyraToolkit.apk" ]; } || git rm -q --ignore-unmatch "$f" || rm -f "$f"; done
+          cp app/build/outputs/apk/release/app-release.apk "apk/$ARQ"
+          TAM=$(stat -c %s "apk/$ARQ")
+          python3 - "$CODE" "$NOME" "$SHA" "$TAM" "$ARQ" <<'PY'
           import json, sys
-          code, nome, sha, tam = sys.argv[1:]
+          code, nome, sha, tam, arq = sys.argv[1:]
           try: notas = open("NOVIDADES.txt", encoding="utf-8").read().strip()
           except FileNotFoundError: notas = ""
-          json.dump({"versionCode": int(code), "versionName": nome, "notas": notas, "sha256": sha, "tamanho": int(tam)},
+          json.dump({"versionCode": int(code), "versionName": nome, "notas": notas, "sha256": sha, "tamanho": int(tam), "arquivo": arq},
                     open("apk/versao.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
           PY
           cat apk/versao.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/SerpyraToolkit.apk apk/versao.json
+          git add -A apk
           git commit -m "APK $NOME publicado [skip ci]" || echo "sem mudancas"
           git push
