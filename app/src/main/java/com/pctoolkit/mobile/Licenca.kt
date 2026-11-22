@@ -29,9 +29,9 @@ import java.util.TimeZone
 
 /** Dados de quem vende (preencher quando o vendedor enviar). Vazio = secao escondida. */
 object Vendedor {
-    const val CHAVE_PIX = ""          // chave Pix que recebe os pagamentos
-    const val NOME = ""               // nome do recebedor (aparece no Pix)
-    const val CIDADE = ""             // cidade do recebedor
+    const val CHAVE_PIX = "8a81c986-40bd-41b0-99fd-dc6fded1e765"   // chave Pix aleatoria do vendedor
+    const val NOME = "PC Toolkit"     // nome no QR (o banco do cliente mostra o titular real da chave)
+    const val CIDADE = "Brasil"
     const val WHATSAPP = ""           // numero com DDI e DDD, so digitos (ex.: 5511999998888)
     const val PRECO = "15.00"
     const val PRECO_TXT = "R$ 15"
@@ -255,7 +255,7 @@ fun MainActivity.telaPro() {
         val lpq = LinearLayout.LayoutParams(Ui.dp(this, 220), Ui.dp(this, 220)); lpq.gravity = Gravity.CENTER_HORIZONTAL; lpq.topMargin = Ui.dp(this, 10)
         iv.setBackgroundColor(0xFFFFFFFF.toInt()); iv.setPadding(Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8))
         c2.addView(iv, lpq)
-        val pt = Ui.texto(this, "Recebedor: ${Vendedor.NOME}", 12.5f, T.texto2); pt.gravity = Gravity.CENTER; pt.setPadding(0, Ui.dp(this, 8), 0, 0)
+        val pt = Ui.texto(this, "Escaneie no app do seu banco ou use o Pix copia e cola. Valor: ${Vendedor.PRECO_TXT}", 12.5f, T.texto2); pt.gravity = Gravity.CENTER; pt.setPadding(0, Ui.dp(this, 8), 0, 0)
         c2.addView(pt, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         c2.addView(Ui.botao(this, "Copiar Pix copia e cola", T.verde, true) { copiar("pix", pix) }, Ui.linhaLp(this, 10, 0))
     } else {
