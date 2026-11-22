@@ -22,9 +22,9 @@ android {
         if (ks != null && file(ks).exists()) {
             create("fixa") {
                 storeFile = file(ks)
-                storePassword = System.getenv("SERPYRA_KS_SENHA")
+                storePassword = System.getenv("SERPYRA_KS_SENHA")?.trim()
                 keyAlias = "serpyra"
-                keyPassword = System.getenv("SERPYRA_KS_SENHA")
+                keyPassword = System.getenv("SERPYRA_KS_SENHA")?.trim()
             }
         }
     }
