@@ -3,375 +3,499 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SerpyraToolkit · Seu Android no modo jogo</title>
-<meta name="description" content="Mais FPS, menos calor e controles estilo emulador no seu Android. Sem root. Baixe grátis.">
-<meta name="theme-color" content="#0A0E14">
-<meta property="og:title" content="SerpyraToolkit · Seu Android no modo jogo">
-<meta property="og:description" content="Mais FPS, menos calor e controles estilo emulador. Sem root. Baixe grátis.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%230F2A22'/%3E%3Cpath d='M30 68a24 24 0 1 1 48 0' fill='none' stroke='%233DDC97' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M54 68 66 48' stroke='%23E8EEF5' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='68' r='5' fill='%234C8DFF'/%3E%3C/svg%3E">
+<title>SerpyraToolkit: seu Android pronto para jogar</title>
+<meta name="description" content="Mais FPS, menos calor e controles de emulador por cima do jogo. Sem root. Baixe grátis para Android.">
+<meta name="theme-color" content="#F4F5F7">
+<meta property="og:title" content="SerpyraToolkit: seu Android pronto para jogar">
+<meta property="og:description" content="Mais FPS, menos calor e controles de emulador por cima do jogo. Sem root.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%230E1726'/%3E%3Cpath d='M30 68a24 24 0 1 1 48 0' fill='none' stroke='%233DDC97' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M54 68 66 48' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='68' r='5' fill='%233B5BFF'/%3E%3C/svg%3E">
 <style>
-:root{--bg:#0A0E14;--s1:#121821;--s2:#1A222D;--ln:#263142;--tx:#E8EEF5;--t2:#9AA8BA;--t3:#66758A;--vd:#3DDC97;--az:#4C8DFF;--rx:#B57BFF;--lj:#FF9F45;--ci:#38D6E8;--am:#F5C542}
+:root{
+  --papel:#F4F5F7; --branco:#FFFFFF; --tinta:#0E1726; --tinta2:#4A5568; --tinta3:#8A94A6; --linha:#E2E5EA;
+  --menta:#3DDC97; --menta-esc:#14A86A; --azul:#3B5BFF; --azul-esc:#2742D9; --lilas:#C9B8FF; --tela:#0A0E14;
+  --f:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
-svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-/* topo */
-nav{position:sticky;top:0;z-index:20;background:rgba(10,14,20,.82);backdrop-filter:blur(12px);border-bottom:1px solid rgba(38,49,66,.6)}
-nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
-.marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}
-.marca svg{width:34px;height:34px}
-.links{display:flex;gap:26px;font-size:14px;color:var(--t2)}
-.links a:hover{color:var(--tx)}
-.btn{display:inline-flex;align-items:center;gap:10px;font-weight:700;border-radius:14px;padding:14px 22px;transition:transform .15s,box-shadow .15s,background .15s;cursor:pointer;border:0;font-size:16px}
-.btn:hover{transform:translateY(-2px)}
-.btn-p{background:var(--vd);color:#062417;box-shadow:0 10px 30px -10px rgba(61,220,151,.6)}
-.btn-p:hover{box-shadow:0 16px 40px -12px rgba(61,220,151,.75)}
-.btn-s{background:var(--s1);border:1px solid var(--ln);color:var(--tx)}
-.btn-sm{padding:9px 16px;font-size:14px;border-radius:11px}
-@media(max-width:760px){.links{display:none}}
+body{background:var(--papel);color:var(--tinta);font-family:var(--f);font-size:17px;line-height:1.6;font-variation-settings:"opsz" 14;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img,svg{display:block}
+.w{max-width:1200px;margin:0 auto;padding:0 24px}
+:focus-visible{outline:3px solid var(--azul);outline-offset:3px;border-radius:8px}
+
+/* aviso no topo */
+.aviso{background:var(--tinta);color:#fff;text-align:center;padding:10px 16px;font-size:15px}
+.aviso a{display:inline-block;margin-left:10px;background:var(--menta);color:var(--tinta);font-weight:600;text-decoration:none;padding:3px 12px;border-radius:99px}
+
+/* navegação */
+.nav{position:sticky;top:12px;z-index:30;margin:14px auto 0;max-width:1200px;padding:0 24px}
+.nav-in{background:var(--branco);border-radius:16px;box-shadow:0 1px 0 var(--linha),0 8px 24px -16px rgba(14,23,38,.25);display:flex;align-items:center;gap:28px;height:64px;padding:0 12px 0 20px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em;font-variation-settings:"opsz" 30,"wdth" 90}
+.logo svg{width:34px;height:34px}
+.nav-links{display:flex;gap:24px;font-size:15.5px;margin-left:8px}
+.nav-links a{text-decoration:none;color:var(--tinta2)}
+.nav-links a:hover{color:var(--tinta)}
+.nav-acoes{margin-left:auto;display:flex;gap:10px}
+.b{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--f);font-weight:600;font-size:16px;text-decoration:none;border-radius:10px;padding:11px 18px;border:1.5px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
+.b-escuro{background:var(--tinta);color:#fff}
+.b-escuro:hover{background:#26324a}
+.b-linha{border-color:var(--tinta);background:transparent}
+.b-linha:hover{background:#fff}
+.b-azul{background:var(--azul);color:#fff}
+.b-azul:hover{background:var(--azul-esc)}
+.b-grande{font-size:18px;padding:15px 24px;border-radius:12px}
+.b svg{width:18px;height:18px}
+@media(max-width:860px){.nav-links,.so-desk{display:none}}
+
 /* hero */
-.hero{position:relative;padding:72px 0 40px}
-.hero:before{content:"";position:absolute;inset:-200px -20% auto;height:720px;background:radial-gradient(600px 380px at 22% 40%,rgba(61,220,151,.16),transparent 70%),radial-gradient(520px 360px at 82% 30%,rgba(76,141,255,.16),transparent 70%);pointer-events:none}
-.hero .wrap{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
-.selo{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--vd);background:rgba(61,220,151,.1);border:1px solid rgba(61,220,151,.28);padding:6px 12px;border-radius:99px;font-weight:600}
-.selo i{width:7px;height:7px;border-radius:50%;background:var(--vd);box-shadow:0 0 10px var(--vd)}
-h1{font-size:clamp(38px,6vw,64px);line-height:1.03;letter-spacing:-.035em;font-weight:850;margin:18px 0 18px}
-h1 em{font-style:normal;background:linear-gradient(90deg,var(--vd),var(--ci) 55%,var(--az));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{font-size:clamp(17px,2vw,19px);color:var(--t2);max-width:540px}
-.ctas{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 14px}
-.miud{font-size:13px;color:var(--t3)}
-.provas{display:flex;flex-wrap:wrap;gap:18px;margin-top:28px;color:var(--t2);font-size:14px}
-.provas span{display:flex;align-items:center;gap:8px}
-.provas svg{width:18px;height:18px;color:var(--vd)}
-@media(max-width:900px){.hero .wrap{grid-template-columns:1fr}.hero{padding-top:44px}}
-/* celular */
-.cel{justify-self:center;width:300px;max-width:84vw;aspect-ratio:9/19;border-radius:44px;padding:11px;background:linear-gradient(160deg,#2a3546,#0d1219);box-shadow:0 50px 90px -30px rgba(0,0,0,.8),0 0 0 1px #2c384a,inset 0 0 0 1px rgba(255,255,255,.05);transform:rotate(-3deg)}
-.tela{height:100%;border-radius:34px;background:var(--bg);overflow:hidden;padding:30px 15px 15px;display:flex;flex-direction:column;gap:11px;position:relative}
-.tela:before{content:"";position:absolute;top:10px;left:50%;width:76px;height:20px;margin-left:-38px;background:#000;border-radius:12px}
-.tt{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px}
-.tt small{font-weight:600;font-size:10px;color:var(--vd);background:rgba(61,220,151,.12);padding:3px 8px;border-radius:99px}
-.raio{background:linear-gradient(150deg,#0F2A22,#101C30);border:1px solid var(--ln);border-radius:20px;padding:14px;display:flex;align-items:center;gap:14px}
-.gauge{width:74px;height:74px;flex:none;position:relative}
-.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
-.gauge b{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;font-weight:850}
-.raio p{font-size:11px;color:var(--t2);line-height:1.35}
-.raio strong{display:block;font-size:13px;color:var(--tx);margin-bottom:2px}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.bt{border-radius:15px;padding:12px 10px;font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:6px}
-.bt svg{width:20px;height:20px}
-.bt.v{background:var(--vd);color:#062417}
-.bt.o{background:var(--s1);border:1px solid var(--ln)}
-.lin{background:var(--s1);border:1px solid var(--ln);border-radius:14px;padding:10px 11px;display:flex;align-items:center;gap:10px;font-size:11.5px}
-.lin .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none}
-.lin .ic svg{width:17px;height:17px}
-.lin div{flex:1}.lin b{display:block;font-size:12px}.lin span{color:var(--t3);font-size:10.5px}
-.temp{display:flex;gap:9px}
-.temp div{flex:1;background:var(--s1);border:1px solid var(--ln);border-radius:14px;padding:9px 10px;font-size:10px;color:var(--t3)}
-.temp b{display:block;font-size:16px;color:var(--tx)}
-/* seções */
-section{padding:84px 0}
-.cab{max-width:640px;margin-bottom:42px}
-.kick{color:var(--vd);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase}
-h2{font-size:clamp(30px,4vw,44px);line-height:1.1;letter-spacing:-.03em;margin:10px 0 12px;font-weight:820}
-.cab p{color:var(--t2);font-size:17px}
-.grade{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:980px){.grade{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.grade{grid-template-columns:1fr}}
-.card{background:var(--s1);border:1px solid var(--ln);border-radius:22px;padding:22px;transition:border-color .2s,transform .2s}
-.card:hover{border-color:#36465d;transform:translateY(-3px)}
-.card .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:16px}
-.card h3{font-size:17px;margin-bottom:6px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
-.card p{color:var(--t2);font-size:14.5px}
-.pro-tag{font-size:10.5px;font-weight:800;color:#2a1d00;background:var(--am);padding:2px 7px;border-radius:6px;letter-spacing:.03em}
-.c-v{background:rgba(61,220,151,.12);color:var(--vd)}.c-a{background:rgba(76,141,255,.13);color:var(--az)}
-.c-r{background:rgba(181,123,255,.13);color:var(--rx)}.c-l{background:rgba(255,159,69,.13);color:var(--lj)}
-.c-c{background:rgba(56,214,232,.12);color:var(--ci)}.c-m{background:rgba(245,197,66,.13);color:var(--am)}
-/* destaque */
-.dest{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media(max-width:860px){.dest{grid-template-columns:1fr}}
-.big{border-radius:26px;padding:34px;border:1px solid var(--ln);position:relative;overflow:hidden}
-.big.frio{background:linear-gradient(150deg,#0d2230,#0d1520)}
-.big.tec{background:linear-gradient(150deg,#1c1530,#0f1420)}
-.big h3{font-size:26px;letter-spacing:-.02em;margin:14px 0 10px}
-.big p{color:var(--t2);max-width:420px}
-.big ul{list-style:none;margin-top:18px;display:grid;gap:9px}
-.big li{display:flex;gap:10px;color:var(--tx);font-size:15px}
-.big li:before{content:"";width:18px;height:18px;flex:none;margin-top:3px;border-radius:6px;background:rgba(61,220,151,.15) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233DDC97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12l4 4 8-8'/%3E%3C/svg%3E") center/12px no-repeat}
-.teclas{position:absolute;right:-10px;bottom:-14px;display:grid;grid-template-columns:repeat(3,46px);gap:8px;opacity:.22;transform:rotate(-8deg)}
-.teclas i{height:46px;border-radius:50%;border:2px solid var(--rx);display:grid;place-items:center;font-style:normal;font-weight:800;color:var(--rx)}
-.termo{position:absolute;right:26px;top:26px;font-size:46px;font-weight:850;color:rgba(56,214,232,.16);letter-spacing:-.04em}
-/* sem root */
-.passos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:p}
-@media(max-width:860px){.passos{grid-template-columns:1fr}}
-.passo{background:var(--s1);border:1px solid var(--ln);border-radius:22px;padding:24px;counter-increment:p}
-.passo:before{content:counter(p);display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--s2);border:1px solid var(--ln);font-weight:800;color:var(--vd);margin-bottom:14px}
-.passo h3{font-size:17px;margin-bottom:6px}.passo p{color:var(--t2);font-size:14.5px}
-/* pro */
-.pro{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
-@media(max-width:860px){.pro{grid-template-columns:1fr}}
-.plano{border-radius:26px;padding:32px;border:1px solid var(--ln);background:var(--s1);display:flex;flex-direction:column}
-.plano.ouro{background:linear-gradient(160deg,#241c06,#141820 60%);border-color:rgba(245,197,66,.35);box-shadow:0 30px 70px -40px rgba(245,197,66,.5)}
-.plano h3{font-size:15px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.1em}
-.preco{font-size:52px;font-weight:850;letter-spacing:-.04em;margin:8px 0 2px}
-.preco small{font-size:17px;color:var(--t2);font-weight:600;letter-spacing:0}
-.plano ul{list-style:none;margin:20px 0 26px;display:grid;gap:11px;flex:1}
-.plano li{display:flex;gap:10px;font-size:15px}
-.plano li svg{width:20px;height:20px;flex:none;margin-top:2px}
-.plano .ok{color:var(--vd)}.plano.ouro .ok{color:var(--am)}
-.nota{font-size:13px;color:var(--t3);margin-top:12px}
+.hero{padding:72px 0 0;overflow:hidden}
+.hero-g{display:grid;grid-template-columns:5fr 7fr;gap:40px;align-items:end}
+h1{font-weight:500;font-size:clamp(44px,6.4vw,84px);line-height:.98;letter-spacing:-.035em;font-variation-settings:"opsz" 96,"wdth" 88}
+.hero-txt{padding-bottom:56px}
+.hero-txt .b{margin-top:30px}
+.hero-sub{margin-top:120px;max-width:340px;font-size:15.5px;color:var(--tinta2)}
+.hero-versao{display:block;margin-top:12px;font-size:14px;color:var(--tinta3)}
+.palco{position:relative;padding:0 0 0 0;align-self:stretch;display:flex;align-items:flex-end}
+.placa{position:absolute;left:60px;right:-200px;bottom:0;height:62%;background:var(--menta);border-radius:22px 0 0 0}
+.aparelho{position:relative;width:100%;max-width:720px;margin-bottom:48px;background:#141B26;border-radius:34px;padding:12px;box-shadow:0 40px 80px -30px rgba(14,23,38,.55)}
+.aparelho svg{width:100%;height:auto;border-radius:24px}
+@media(max-width:900px){
+  .hero-g{grid-template-columns:1fr}
+  .hero-sub{margin-top:28px}
+  .hero-txt{padding-bottom:0}
+  .placa{left:24px}
+}
+
+/* fatos */
+.fatos{background:var(--branco);border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
+.fatos .w{display:flex;flex-wrap:wrap;gap:12px 40px;padding-top:22px;padding-bottom:22px;font-size:15.5px;color:var(--tinta2)}
+.fatos span{display:flex;align-items:center;gap:10px}
+.fatos svg{width:20px;height:20px;color:var(--menta-esc)}
+
+/* títulos de seção */
+.sec{padding:120px 0}
+h2{font-weight:500;font-size:clamp(34px,4.4vw,56px);line-height:1.04;letter-spacing:-.03em;font-variation-settings:"opsz" 72,"wdth" 90}
+.sec-cab{text-align:center;max-width:720px;margin:0 auto 72px}
+.sec-cab p{margin-top:18px;color:var(--tinta2);font-size:18px}
+
+/* passo a passo com o celular que acompanha a rolagem */
+.trilha{display:grid;grid-template-columns:1fr 1fr;gap:64px}
+.trilha-vis{position:sticky;top:110px;height:calc(100vh - 140px);min-height:560px;max-height:760px;display:flex;align-items:center;justify-content:center}
+.trilha-vis .placa2{position:absolute;inset:8% 6% 8% 14%;background:var(--lilas);border-radius:28px}
+.cel{position:relative;width:300px;aspect-ratio:9/19;background:#141B26;border-radius:44px;padding:10px;box-shadow:0 40px 70px -30px rgba(14,23,38,.6)}
+.cel-tela{position:relative;height:100%;border-radius:35px;background:var(--tela);overflow:hidden}
+.tela{position:absolute;inset:0;padding:42px 16px 16px;display:flex;flex-direction:column;gap:11px;color:#E8EEF5;font-size:12px;opacity:0;transition:opacity .45s ease}
+.tela.on{opacity:1}
+.tela h4{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.tela .sub{color:#8C99AD;font-size:11.5px;margin-top:-6px}
+.bloco{background:#121821;border:1px solid #263142;border-radius:16px;padding:12px}
+.linha-ui{display:flex;align-items:center;gap:10px;background:#121821;border:1px solid #263142;border-radius:14px;padding:10px}
+.linha-ui i{width:28px;height:28px;border-radius:9px;flex:none;display:grid;place-items:center;font-style:normal;font-weight:700}
+.linha-ui b{display:block;font-size:12px;font-weight:600}.linha-ui span{color:#7C8AA0;font-size:10.5px}
+.ok-ui{margin-left:auto;color:#3DDC97;font-weight:700}
+.medidor{display:flex;align-items:center;gap:14px}
+.medidor svg{width:84px;height:84px;flex:none}
+.barra{height:7px;background:#1E2733;border-radius:9px;overflow:hidden}
+.barra i{display:block;height:100%;background:#3DDC97;border-radius:9px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{border:1px solid #2C3A4F;border-radius:99px;padding:4px 10px;font-size:11px}
+.chips .sel{background:#3DDC97;border-color:#3DDC97;color:#06281A;font-weight:700}
+.botao-ui{background:#3DDC97;color:#06281A;font-weight:700;text-align:center;border-radius:12px;padding:11px;font-size:13px}
+.passos-txt{padding:12vh 0 18vh}
+.passo{min-height:62vh;display:flex;flex-direction:column;justify-content:center;max-width:460px;color:var(--tinta3);transition:color .3s}
+.passo.on{color:var(--tinta)}
+.passo h3{font-weight:500;font-size:30px;line-height:1.15;letter-spacing:-.02em;font-variation-settings:"opsz" 40,"wdth" 92;margin-bottom:12px}
+.passo p{font-size:17.5px}
+.passo .tag{display:inline-block;align-self:flex-start;font-size:13px;font-weight:600;background:#FFE68A;color:#5A4500;border-radius:6px;padding:1px 8px;margin-bottom:12px}
+.passo.on p{color:var(--tinta2)}
+@media(max-width:900px){
+  .trilha{grid-template-columns:1fr;gap:0}
+  .trilha-vis{top:84px;height:auto;min-height:0;padding:20px 0;background:var(--papel);z-index:2}
+  .trilha-vis .placa2{inset:10% 18%}
+  .cel{width:200px}
+  .passo{min-height:50vh}
+}
+
+/* durante a partida */
+.partida{background:var(--branco)}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+@media(max-width:900px){.tri{grid-template-columns:1fr}}
+.quadro{border-radius:20px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;margin-bottom:22px;overflow:hidden}
+.q-azul{background:#DCE3FF}.q-menta{background:#CFF5E3}.q-lilas{background:#ECE5FF}
+.item h3{font-weight:600;font-size:21px;letter-spacing:-.01em;margin-bottom:6px}
+.item p{color:var(--tinta2)}
+.mini{background:var(--tela);color:#E8EEF5;border-radius:16px;padding:14px 16px;width:72%;box-shadow:0 24px 40px -20px rgba(14,23,38,.5);font-size:12px}
+.mini .grande{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.mini .cinza{color:#8C99AD}
+.grafico{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:10px}
+.grafico i{flex:1;background:#3DDC97;border-radius:2px 2px 0 0}
+
+/* ferramentas */
+.ferr{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.ferr{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.ferr{grid-template-columns:1fr}}
+.ferr a{display:block;text-decoration:none;background:var(--branco);border:1px solid var(--linha);border-radius:14px;padding:22px 24px}
+.ferr a:hover{border-color:var(--tinta)}
+.ferr b{display:block;font-weight:600;font-size:19px;margin-bottom:4px}
+.ferr span{color:var(--tinta2);font-size:15.5px}
+
+/* planos */
+.planos{position:relative}
+.planos-g{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:960px;margin:0 auto}
+@media(max-width:800px){.planos-g{grid-template-columns:1fr}}
+.plano{background:var(--branco);border:1px solid var(--linha);border-radius:22px;padding:34px;display:flex;flex-direction:column}
+.plano.pro{background:var(--tinta);color:#fff;border-color:var(--tinta);position:relative}
+.plano h3{font-weight:600;font-size:22px}
+.plano .preco{font-weight:500;font-size:64px;letter-spacing:-.04em;line-height:1;margin:18px 0 6px;font-variation-settings:"opsz" 96,"wdth" 85}
+.plano .preco small{font-size:19px;letter-spacing:0;font-weight:400}
+.plano .desc{color:var(--tinta2)}
+.plano.pro .desc{color:#B7C0CF}
+.plano ul{list-style:none;margin:26px 0 30px;display:grid;gap:12px;flex:1}
+.plano li{display:flex;gap:12px}
+.plano li svg{width:22px;height:22px;flex:none;color:var(--menta-esc)}
+.plano.pro li svg{color:var(--menta)}
+.plano.pro .b-menta{background:var(--menta);color:var(--tinta)}
+.plano.pro .b-menta:hover{background:#5BE6AA}
+.plano .nota{margin-top:14px;font-size:14px;color:#B7C0CF}
+
 /* instalar */
-.inst{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:900px){.inst{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.inst{grid-template-columns:1fr}}
-/* faq */
-.faq{display:grid;gap:10px;max-width:820px}
-details{background:var(--s1);border:1px solid var(--ln);border-radius:18px;padding:18px 22px}
-summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.instalar{background:var(--branco)}
+.inst-g{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;counter-reset:n}
+@media(max-width:900px){.inst-g{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.inst-g{grid-template-columns:1fr}}
+.inst-g div{counter-increment:n;border-top:2px solid var(--tinta);padding-top:18px}
+.inst-g div:before{content:counter(n);display:block;font-weight:500;font-size:44px;line-height:1;letter-spacing:-.03em;margin-bottom:16px;color:var(--menta-esc);font-variation-settings:"opsz" 96,"wdth" 85}
+.inst-g h3{font-weight:600;font-size:19px;margin-bottom:6px}
+.inst-g p{color:var(--tinta2);font-size:15.5px}
+
+/* dúvidas */
+.faq{max-width:820px;margin:0 auto;border-top:1px solid var(--linha)}
+details{border-bottom:1px solid var(--linha)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 4px;font-weight:600;font-size:20px;letter-spacing:-.01em}
 summary::-webkit-details-marker{display:none}
-summary:after{content:"+";color:var(--vd);font-size:22px;line-height:1;transition:transform .2s}
-details[open] summary:after{transform:rotate(45deg)}
-details p{color:var(--t2);margin-top:10px;font-size:15px}
+summary:after{content:"";width:14px;height:14px;flex:none;border-right:2px solid var(--tinta);border-bottom:2px solid var(--tinta);transform:rotate(45deg) translate(-3px,-3px);transition:transform .2s}
+details[open] summary:after{transform:rotate(-135deg) translate(-3px,-3px)}
+details p{padding:0 4px 26px;color:var(--tinta2);max-width:680px}
+
 /* final */
-.final{text-align:center;border-radius:30px;padding:60px 26px;background:radial-gradient(500px 240px at 50% 0%,rgba(61,220,151,.2),transparent 70%),var(--s1);border:1px solid var(--ln)}
-.final h2{margin-top:0}
-.final p{color:var(--t2);margin:0 auto 28px;max-width:520px}
-footer{padding:40px 0 60px;color:var(--t3);font-size:13px}
-footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
-.rev{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
-.rev.on{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.rev{opacity:1;transform:none;transition:none}.btn,.card{transition:none}}
+.final{padding:40px 0 120px}
+.final-c{position:relative;background:var(--tinta);color:#fff;border-radius:28px;padding:88px 32px;text-align:center;overflow:hidden}
+.final-c:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:var(--menta);right:-140px;bottom:-220px}
+.final-c:after{content:"";position:absolute;width:180px;height:180px;border-radius:40px;background:var(--azul);left:-60px;top:-60px;transform:rotate(18deg)}
+.final-c>*{position:relative;z-index:1}
+.final-c p{color:#B7C0CF;margin:18px auto 34px;max-width:460px;font-size:18px}
+.final-c .b{background:#fff;color:var(--tinta)}
+.final-c .b:hover{background:#E9ECF2}
+
+footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
+.rodape{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px}
+@media(max-width:760px){.rodape{grid-template-columns:1fr 1fr}}
+.rodape h4{font-size:15px;font-weight:600;margin-bottom:12px}
+.rodape a{display:block;text-decoration:none;color:var(--tinta2);margin-bottom:8px}
+.rodape a:hover{color:var(--tinta)}
+.rodape p{color:var(--tinta2);max-width:300px;margin-top:12px}
+.copy{margin-top:40px;color:var(--tinta3);font-size:14px}
+
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.tela,.passo{transition:none}}
 </style>
 </head>
 <body>
 
-<svg width="0" height="0" style="position:absolute">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
  <defs>
-  <symbol id="logo" viewBox="0 0 108 108"><rect width="108" height="108" rx="28" fill="#0F2A22"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="7" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#E8EEF5" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#4C8DFF"/></symbol>
-  <symbol id="i-jogo" viewBox="0 0 24 24"><path d="M7 7h10a4.5 4.5 0 0 1 4.4 5.4l-.6 3a2.6 2.6 0 0 1-4.5 1.2L14.5 15h-5l-1.8 1.6a2.6 2.6 0 0 1-4.5-1.2l-.6-3A4.5 4.5 0 0 1 7 7z"/><path d="M8 10v3M6.5 11.5h3"/><circle cx="15.8" cy="10.5" r=".9"/><circle cx="17.3" cy="12.5" r=".9"/></symbol>
-  <symbol id="i-fps" viewBox="0 0 24 24"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-7"/><circle cx="12" cy="17" r="1.8"/></symbol>
-  <symbol id="i-temp" viewBox="0 0 24 24"><path d="M10 4.5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></symbol>
-  <symbol id="i-raio" viewBox="0 0 24 24"><path d="M3 12h4l2-5 3 10 2-6 1.5 3H21"/></symbol>
-  <symbol id="i-rede" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.7 15.8a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1.2"/></symbol>
-  <symbol id="i-limpa" viewBox="0 0 24 24"><path d="M4 6h16M9 6V4h6v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14M10 10v8M14 10v8"/></symbol>
-  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
-  <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="14.5" cy="9.5" r="5"/><path d="M10.9 13L3.5 20.5M6 18l2 2M8.5 15.5l2 2"/></symbol>
-  <symbol id="i-teclado" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1M10.5 10h1M14.5 10h1M8 14h8"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
-  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
-  <symbol id="i-raiz" viewBox="0 0 24 24"><path d="M12 3v6M12 9c-3 0-5 2-5 5M12 9c3 0 5 2 5 5M7 14v4M17 14v4M12 9v9"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></symbol>
+  <symbol id="logo" viewBox="0 0 108 108"><rect width="108" height="108" rx="28" fill="#0E1726"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="8" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#3B5BFF"/></symbol>
+  <symbol id="baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="certo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".16"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
  </defs>
 </svg>
 
-<nav>
- <div class="wrap">
-  <a class="marca" href="#"><svg><use href="#logo"/></svg>SerpyraToolkit</a>
-  <div class="links"><a href="#recursos">Recursos</a><a href="#sem-root">Sem root</a><a href="#pro">Pro</a><a href="#instalar">Instalar</a><a href="#duvidas">Dúvidas</a></div>
-  <a class="btn btn-p btn-sm" href="/apk" data-baixar><svg class="i" style="width:18px;height:18px"><use href="#i-down"/></svg>Baixar</a>
- </div>
-</nav>
+<div class="aviso">Novo: o app agora se atualiza sozinho, sem perder o Pro. <a href="#duvidas">Como funciona</a></div>
 
-<header class="hero">
- <div class="wrap">
-  <div>
-   <span class="selo"><i></i>Para Android · sem root</span>
-   <h1>Seu celular no <em>modo jogo</em> de verdade.</h1>
-   <p class="lead">Mais FPS, menos calor e controles estilo emulador por cima do jogo. O SerpyraToolkit ajusta o Android sozinho, sem root e sem PC.</p>
-   <div class="ctas">
-    <a class="btn btn-p" href="/apk" data-baixar><svg class="i"><use href="#i-down"/></svg>Baixar grátis</a>
-    <a class="btn btn-s" href="#recursos">Ver o que ele faz</a>
-   </div>
-   <div class="miud" id="versao">Android 8 ou mais novo · APK leve</div>
-   <div class="provas">
-    <span><svg class="i"><use href="#i-check"/></svg>Grátis para usar</span>
-    <span><svg class="i"><use href="#i-check"/></svg>Sem anúncios</span>
-    <span><svg class="i"><use href="#i-check"/></svg>Atualiza pelo próprio app</span>
-   </div>
-  </div>
-
-  <div class="cel" aria-hidden="true">
-   <div class="tela">
-    <div class="tt">SerpyraToolkit <small>Pro ativo</small></div>
-    <div class="raio">
-     <div class="gauge">
-      <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="#1A222D" stroke-width="3.4"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="#3DDC97" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="85 100" pathLength="100"/></svg>
-      <b>87</b>
-     </div>
-     <p><strong>Raio-X de desempenho</strong>Pronto para jogar. 2 ajustes aplicados agora.</p>
-    </div>
-    <div class="duo">
-     <div class="bt v"><svg class="i"><use href="#i-jogo"/></svg>Modo Jogo</div>
-     <div class="bt o"><svg class="i" style="color:var(--vd)"><use href="#i-fps"/></svg>Tuner</div>
-    </div>
-    <div class="temp">
-     <div><b>38°C</b>bateria</div>
-     <div><b>120 Hz</b>tela</div>
-     <div><b>3,1 GB</b>RAM livre</div>
-    </div>
-    <div class="lin"><span class="ic c-r"><svg class="i"><use href="#i-teclado"/></svg></span><div><b>Teclado e controles</b><span>Botões por cima do jogo</span></div></div>
-    <div class="lin"><span class="ic c-c"><svg class="i"><use href="#i-temp"/></svg></span><div><b>Modo Frio</b><span>Segura o calor sem perder o boost</span></div></div>
-    <div class="lin"><span class="ic c-a"><svg class="i"><use href="#i-rede"/></svg></span><div><b>Rede para jogos</b><span>Ping, jitter e DNS mais rápido</span></div></div>
-   </div>
+<header class="nav">
+ <div class="nav-in">
+  <a class="logo" href="#topo"><svg aria-hidden="true"><use href="#logo"/></svg>SerpyraToolkit</a>
+  <nav class="nav-links" aria-label="Seções">
+   <a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a>
+  </nav>
+  <div class="nav-acoes">
+   <a class="b b-linha so-desk" href="#planos">Ver planos</a>
+   <a class="b b-escuro" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
   </div>
  </div>
 </header>
 
-<section id="recursos">
- <div class="wrap">
-  <div class="cab rev">
-   <span class="kick">Recursos</span>
-   <h2>Tudo que um gamer de celular precisa, num app só.</h2>
-   <p>Do diagnóstico ao controle dentro da partida. Cada ferramenta mostra o que vai fazer e dá para desfazer as mudanças quando quiser.</p>
+<main id="topo">
+<section class="hero">
+ <div class="w hero-g">
+  <div class="hero-txt">
+   <h1>Seu Android pronto para jogar no máximo</h1>
+   <a class="b b-azul b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
+   <p class="hero-sub">Mais FPS, menos calor e botões de emulador por cima de qualquer jogo. Tudo sem root e sem precisar de computador.
+    <span class="hero-versao" id="versao">Android 8 ou mais novo</span></p>
   </div>
-  <div class="grade">
-   <div class="card rev"><div class="ic c-v"><svg class="i"><use href="#i-raio"/></svg></div><h3>Raio-X</h3><p>Nota de 0 a 100 para o seu celular e correção com um toque.</p></div>
-   <div class="card rev"><div class="ic c-v"><svg class="i"><use href="#i-jogo"/></svg></div><h3>Modo Jogo</h3><p>Silencia, libera memória, abre o jogo e vigia o calor. Continua ligado até você sair.</p></div>
-   <div class="card rev"><div class="ic c-m"><svg class="i"><use href="#i-fps"/></svg></div><h3>Tuner de jogos <span class="pro-tag">PRO</span></h3><p>Perfil por jogo: modo, resolução, limite de FPS e driver.</p></div>
-   <div class="card rev"><div class="ic c-r"><svg class="i"><use href="#i-teclado"/></svg></div><h3>Teclado e controles <span class="pro-tag">PRO</span></h3><p>Botões estilo emulador por cima do jogo, com toque, analógico e macro.</p></div>
-   <div class="card rev"><div class="ic c-c"><svg class="i"><use href="#i-temp"/></svg></div><h3>Temperatura</h3><p>Monitor em tempo real, teste de calor, alerta e Modo Frio <span class="pro-tag">PRO</span>.</p></div>
-   <div class="card rev"><div class="ic c-a"><svg class="i"><use href="#i-rede"/></svg></div><h3>Rede para jogos</h3><p>Ping, jitter e perda, teste de velocidade e o DNS mais rápido para você.</p></div>
-   <div class="card rev"><div class="ic c-l"><svg class="i"><use href="#i-limpa"/></svg></div><h3>Limpeza</h3><p>Cache, arquivos grandes, duplicados e quanto cada jogo ocupa de verdade.</p></div>
-   <div class="card rev"><div class="ic c-v"><svg class="i"><use href="#i-escudo"/></svg></div><h3>Segurança</h3><p>Procura apps espiões e golpes, e verifica APKs com cerca de 70 antivírus.</p></div>
+
+  <div class="palco">
+   <div class="placa" aria-hidden="true"></div>
+   <div class="aparelho">
+    <svg viewBox="0 0 800 370" role="img" aria-label="Jogo aberto no celular com os botões do teclado do SerpyraToolkit por cima e o medidor de FPS no canto">
+     <defs>
+      <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2A4A"/><stop offset=".62" stop-color="#3B3A6B"/><stop offset="1" stop-color="#E58A5B"/></linearGradient>
+      <linearGradient id="chao" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A2233"/><stop offset="1" stop-color="#0B0F18"/></linearGradient>
+     </defs>
+     <rect width="800" height="370" fill="url(#ceu)"/>
+     <circle cx="560" cy="190" r="46" fill="#FFC58A" opacity=".85"/>
+     <path d="M0 230 L90 170 L170 210 L260 140 L360 205 L450 160 L540 215 L640 150 L730 200 L800 175 L800 370 L0 370Z" fill="#26304A"/>
+     <path d="M0 270 L120 225 L230 262 L340 215 L470 268 L590 228 L700 262 L800 236 L800 370 L0 370Z" fill="url(#chao)"/>
+     <path d="M300 370 L380 280 L420 280 L500 370Z" fill="#2E3A55" opacity=".7"/>
+     <g fill="#0E1520"><rect x="96" y="214" width="26" height="40" rx="4"/><rect x="640" y="200" width="34" height="58" rx="4"/><rect x="680" y="222" width="20" height="36" rx="3"/></g>
+     <!-- personagem -->
+     <g transform="translate(392 238)"><ellipse cx="8" cy="44" rx="20" ry="5" fill="#000" opacity=".35"/><rect x="-2" y="6" width="20" height="30" rx="7" fill="#3DDC97"/><circle cx="8" cy="0" r="9" fill="#F2D3B5"/><rect x="0" y="34" width="6" height="10" rx="2" fill="#0E1726"/><rect x="10" y="34" width="6" height="10" rx="2" fill="#0E1726"/></g>
+     <!-- HUD do app -->
+     <g font-family="Bricolage Grotesque, system-ui, sans-serif" font-weight="700">
+      <rect x="18" y="16" width="104" height="30" rx="15" fill="#0A0E14" opacity=".78"/>
+      <circle cx="36" cy="31" r="5" fill="#3DDC97"/><text x="48" y="36" font-size="14" fill="#fff">90 FPS</text>
+      <rect x="130" y="16" width="86" height="30" rx="15" fill="#0A0E14" opacity=".78"/>
+      <text x="146" y="36" font-size="14" fill="#9FE8C6">38 °C</text>
+     </g>
+     <!-- botões estilo emulador -->
+     <g font-family="Bricolage Grotesque, system-ui, sans-serif" font-weight="700" text-anchor="middle">
+      <circle cx="112" cy="290" r="56" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".55" stroke-width="2.5"/>
+      <circle cx="124" cy="282" r="24" fill="#fff" fill-opacity=".42"/>
+      <text x="112" y="248" font-size="13" fill="#fff">W</text><text x="112" y="340" font-size="13" fill="#fff">S</text><text x="68" y="294" font-size="13" fill="#fff">A</text><text x="156" y="294" font-size="13" fill="#fff">D</text>
+      <g stroke="#fff" stroke-opacity=".6" stroke-width="2.5">
+       <circle cx="700" cy="296" r="36" fill="#3DDC97" fill-opacity=".55"/>
+       <circle cx="626" cy="314" r="25" fill="#fff" fill-opacity=".12"/>
+       <circle cx="654" cy="246" r="25" fill="#fff" fill-opacity=".12"/>
+       <circle cx="726" cy="222" r="22" fill="#fff" fill-opacity=".12"/>
+       <circle cx="752" cy="48" r="20" fill="#fff" fill-opacity=".12"/>
+      </g>
+      <text x="700" y="302" font-size="17" fill="#fff">J</text>
+      <text x="626" y="319" font-size="14" fill="#fff">K</text>
+      <text x="654" y="251" font-size="14" fill="#fff">L</text>
+      <text x="726" y="227" font-size="13" fill="#fff">Q</text>
+      <text x="752" y="53" font-size="12" fill="#fff">Esc</text>
+     </g>
+    </svg>
+   </div>
   </div>
  </div>
 </section>
 
-<section style="padding-top:0">
- <div class="wrap dest">
-  <div class="big frio rev">
-   <span class="termo">−°C</span>
-   <span class="kick" style="color:var(--ci)">Modo Frio</span>
-   <h3>Joga mais tempo sem o celular virar um forno.</h3>
-   <p>O Modo Frio acompanha a temperatura durante a partida e segura o calor sem desligar o boost do Modo Jogo.</p>
-   <ul><li>Vigia o calor a cada momento</li><li>Mantém o boost ligado</li><li>Histórico de cada sessão: temperatura e bateria</li></ul>
+<div class="fatos">
+ <div class="w">
+  <span><svg aria-hidden="true"><use href="#certo"/></svg>Funciona sem root</span>
+  <span><svg aria-hidden="true"><use href="#certo"/></svg>Grátis para usar, sem anúncios</span>
+  <span><svg aria-hidden="true"><use href="#certo"/></svg>Pro por Pix, ativa na hora</span>
+  <span><svg aria-hidden="true"><use href="#certo"/></svg>Toda mudança pode ser desfeita</span>
+ </div>
+</div>
+
+<section class="sec" id="como">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>Como usar o SerpyraToolkit para jogar melhor</h2>
+   <p>Do diagnóstico ao controle dentro da partida, em poucos toques.</p>
   </div>
-  <div class="big tec rev">
-   <div class="teclas"><i>W</i><i>E</i><i>R</i><i>A</i><i>S</i><i>D</i></div>
-   <span class="kick" style="color:var(--rx)">Teclado e controles</span>
-   <h3>Controles estilo emulador, por cima de qualquer jogo.</h3>
-   <p>Monte seu layout de botões como nos emuladores de PC e use teclado ou controle físico no celular.</p>
-   <ul><li>Botão, analógico e macro</li><li>Teclado e controle físico</li><li>Um layout salvo para cada jogo</li></ul>
+  <div class="trilha">
+   <div class="trilha-vis" aria-hidden="true">
+    <div class="placa2"></div>
+    <div class="cel"><div class="cel-tela">
+     <div class="tela on" data-tela="0">
+      <h4>Raio-X</h4><div class="sub">Como seu celular está para jogos</div>
+      <div class="bloco medidor">
+       <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#1E2733" stroke-width="3.6"/><circle cx="18" cy="18" r="15" fill="none" stroke="#3DDC97" stroke-width="3.6" stroke-linecap="round" pathLength="100" stroke-dasharray="87 100" transform="rotate(-90 18 18)"/><text x="18" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="system-ui">87</text></svg>
+       <div><b style="font-size:13px">Bom para jogar</b><div class="sub" style="margin:2px 0 0">2 ajustes recomendados</div></div>
+      </div>
+      <div class="linha-ui"><i style="background:#16362A;color:#3DDC97">✓</i><div><b>Tela em 120 Hz</b><span>Destravada</span></div></div>
+      <div class="linha-ui"><i style="background:#3A2E12;color:#F5C542">!</i><div><b>Economia de bateria</b><span>Limita o processador</span></div><span class="ok-ui">Corrigir</span></div>
+      <div class="linha-ui"><i style="background:#16362A;color:#3DDC97">✓</i><div><b>Memória livre</b><span>3,1 GB</span></div></div>
+     </div>
+     <div class="tela" data-tela="1">
+      <h4>Modo Jogo</h4><div class="sub">Ligado até você sair do jogo</div>
+      <div class="bloco"><b style="font-size:13px">Free Fire</b><div class="sub" style="margin:2px 0 10px">Sessão de 42 min</div>
+       <div class="chips"><span class="sel">Notificações em silêncio</span><span class="sel">Memória liberada</span><span class="sel">Calor vigiado</span></div></div>
+      <div class="bloco"><div style="display:flex;justify-content:space-between"><span>Temperatura</span><b>39 °C</b></div><div class="barra" style="margin-top:8px"><i style="width:48%"></i></div></div>
+      <div class="bloco"><div style="display:flex;justify-content:space-between"><span>FPS médio</span><b>88</b></div><div class="barra" style="margin-top:8px"><i style="width:88%"></i></div></div>
+      <div class="botao-ui">Abrir o jogo</div>
+     </div>
+     <div class="tela" data-tela="2">
+      <h4>Tuner de jogos</h4><div class="sub">Um perfil para cada jogo</div>
+      <div class="bloco"><div class="sub" style="margin:0 0 8px">Resolução</div><div class="chips"><span>Nativa</span><span class="sel">90%</span><span>75%</span><span>60%</span></div></div>
+      <div class="bloco"><div class="sub" style="margin:0 0 8px">Limite de FPS</div><div class="chips"><span>30</span><span>60</span><span class="sel">90</span><span>120</span></div></div>
+      <div class="bloco"><div class="sub" style="margin:0 0 8px">Modo</div><div class="chips"><span>Bateria</span><span>Equilíbrio</span><span class="sel">Desempenho</span></div></div>
+      <div class="botao-ui">Aplicar ao jogo</div>
+     </div>
+     <div class="tela" data-tela="3" style="padding:0;background:linear-gradient(#1B2A4A,#3B3A6B 60%,#26304A)">
+      <div style="position:absolute;left:14px;right:14px;top:40px;display:flex;justify-content:space-between;font-weight:700;font-size:11px"><span style="background:#0A0E14cc;padding:4px 10px;border-radius:99px">Editando botões</span><span style="background:#3DDC97;color:#06281A;padding:4px 10px;border-radius:99px">Salvar</span></div>
+      <div style="position:absolute;left:26px;bottom:110px;width:96px;height:96px;border-radius:50%;border:2px solid #ffffffaa;background:#ffffff1a;display:grid;place-items:center;font-weight:700">WASD</div>
+      <div style="position:absolute;right:26px;bottom:120px;width:62px;height:62px;border-radius:50%;background:#3DDC97aa;border:2px solid #fff;display:grid;place-items:center;font-weight:700;font-size:16px">J</div>
+      <div style="position:absolute;right:96px;bottom:92px;width:44px;height:44px;border-radius:50%;background:#ffffff22;border:2px dashed #fff;display:grid;place-items:center;font-weight:700">K</div>
+      <div style="position:absolute;right:70px;bottom:196px;width:44px;height:44px;border-radius:50%;background:#ffffff22;border:2px solid #ffffffaa;display:grid;place-items:center;font-weight:700">L</div>
+      <div style="position:absolute;left:14px;right:14px;bottom:20px;background:#0A0E14e6;border:1px solid #263142;border-radius:14px;padding:10px;font-size:11px"><b style="display:block;font-size:12px">Botão K</b>Toque · Macro · Analógico</div>
+     </div>
+    </div></div>
+   </div>
+
+   <div class="passos-txt">
+    <div class="passo on" data-passo="0"><h3>Descubra o que segura o seu celular</h3><p>O Raio-X dá uma nota de 0 a 100 e mostra o que está atrapalhando nos jogos. Um toque corrige.</p></div>
+    <div class="passo" data-passo="1"><h3>Entre no jogo do jeito certo</h3><p>O Modo Jogo silencia notificações, libera memória e vigia o calor. Ele continua ligado até você sair do jogo.</p></div>
+    <div class="passo" data-passo="2"><span class="tag">Pro</span><h3>Ajuste cada jogo separado</h3><p>No Tuner, cada jogo ganha a sua resolução, o seu limite de FPS e o seu modo de desempenho.</p></div>
+    <div class="passo" data-passo="3"><span class="tag">Pro</span><h3>Jogue com botões de emulador</h3><p>Coloque botões por cima do jogo, com toque, analógico e macro. Funciona também com teclado e controle físico.</p></div>
+   </div>
   </div>
  </div>
 </section>
 
-<section id="sem-root">
- <div class="wrap">
-  <div class="cab rev">
-   <span class="kick">Sem root</span>
-   <h2>Ajustes avançados, sem abrir o sistema.</h2>
-   <p>Com o Shizuku, um app gratuito, o SerpyraToolkit ganha o mesmo nível de acesso de um PC conectado no celular. Sem root, sem PC e sem perder a garantia.</p>
+<section class="sec partida" id="partida">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>Durante a partida, ele trabalha por você</h2>
+   <p>Você joga. O app acompanha o desempenho e o calor em segundo plano.</p>
   </div>
-  <div class="passos">
-   <div class="passo rev"><h3>Instale e abra</h3><p>Duas escolhas rápidas na primeira vez: o app pode liberar as permissões sozinho ou pedir uma por uma.</p></div>
-   <div class="passo rev"><h3>Ative o modo automático</h3><p>O app guia você para ligar o Shizuku pela depuração sem fio. Depois disso, ele faz os ajustes sozinho.</p></div>
-   <div class="passo rev"><h3>Jogue</h3><p>Rode o Raio-X, ligue o Modo Jogo e abra o jogo. As mudanças ficam registradas e dá para desfazer tudo.</p></div>
+  <div class="tri">
+   <div class="item">
+    <div class="quadro q-azul"><div class="mini"><span class="cinza">FPS agora</span><div class="grande">88</div><div class="grafico" aria-hidden="true"><i style="height:70%"></i><i style="height:82%"></i><i style="height:78%"></i><i style="height:90%"></i><i style="height:86%"></i><i style="height:92%"></i><i style="height:88%"></i><i style="height:95%"></i><i style="height:89%"></i><i style="height:91%"></i></div></div></div>
+    <h3>Medidor de FPS</h3><p>Veja o FPS real enquanto joga e o histórico de cada sessão depois.</p>
+   </div>
+   <div class="item">
+    <div class="quadro q-menta"><div class="mini"><span class="cinza">Modo Frio ligado</span><div class="grande">39 °C</div><div class="barra" style="margin-top:14px"><i style="width:46%"></i></div><div class="cinza" style="margin-top:8px">Boost continua ativo</div></div></div>
+    <h3>Modo Frio <span class="tag" style="font-size:13px;font-weight:600;background:#FFE68A;color:#5A4500;border-radius:6px;padding:1px 8px;vertical-align:middle">Pro</span></h3><p>Segura a temperatura durante o jogo sem desligar o boost do Modo Jogo.</p>
+   </div>
+   <div class="item">
+    <div class="quadro q-lilas"><div class="mini"><span class="cinza">Conexão</span><div class="grande">24 ms</div><div class="cinza" style="margin-top:10px">Jitter 3 ms · Perda 0%</div><div class="cinza">DNS mais rápido: ativo</div></div></div>
+    <h3>Rede para jogos</h3><p>Mede ping, jitter e perda, e configura o DNS mais rápido para a sua conexão.</p>
+   </div>
   </div>
  </div>
 </section>
 
-<section id="pro">
- <div class="wrap">
-  <div class="cab rev">
-   <span class="kick">Planos</span>
-   <h2>Comece grátis. Libere o Pro quando quiser.</h2>
-   <p>O pagamento é por Pix, direto no app. A chave chega na hora e também no seu e-mail.</p>
+<section class="sec" id="ferramentas">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>E fora do jogo também</h2>
+   <p>Ferramentas para manter o celular leve, seguro e saudável.</p>
   </div>
-  <div class="pro">
-   <div class="plano rev">
+  <div class="ferr">
+   <a href="/apk"><b>Limpeza</b><span>Cache, arquivos grandes e duplicados, e quanto cada jogo ocupa de verdade.</span></a>
+   <a href="/apk"><b>Temperatura</b><span>Monitor em tempo real, teste de calor e alerta quando passar do limite.</span></a>
+   <a href="/apk"><b>Segurança</b><span>Procura apps espiões e golpes, e verifica APKs com cerca de 70 antivírus.</span></a>
+   <a href="/apk"><b>Teste de desempenho</b><span>Força do processador e se ele perde rendimento quando esquenta.</span></a>
+   <a href="/apk"><b>Saúde do celular</b><span>Bateria, ciclos de carga, tempo ligado e armazenamento.</span></a>
+   <a href="/apk"><b>Desfazer alterações</b><span>Tudo que o app muda fica registrado e volta ao normal com um toque.</span></a>
+  </div>
+ </div>
+</section>
+
+<section class="sec planos" id="planos" style="padding-top:40px">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>Comece grátis e libere o Pro quando quiser</h2>
+   <p>O Pro é pago por Pix dentro do app. A chave ativa na hora e também chega no seu e-mail.</p>
+  </div>
+  <div class="planos-g">
+   <div class="plano">
     <h3>Grátis</h3>
     <div class="preco">R$ 0</div>
+    <p class="desc">Para deixar o celular pronto para jogar.</p>
     <ul>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Raio-X e otimização para jogos</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Modo Jogo, medidor de FPS e histórico</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Temperatura, rede, limpeza e segurança</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Atualizações pelo próprio app</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Raio-X e otimização para jogos</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo Jogo, medidor de FPS e histórico</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Temperatura, rede, limpeza e segurança</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Atualizações pelo próprio app</li>
     </ul>
-    <a class="btn btn-s" href="/apk" data-baixar style="justify-content:center">Baixar grátis</a>
+    <a class="b b-linha b-grande" href="/apk">Baixar grátis</a>
    </div>
-   <div class="plano ouro rev">
-    <h3 style="color:var(--am)">Pro</h3>
-    <div class="preco">R$ 10<small> / mês</small></div>
+   <div class="plano pro">
+    <h3>Pro</h3>
+    <div class="preco">R$ 10<small> por mês</small></div>
+    <p class="desc">Para quem quer controle total em cada jogo.</p>
     <ul>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Tudo do plano grátis</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Teclado e controles no jogo: botões, macros, teclado e controle físico</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Tuner de jogos: resolução, limite de FPS e driver por jogo</li>
-     <li><svg class="i ok"><use href="#i-check"/></svg>Modo Frio e Turbo no Modo Jogo</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Tudo do plano grátis</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Botões de emulador por cima do jogo, com macros, teclado e controle físico</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Tuner: resolução, limite de FPS e modo para cada jogo</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo Frio e Turbo no Modo Jogo</li>
     </ul>
-    <a class="btn btn-p" href="/apk" data-baixar style="justify-content:center;background:var(--am);color:#2a1d00;box-shadow:0 10px 30px -10px rgba(245,197,66,.6)">Baixar e assinar no app</a>
-    <p class="nota">Sem renovação automática: você paga só quando quiser mais 30 dias. Renovando antes de vencer, os dias se somam.</p>
+    <a class="b b-menta b-grande" href="/apk">Baixar e assinar no app</a>
+    <p class="nota">Sem cobrança automática: cada Pix libera 30 dias. Se renovar antes de vencer, os dias se somam.</p>
    </div>
   </div>
  </div>
 </section>
 
-<section id="instalar">
- <div class="wrap">
-  <div class="cab rev">
-   <span class="kick">Como instalar</span>
-   <h2>Pronto em um minuto.</h2>
-   <p>O SerpyraToolkit é instalado direto pelo arquivo, sem passar pela loja.</p>
+<section class="sec instalar" id="instalar">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>Instale em um minuto</h2>
+   <p>O app é instalado direto pelo arquivo, sem passar pela loja.</p>
   </div>
-  <div class="inst passos">
-   <div class="passo rev"><h3>Baixe o arquivo</h3><p>Toque em <b>Baixar grátis</b> aqui no celular. O arquivo é o <b>SerpyraToolkit.apk</b>.</p></div>
-   <div class="passo rev"><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
-   <div class="passo rev"><h3>Permita a instalação</h3><p>Se o Android pedir, ative <b>Permitir desta fonte</b> para o navegador e volte.</p></div>
-   <div class="passo rev"><h3>Instale e abra</h3><p>Toque em <b>Instalar</b>. As próximas versões chegam pelo próprio app.</p></div>
+  <div class="inst-g">
+   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar grátis aqui no celular. O arquivo se chama SerpyraToolkit.apk.</p></div>
+   <div><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
+   <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
+   <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
   </div>
  </div>
 </section>
 
-<section id="duvidas">
- <div class="wrap">
-  <div class="cab rev">
-   <span class="kick">Dúvidas</span>
-   <h2>Perguntas frequentes</h2>
-  </div>
+<section class="sec" id="duvidas">
+ <div class="w">
+  <div class="sec-cab"><h2>Dúvidas frequentes</h2></div>
   <div class="faq">
-   <details class="rev"><summary>Precisa de root?</summary><p>Não. O app funciona sem root. Para os ajustes avançados ele usa o Shizuku, que é gratuito e é ativado pelo próprio celular, sem PC. Se o seu celular tiver root, o app também aproveita.</p></details>
-   <details class="rev"><summary>Funciona no meu celular?</summary><p>Funciona em Android 8 ou mais novo. Algumas opções dependem do fabricante, como a taxa de atualização da tela ou os drivers. Nesses casos, o app avisa o que é possível no seu aparelho.</p></details>
-   <details class="rev"><summary>Como funciona o pagamento do Pro?</summary><p>Você toca em <b>Assinar</b> no app, digita seu e-mail e paga o Pix de R$ 10. O Pro ativa sozinho assim que o pagamento é confirmado, e a chave também chega no seu e-mail. Não tem cobrança automática: cada pagamento libera 30 dias.</p></details>
-   <details class="rev"><summary>Troquei de versão ou reinstalei. Perco o Pro?</summary><p>Não. Ao atualizar pelo app, o Pro continua ativo. Se reinstalar, use <b>Já comprei: recuperar meu Pro</b> na tela do Pro, ou cole a chave que chegou no seu e-mail. A chave vale para o celular em que a compra foi feita.</p></details>
-   <details class="rev"><summary>Dá para desfazer os ajustes?</summary><p>Sim. Cada configuração alterada fica registrada, e em <b>Desfazer alterações</b> o app volta tudo ao normal.</p></details>
-   <details class="rev"><summary>Por que não está na Play Store?</summary><p>Por enquanto o app é distribuído direto por aqui. Assim as novidades chegam mais rápido, e o próprio app avisa e instala as atualizações com a sua autorização.</p></details>
+   <details><summary>Precisa de root?</summary><p>Não. Para os ajustes avançados o app usa o Shizuku, que é gratuito e é ativado pelo próprio celular, sem computador. Se o seu celular tiver root, o app também aproveita.</p></details>
+   <details><summary>Funciona no meu celular?</summary><p>Funciona em Android 8 ou mais novo. Algumas opções dependem do fabricante, como a taxa de atualização da tela. Nesses casos o app mostra o que é possível no seu aparelho.</p></details>
+   <details><summary>Como pago o Pro?</summary><p>Toque em Assinar no app, digite seu e-mail e pague o Pix de R$ 10. O Pro ativa sozinho assim que o pagamento é confirmado, e a chave também chega no seu e-mail. Não existe cobrança automática.</p></details>
+   <details><summary>Se eu atualizar ou reinstalar, perco o Pro?</summary><p>Ao atualizar pelo app, o Pro continua ativo. Se reinstalar, toque em Já comprei: recuperar meu Pro, ou cole a chave que chegou no seu e-mail. A chave vale para o celular em que a compra foi feita.</p></details>
+   <details><summary>Como as atualizações chegam?</summary><p>Quando sai uma versão nova, o app avisa e mostra as novidades. Você toca em Atualizar e o Android pede para confirmar. Também dá para procurar em Procurar atualização, no menu.</p></details>
+   <details><summary>Por que não está na Play Store?</summary><p>Por enquanto o app é distribuído direto por aqui. Assim as novidades chegam mais rápido.</p></details>
   </div>
  </div>
 </section>
 
-<section style="padding-top:20px">
- <div class="wrap">
-  <div class="final rev">
-   <svg style="width:64px;height:64px;margin-bottom:14px"><use href="#logo"/></svg>
-   <h2>Bora jogar no máximo?</h2>
-   <p>Baixe o SerpyraToolkit grátis e veja a nota do seu celular no Raio-X em segundos.</p>
-   <a class="btn btn-p" href="/apk" data-baixar><svg class="i"><use href="#i-down"/></svg>Baixar grátis para Android</a>
-   <div class="miud" id="versao2" style="margin-top:12px"></div>
+<section class="final">
+ <div class="w">
+  <div class="final-c">
+   <h2>Veja a nota do seu celular agora</h2>
+   <p>Baixe grátis, abra o Raio-X e descubra em segundos o que está segurando os seus jogos.</p>
+   <a class="b b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis para Android</a>
   </div>
  </div>
 </section>
+</main>
 
 <footer>
- <div class="wrap">
-  <span>© <span id="ano">2026</span> SerpyraToolkit</span>
-  <span>Feito para jogar no Android · Pagamentos por Pix via PurinCash</span>
+ <div class="w">
+  <div class="rodape">
+   <div><a class="logo" href="#topo" style="color:var(--tinta)"><svg aria-hidden="true"><use href="#logo"/></svg>SerpyraToolkit</a><p>Ferramentas para jogar melhor no Android, sem root.</p></div>
+   <div><h4>App</h4><a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#ferramentas">Ferramentas</a></div>
+   <div><h4>Pro</h4><a href="#planos">Planos</a><a href="#duvidas">Recuperar o Pro</a></div>
+   <div><h4>Baixar</h4><a href="/apk">Baixar o app</a><a href="#instalar">Como instalar</a></div>
+  </div>
+  <div class="copy">© <span id="ano">2026</span> SerpyraToolkit. Pagamentos por Pix processados pela PurinCash.</div>
  </div>
 </footer>
 
 <script>
 (function(){
-  var ano=document.getElementById('ano'); if(ano) ano.textContent=new Date().getFullYear();
+  var a=document.getElementById('ano'); if(a) a.textContent=new Date().getFullYear();
   fetch('/versao',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(v){
     if(!v||!v.versionName) return;
-    var mb=v.tamanho?(v.tamanho/1048576).toFixed(1).replace('.',',')+' MB':'';
-    var t='Versão '+v.versionName+(mb?' · '+mb:'')+' · Android 8 ou mais novo';
-    ['versao','versao2'].forEach(function(id){var e=document.getElementById(id); if(e) e.textContent=t;});
+    var mb=v.tamanho?' com '+(v.tamanho/1048576).toFixed(1).replace('.',',')+' MB':'';
+    document.getElementById('versao').textContent='Versão '+v.versionName+mb+', para Android 8 ou mais novo';
   }).catch(function(){});
-  var els=document.querySelectorAll('.rev');
-  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('on')});return;}
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}})},{threshold:.12});
-  els.forEach(function(e){io.observe(e)});
+  var passos=document.querySelectorAll('.passo'), telas=document.querySelectorAll('.tela');
+  if(!('IntersectionObserver' in window)) return;
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting) return;
+      var n=e.target.getAttribute('data-passo');
+      passos.forEach(function(p){p.classList.toggle('on',p===e.target)});
+      telas.forEach(function(t){t.classList.toggle('on',t.getAttribute('data-tela')===n)});
+    });
+  },{rootMargin:'-45% 0px -45% 0px'});
+  passos.forEach(function(p){io.observe(p)});
 })();
 </script>
 </body>
