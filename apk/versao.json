@@ -2,6 +2,7 @@
  "versionCode": 52,
  "versionName": "5.2",
  "notas": "- Atualização pelo próprio app: quando sair versão nova, ele avisa e instala com a sua autorização\n- Seu Pro continua ativo depois de atualizar\n- Botão \"Já comprei: recuperar meu Pro\" para quem reinstalar o app",
- "sha256": "8ede538eaa00ae8ab972d1d1e3eb682440d1b0af792e4f9de2aa7736af41259e",
- "tamanho": 1115309
+ "sha256": "1437d62dd314e142deb2924aabe67f7f0fd771aa48fc0b16d66f57a9dd0bebea",
+ "tamanho": 1115309,
+ "arquivo": "SerpyraToolkit-5.2-1437d62dd3.apk"
 }
