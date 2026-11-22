@@ -51,15 +51,16 @@ object ModoJogo {
             "Fechar apps em segundo plano antes de abrir",
             "Pausar a sincronização automática (e-mail, fotos, nuvem)",
             "Painel flutuante com temperatura, bateria e memória",
-            "Alerta de calor (vibra se a bateria passar do limite)",
-            "Modo Frio: segura a temperatura sem desligar o boost"
+            "Alerta de calor (vibra se a bateria passar do limite)"
         )
-        val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_frio")
+        val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
+        if (Pro.ativo()) { nomes.add("Modo Frio: segura a temperatura sem desligar o boost"); chaves.add("mj_frio") }
+        else con.info("Modo Frio e Turbo fazem parte do PC Toolkit Pro (${Vendedor.PRECO_TXT}/mês).")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
         for (i in chaves.indices) op[chaves[i]] = sel.contains(i)
-        op["mj_turbo"] = Sh.privOk() && (perfil.turbo || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
+        op["mj_turbo"] = Pro.ativo() && Sh.privOk() && (perfil.turbo || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
         if (op["mj_dnd"] == true && !Sh.privOk() && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
         if (op["mj_painel"] == true && !con.garantirNome("Sobrepor a outros apps")) op["mj_painel"] = false
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
@@ -69,6 +70,7 @@ object ModoJogo {
             if (con.ask("Permitir o Acesso ao uso para o Modo Jogo encerrar sozinho?")) con.garantirNome("Acesso ao uso")
         }
         val limite = Store.int("limite_bateria", 43)
+        if (op["mj_frio"] == null) op["mj_frio"] = false
         if (op["mj_frio"] == true && !Frio.pode()) {
             con.aviso("O Modo Frio precisa do modo automático (Shizuku) para mexer na tela e no FPS. Sem ele, só o alerta de calor funciona.")
             if (con.ask("Ativar o modo automático agora?")) Priv.ativar(con)

@@ -200,6 +200,7 @@ class MainActivity : Activity() {
         try { rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(aoShizuku) } catch (e: Throwable) { }
         if (!Modo.definido()) { boasVindas(); return }
         if (intent?.getBooleanExtra("teclado", false) == true) executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
+        if (intent?.getBooleanExtra("pro", false) == true) abrirTela { telaPro() }
         if (!GameService.rodando && Sessao.pendente() && Store.str("sessao_cfg").isNotEmpty()) {
             // o Android encerrou o Modo Jogo no meio da partida: retoma a sessao de onde parou
             try { startForegroundService(android.content.Intent(this, GameService::class.java)) } catch (e: Exception) { Sessao.restaurar(this) }
@@ -355,7 +356,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 4.7  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Mobile 4.8  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
@@ -415,6 +416,10 @@ class MainActivity : Activity() {
         ac.addView(Ui.botao(this, "Tuner", T.verde, false, R.drawable.ic_fps) { abrirTela { telaTuner() } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         col.addView(ac)
         col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
+
+        // assinatura
+        if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "PC Toolkit Pro", "Teclado e controles, Tuner, Modo Frio e Turbo · ${Vendedor.PRECO_TXT}/mês", "Assinar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
+        else if (Licenca.diasRestantes() <= 3) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Seu Pro vence em ${Licenca.diasRestantes()} dia(s)", "Renove para não perder as funções", "Renovar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
 
         // ferramentas
         col.addView(Ui.secao(this, "Ferramentas"))

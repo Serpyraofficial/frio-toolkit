@@ -78,6 +78,9 @@ fun MainActivity.telaTuner() {
     }
     col.addView(st, Ui.linhaLp(this, 0, 6))
 
+    if (!Pro.ativo()) {
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Função do PC Toolkit Pro", "Monte os perfis à vontade; aplicar no jogo é liberado no Pro (${Vendedor.PRECO_TXT}/mês)", "Assinar", T.amarelo) { abrirTela { telaPro() } })
+    }
     col.addView(Ui.secao(this, "Seus jogos"))
     val jogos = Jogos.instalados(this)
     if (jogos.isEmpty()) col.addView(Ui.texto(this, "Nenhum jogo encontrado. Use “Adicionar outro app”.", 13f, T.texto2))
@@ -160,7 +163,7 @@ fun MainActivity.telaPerfil(pkg: String, nome: String) {
     ac.addView(Ui.botao(this, "Jogar", T.verde, false, R.drawable.ic_jogo) {
         Store.putStr("ultimo_jogo", pkg)
         executar("Modo Jogo") { con ->
-            if (!Tuner.perfil(pkg).aplicado) Tuner.aplicar(con, pkg, nome, p)
+            if (!Tuner.perfil(pkg).aplicado && Pro.ativo()) Tuner.aplicar(con, pkg, nome, p)
             ModoJogo.executar(con, pkg)
         }
     }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))

@@ -27,7 +27,8 @@ object Menus {
         Item("Segurança", "Vírus, espiões, golpes", S, T.vermelho, sub = { seguranca() }),
         Item("Aparência", "Fluidez e animações", A, T.roxo, acao = { Sistema.aparencia(it) }),
         Item("Manutenção", "Saúde, bateria, backup", M, T.amarelo, sub = { manutencao() }),
-        Item("Acesso e permissões", "Nível: " + Acesso.nivel(), CH, T.texto2, tela = { it.abrirTela { it.telaPermissoes() } })
+        Item("Acesso e permissões", "Nível: " + Acesso.nivel(), CH, T.texto2, tela = { it.abrirTela { it.telaPermissoes() } }),
+        Item("PC Toolkit Pro", if (Pro.ativo()) "Ativo até " + Licenca.validadeTexto() else Vendedor.PRECO_TXT + " por mês", CH, T.amarelo, tela = { it.abrirTela { it.telaPro() } })
     )
 
     fun fps() = Menu("Desempenho e FPS", "Tudo que deixa o jogo mais fluido", F, T.verde, listOf(
@@ -75,7 +76,7 @@ object Menus {
             con.item("Nível 2 (no limite): tela em 60 Hz, o que limita o jogo a 60 FPS estáveis")
             con.item("Nível 3 (passou do limite): limita o jogo a 45 FPS até esfriar")
             con.info("Limite atual: " + Store.int("limite_bateria", 43) + " °C. Mude em Alerta de calor.")
-            if (con.ask("Abrir o Modo Jogo agora?")) ModoJogo.executar(con)
+            if (Pro.exigir(con, "O Modo Frio") && con.ask("Abrir o Modo Jogo agora?")) ModoJogo.executar(con)
         }),
         Item("Teste de calor", "Quanto esquenta e se perde força", TP, T.vermelho, acao = { Temperatura.estresse(it) }),
         Item("Alerta de calor", "Limite atual: " + Store.int("limite_bateria", 43) + " °C", TP, T.amarelo, acao = { Temperatura.limite(it) }),

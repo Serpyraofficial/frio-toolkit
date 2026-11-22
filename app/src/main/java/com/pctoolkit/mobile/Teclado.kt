@@ -154,11 +154,11 @@ class TecladoService : Service() {
         when (intent?.action) {
             "fechar" -> { fechar(); return START_NOT_STICKY }
             "alternar" -> {
-                if (!rodando) iniciarBase(null)
+                if (!rodando) { iniciarBase(null); if (!rodando) return START_NOT_STICKY }
                 ui.post { if (visivel && (janelas.isNotEmpty() || controles.isEmpty())) esconder() else { rem(bolha); bolha = null; mostrarTudo() } }
                 return START_STICKY
             }
-            "editar" -> { if (!rodando) iniciarBase(null); ui.post { abrirEditor() }; return START_STICKY }
+            "editar" -> { if (!rodando) { iniciarBase(null); if (!rodando) return START_NOT_STICKY }; ui.post { abrirEditor() }; return START_STICKY }
         }
         iniciarBase(intent)
         if (intent?.getBooleanExtra("abrir", false) == true && pkg.isNotEmpty()) {
@@ -171,6 +171,7 @@ class TecladoService : Service() {
 
     /** Carrega perfil e mostra tudo. Sempre recria as janelas (resolve abrir de novo com o jogo aberto). */
     private fun iniciarBase(intent: Intent?) {
+        if (!Licenca.ativo()) { semPro(); return }
         rodando = true
         val novoPkg = intent?.getStringExtra("pkg") ?: Store.str("tec_pkg")
         intent?.getStringExtra("layout")?.let { layout = it; Store.putStr("tec_layout", it) } ?: run { layout = Store.str("tec_layout", "nenhum") }
@@ -181,6 +182,14 @@ class TecladoService : Service() {
         if (!vigiando) { vigiando = true; ui.postDelayed(vigia, 1500) }
         Mapeador.iniciar { ev -> ui.post { try { teclaFisica(ev) } catch (e: Exception) { } } }
     }
+
+    /** Sem assinatura ativa: fecha os controles e abre a tela do Pro. */
+    private fun semPro() {
+        try { startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("pro", true)) } catch (e: Exception) { }
+        fechar()
+    }
+
+    private var ultimaChecagemPro = 0L
 
     private fun notif(): Notification {
         val alt = PendingIntent.getService(this, 11, Intent(this, TecladoService::class.java).setAction("alternar"), PendingIntent.FLAG_IMMUTABLE)
@@ -197,6 +206,7 @@ class TecladoService : Service() {
     private val vigia = object : Runnable {
         override fun run() {
             if (!rodando) { vigiando = false; return }
+            if (System.currentTimeMillis() - ultimaChecagemPro > 60_000) { ultimaChecagemPro = System.currentTimeMillis(); if (!Licenca.ativo()) { vigiando = false; semPro(); return } }
             val fg = appNaFrente()
             if (fg != null && editor == null) {
                 val ignorar = fg == packageName || fg.contains("systemui") || fg.contains("inputmethod") || fg.contains("permissioncontroller") || fg.contains("gms")
@@ -893,6 +903,7 @@ object TecladoJogo {
         val ctx = con.ctx
         con.titulo("Teclado e controles no jogo")
         con.linha("Coloque botões onde quiser por cima do jogo, cada um com a tecla que você escolher, como no MuMu Player. Também tem teclado completo, analógico e macros.", T.texto2)
+        if (!Pro.exigir(con, "Teclado e controles no jogo")) return
         if (!Sh.privOk()) {
             con.aviso("Para enviar teclas e toques a outro app o Android exige o modo automático (Shizuku) ou root.")
             if (!Priv.ativar(con)) return

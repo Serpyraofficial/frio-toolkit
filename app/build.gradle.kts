@@ -11,8 +11,8 @@ android {
         applicationId = "com.pctoolkit.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 47
-        versionName = "4.7"
+        versionCode = 48
+        versionName = "4.8"
     }
 
     buildTypes {
@@ -37,4 +37,5 @@ dependencies {
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+    implementation("com.google.zxing:core:3.5.3")
 }
