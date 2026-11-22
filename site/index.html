@@ -199,6 +199,62 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 .rodape p{color:var(--tinta2);max-width:300px;margin-top:12px}
 .copy{margin-top:40px;color:var(--tinta3);font-size:14px}
 
+
+/* topo escuro, como no site anterior */
+.topo-escuro{background:#0A0E14;color:#E8EEF5;position:relative;overflow:clip}
+.topo-escuro:before{content:"";position:absolute;inset:-120px -10% auto;height:760px;background:radial-gradient(560px 360px at 20% 45%,rgba(61,220,151,.17),transparent 70%),radial-gradient(520px 360px at 82% 30%,rgba(76,141,255,.17),transparent 70%);pointer-events:none}
+.topo-escuro .nav-in{background:rgba(18,24,33,.82);backdrop-filter:blur(12px);box-shadow:0 0 0 1px #263142}
+.topo-escuro .logo{color:#fff}
+.topo-escuro .nav-links a{color:#9AA8BA}.topo-escuro .nav-links a:hover{color:#fff}
+.topo-escuro .b-linha{border-color:#3A475C;color:#fff}.topo-escuro .b-linha:hover{background:#121821}
+.topo-escuro .b-escuro{background:#3DDC97;color:#06281A}.topo-escuro .b-escuro:hover{background:#5BE6AA}
+.hero{position:relative;padding:64px 0 0}
+.hero-g{align-items:center}
+.hero-txt{padding-bottom:72px}
+.selo{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#3DDC97;background:rgba(61,220,151,.1);border:1px solid rgba(61,220,151,.3);padding:6px 13px;border-radius:99px;margin-bottom:22px}
+.selo i{width:7px;height:7px;border-radius:50%;background:#3DDC97;box-shadow:0 0 10px #3DDC97}
+.hero h1{font-weight:700;font-variation-settings:"opsz" 96,"wdth" 92;letter-spacing:-.04em}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#3DDC97,#38D6E8 55%,#4C8DFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-lead{margin-top:22px;font-size:19px;color:#9AA8BA;max-width:520px}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.b-menta{background:var(--menta);color:var(--tinta)}.b-menta:hover{background:#5BE6AA}
+.b-vidro{background:#121821;border-color:#263142;color:#fff}.b-vidro:hover{background:#1A222D}
+.hero-versao{display:block;margin-top:14px;font-size:14px;color:#66758A}
+.hero-provas{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;color:#9AA8BA;font-size:15px}
+.hero-provas span{display:flex;align-items:center;gap:8px}
+.hero-provas svg{width:20px;height:20px;color:#3DDC97}
+.palco{position:relative;min-height:620px;display:flex;align-items:flex-end;justify-content:center}
+.placa{position:absolute;left:12%;right:-200px;bottom:0;height:58%;background:var(--menta);border-radius:26px 0 0 0}
+.cel-hero{width:310px;margin-bottom:46px;transform:rotate(-3deg);box-shadow:0 50px 90px -30px rgba(0,0,0,.85),0 0 0 1px #2c384a}
+@media(max-width:900px){.palco{min-height:0;padding-top:24px}.placa{left:8%}.cel-hero{width:260px}.hero-txt{padding-bottom:0}}
+
+/* recursos com ícones */
+.grade{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:980px){.grade{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.grade{grid-template-columns:1fr}}
+.card{background:var(--branco);border:1px solid var(--linha);border-radius:20px;padding:24px}
+.card .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:16px}
+.card .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-weight:600;font-size:18px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card p{color:var(--tinta2);font-size:15px}
+.tag-pro{font-size:12px;font-weight:700;background:#FFE68A;color:#5A4500;border-radius:6px;padding:1px 7px}
+.c-v{background:#DDF7EB;color:#14A86A}.c-a{background:#E1E8FF;color:#3B5BFF}.c-r{background:#EFE6FF;color:#8A55E8}
+.c-l{background:#FFEBDB;color:#D9701B}.c-c{background:#DAF5F8;color:#1596A6}.c-m{background:#FFF3C7;color:#A57A00}
+.dest{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+@media(max-width:860px){.dest{grid-template-columns:1fr}}
+.big{border-radius:24px;padding:36px;position:relative;overflow:hidden;color:#E8EEF5}
+.big.frio{background:linear-gradient(150deg,#0d2230,#0A0E14)}
+.big.tec{background:linear-gradient(150deg,#1c1530,#0A0E14)}
+.big-tit{font-weight:600;font-size:15px}
+.big h3{font-weight:600;font-size:27px;line-height:1.15;letter-spacing:-.02em;margin:10px 0 10px;max-width:420px}
+.big p{color:#9AA8BA;max-width:420px}
+.big ul{list-style:none;margin-top:18px;display:grid;gap:9px}
+.big li{display:flex;gap:10px;font-size:15.5px}
+.big li:before{content:"";width:18px;height:18px;flex:none;margin-top:4px;border-radius:6px;background:rgba(61,220,151,.16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233DDC97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12l4 4 8-8'/%3E%3C/svg%3E") center/12px no-repeat}
+.teclas{position:absolute;right:-6px;bottom:-12px;display:grid;grid-template-columns:repeat(3,46px);gap:8px;opacity:.25;transform:rotate(-8deg)}
+.teclas i{height:46px;border-radius:50%;border:2px solid #B57BFF;display:grid;place-items:center;font-style:normal;font-weight:700;color:#B57BFF}
+.termo{position:absolute;right:26px;top:22px;font-size:48px;font-weight:800;color:rgba(56,214,232,.18);letter-spacing:-.04em}
+
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.tela,.passo{transition:none}}
 </style>
 </head>
@@ -208,10 +264,20 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <defs>
   <symbol id="logo" viewBox="0 0 108 108"><rect width="108" height="108" rx="28" fill="#0E1726"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="8" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#3B5BFF"/></symbol>
   <symbol id="baixar" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-raio" viewBox="0 0 24 24"><path d="M3 12h4l2-5 3 10 2-6 1.5 3H21"/></symbol>
+  <symbol id="i-jogo" viewBox="0 0 24 24"><path d="M7 7h10a4.5 4.5 0 0 1 4.4 5.4l-.6 3a2.6 2.6 0 0 1-4.5 1.2L14.5 15h-5l-1.8 1.6a2.6 2.6 0 0 1-4.5-1.2l-.6-3A4.5 4.5 0 0 1 7 7z"/><path d="M8 10v3M6.5 11.5h3"/></symbol>
+  <symbol id="i-fps" viewBox="0 0 24 24"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-7"/><circle cx="12" cy="17" r="1.8"/></symbol>
+  <symbol id="i-temp" viewBox="0 0 24 24"><path d="M10 4.5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></symbol>
+  <symbol id="i-rede" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.7 15.8a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1.2"/></symbol>
+  <symbol id="i-limpa" viewBox="0 0 24 24"><path d="M4 6h16M9 6V4h6v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14M10 10v8M14 10v8"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-teclado" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1M10.5 10h1M14.5 10h1M8 14h8"/></symbol>
   <symbol id="certo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".16"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
  </defs>
 </svg>
 
+<main id="topo">
+<div class="topo-escuro">
 <div class="aviso">Novo: o app agora se atualiza sozinho, sem perder o Pro. <a href="#duvidas">Como funciona</a></div>
 
 <header class="nav">
@@ -227,63 +293,51 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  </div>
 </header>
 
-<main id="topo">
 <section class="hero">
  <div class="w hero-g">
   <div class="hero-txt">
-   <h1>Seu Android pronto para jogar no máximo</h1>
-   <a class="b b-azul b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
-   <p class="hero-sub">Mais FPS, menos calor e botões de emulador por cima de qualquer jogo. Tudo sem root e sem precisar de computador.
-    <span class="hero-versao" id="versao">Android 8 ou mais novo</span></p>
+   <span class="selo"><i></i>Para Android, sem root</span>
+   <h1>Seu celular no <em>modo jogo</em> de verdade</h1>
+   <p class="hero-lead">Mais FPS, menos calor e botões de emulador por cima do jogo. O SerpyraToolkit ajusta o Android sozinho, sem root e sem computador.</p>
+   <div class="hero-ctas">
+    <a class="b b-menta b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
+    <a class="b b-vidro b-grande" href="#como">Ver o que ele faz</a>
+   </div>
+   <span class="hero-versao" id="versao">Android 8 ou mais novo</span>
+   <div class="hero-provas">
+    <span><svg aria-hidden="true"><use href="#certo"/></svg>Grátis para usar</span>
+    <span><svg aria-hidden="true"><use href="#certo"/></svg>Sem anúncios</span>
+    <span><svg aria-hidden="true"><use href="#certo"/></svg>Atualiza pelo próprio app</span>
+   </div>
   </div>
 
-  <div class="palco">
-   <div class="placa" aria-hidden="true"></div>
-   <div class="aparelho">
-    <svg viewBox="0 0 800 370" role="img" aria-label="Jogo aberto no celular com os botões do teclado do SerpyraToolkit por cima e o medidor de FPS no canto">
-     <defs>
-      <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2A4A"/><stop offset=".62" stop-color="#3B3A6B"/><stop offset="1" stop-color="#E58A5B"/></linearGradient>
-      <linearGradient id="chao" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A2233"/><stop offset="1" stop-color="#0B0F18"/></linearGradient>
-     </defs>
-     <rect width="800" height="370" fill="url(#ceu)"/>
-     <circle cx="560" cy="190" r="46" fill="#FFC58A" opacity=".85"/>
-     <path d="M0 230 L90 170 L170 210 L260 140 L360 205 L450 160 L540 215 L640 150 L730 200 L800 175 L800 370 L0 370Z" fill="#26304A"/>
-     <path d="M0 270 L120 225 L230 262 L340 215 L470 268 L590 228 L700 262 L800 236 L800 370 L0 370Z" fill="url(#chao)"/>
-     <path d="M300 370 L380 280 L420 280 L500 370Z" fill="#2E3A55" opacity=".7"/>
-     <g fill="#0E1520"><rect x="96" y="214" width="26" height="40" rx="4"/><rect x="640" y="200" width="34" height="58" rx="4"/><rect x="680" y="222" width="20" height="36" rx="3"/></g>
-     <!-- personagem -->
-     <g transform="translate(392 238)"><ellipse cx="8" cy="44" rx="20" ry="5" fill="#000" opacity=".35"/><rect x="-2" y="6" width="20" height="30" rx="7" fill="#3DDC97"/><circle cx="8" cy="0" r="9" fill="#F2D3B5"/><rect x="0" y="34" width="6" height="10" rx="2" fill="#0E1726"/><rect x="10" y="34" width="6" height="10" rx="2" fill="#0E1726"/></g>
-     <!-- HUD do app -->
-     <g font-family="Bricolage Grotesque, system-ui, sans-serif" font-weight="700">
-      <rect x="18" y="16" width="104" height="30" rx="15" fill="#0A0E14" opacity=".78"/>
-      <circle cx="36" cy="31" r="5" fill="#3DDC97"/><text x="48" y="36" font-size="14" fill="#fff">90 FPS</text>
-      <rect x="130" y="16" width="86" height="30" rx="15" fill="#0A0E14" opacity=".78"/>
-      <text x="146" y="36" font-size="14" fill="#9FE8C6">38 °C</text>
-     </g>
-     <!-- botões estilo emulador -->
-     <g font-family="Bricolage Grotesque, system-ui, sans-serif" font-weight="700" text-anchor="middle">
-      <circle cx="112" cy="290" r="56" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".55" stroke-width="2.5"/>
-      <circle cx="124" cy="282" r="24" fill="#fff" fill-opacity=".42"/>
-      <text x="112" y="248" font-size="13" fill="#fff">W</text><text x="112" y="340" font-size="13" fill="#fff">S</text><text x="68" y="294" font-size="13" fill="#fff">A</text><text x="156" y="294" font-size="13" fill="#fff">D</text>
-      <g stroke="#fff" stroke-opacity=".6" stroke-width="2.5">
-       <circle cx="700" cy="296" r="36" fill="#3DDC97" fill-opacity=".55"/>
-       <circle cx="626" cy="314" r="25" fill="#fff" fill-opacity=".12"/>
-       <circle cx="654" cy="246" r="25" fill="#fff" fill-opacity=".12"/>
-       <circle cx="726" cy="222" r="22" fill="#fff" fill-opacity=".12"/>
-       <circle cx="752" cy="48" r="20" fill="#fff" fill-opacity=".12"/>
-      </g>
-      <text x="700" y="302" font-size="17" fill="#fff">J</text>
-      <text x="626" y="319" font-size="14" fill="#fff">K</text>
-      <text x="654" y="251" font-size="14" fill="#fff">L</text>
-      <text x="726" y="227" font-size="13" fill="#fff">Q</text>
-      <text x="752" y="53" font-size="12" fill="#fff">Esc</text>
-     </g>
-    </svg>
-   </div>
+  <div class="palco" aria-hidden="true">
+   <div class="placa"></div>
+   <div class="cel cel-hero"><div class="cel-tela">
+    <div class="tela on" style="padding-top:40px">
+     <div style="display:flex;justify-content:space-between;align-items:center"><h4>SerpyraToolkit</h4><span style="font-size:10px;font-weight:600;color:#3DDC97;background:rgba(61,220,151,.14);padding:3px 9px;border-radius:99px">Pro ativo</span></div>
+     <div class="bloco medidor" style="background:linear-gradient(150deg,#0F2A22,#101C30)">
+      <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#1E2733" stroke-width="3.6"/><circle cx="18" cy="18" r="15" fill="none" stroke="#3DDC97" stroke-width="3.6" stroke-linecap="round" pathLength="100" stroke-dasharray="87 100" transform="rotate(-90 18 18)"/><text x="18" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="system-ui">87</text></svg>
+      <div><b style="font-size:13px">Raio-X de desempenho</b><div class="sub" style="margin:2px 0 0">Pronto para jogar. 2 ajustes aplicados agora.</div></div>
+     </div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+      <div style="background:#3DDC97;color:#06281A;border-radius:14px;padding:12px 10px;font-weight:700"><svg viewBox="0 0 24 24" style="width:20px;height:20px;margin-bottom:6px" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10a4.5 4.5 0 0 1 4.4 5.4l-.6 3a2.6 2.6 0 0 1-4.5 1.2L14.5 15h-5l-1.8 1.6a2.6 2.6 0 0 1-4.5-1.2l-.6-3A4.5 4.5 0 0 1 7 7z"/><path d="M8 10v3M6.5 11.5h3"/></svg>Modo Jogo</div>
+      <div class="bloco" style="font-weight:700;padding:12px 10px"><svg viewBox="0 0 24 24" style="width:20px;height:20px;margin-bottom:6px;color:#3DDC97" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-7"/><circle cx="12" cy="17" r="1.8"/></svg>Tuner</div>
+     </div>
+     <div style="display:flex;gap:8px">
+      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">38°C</b><span class="sub" style="margin:0">bateria</span></div>
+      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">120 Hz</b><span class="sub" style="margin:0">tela</span></div>
+      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">3,1 GB</b><span class="sub" style="margin:0">RAM livre</span></div>
+     </div>
+     <div class="linha-ui"><i style="background:rgba(181,123,255,.16);color:#B57BFF">⌨</i><div><b>Teclado e controles</b><span>Botões por cima do jogo</span></div></div>
+     <div class="linha-ui"><i style="background:rgba(56,214,232,.14);color:#38D6E8">❄</i><div><b>Modo Frio</b><span>Segura o calor sem perder o boost</span></div></div>
+     <div class="linha-ui"><i style="background:rgba(76,141,255,.15);color:#4C8DFF">◔</i><div><b>Rede para jogos</b><span>Ping, jitter e DNS mais rápido</span></div></div>
+    </div>
+   </div></div>
   </div>
  </div>
 </section>
-
+</div>
 <div class="fatos">
  <div class="w">
   <span><svg aria-hidden="true"><use href="#certo"/></svg>Funciona sem root</span>
@@ -375,20 +429,38 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 <section class="sec" id="ferramentas">
  <div class="w">
   <div class="sec-cab">
-   <h2>E fora do jogo também</h2>
-   <p>Ferramentas para manter o celular leve, seguro e saudável.</p>
+   <h2>Tudo que um gamer de celular precisa, num app só</h2>
+   <p>Cada ferramenta mostra o que vai fazer antes, e dá para desfazer tudo quando quiser.</p>
   </div>
-  <div class="ferr">
-   <a href="/apk"><b>Limpeza</b><span>Cache, arquivos grandes e duplicados, e quanto cada jogo ocupa de verdade.</span></a>
-   <a href="/apk"><b>Temperatura</b><span>Monitor em tempo real, teste de calor e alerta quando passar do limite.</span></a>
-   <a href="/apk"><b>Segurança</b><span>Procura apps espiões e golpes, e verifica APKs com cerca de 70 antivírus.</span></a>
-   <a href="/apk"><b>Teste de desempenho</b><span>Força do processador e se ele perde rendimento quando esquenta.</span></a>
-   <a href="/apk"><b>Saúde do celular</b><span>Bateria, ciclos de carga, tempo ligado e armazenamento.</span></a>
-   <a href="/apk"><b>Desfazer alterações</b><span>Tudo que o app muda fica registrado e volta ao normal com um toque.</span></a>
+  <div class="grade">
+   <div class="card"><div class="ic c-v"><svg><use href="#i-raio"/></svg></div><h3>Raio-X</h3><p>Nota de 0 a 100 para o seu celular e correção com um toque.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-jogo"/></svg></div><h3>Modo Jogo</h3><p>Silencia, libera memória, abre o jogo e vigia o calor até você sair.</p></div>
+   <div class="card"><div class="ic c-m"><svg><use href="#i-fps"/></svg></div><h3>Tuner de jogos <span class="tag-pro">Pro</span></h3><p>Resolução, limite de FPS e modo de desempenho para cada jogo.</p></div>
+   <div class="card"><div class="ic c-r"><svg><use href="#i-teclado"/></svg></div><h3>Teclado e controles <span class="tag-pro">Pro</span></h3><p>Botões de emulador por cima do jogo, com toque, analógico e macro.</p></div>
+   <div class="card"><div class="ic c-c"><svg><use href="#i-temp"/></svg></div><h3>Temperatura</h3><p>Monitor em tempo real, teste de calor e alerta quando passar do limite.</p></div>
+   <div class="card"><div class="ic c-a"><svg><use href="#i-rede"/></svg></div><h3>Rede para jogos</h3><p>Ping, jitter e perda, teste de velocidade e o DNS mais rápido.</p></div>
+   <div class="card"><div class="ic c-l"><svg><use href="#i-limpa"/></svg></div><h3>Limpeza</h3><p>Cache, arquivos grandes e duplicados, e quanto cada jogo ocupa.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-escudo"/></svg></div><h3>Segurança</h3><p>Procura apps espiões e golpes, e verifica APKs com cerca de 70 antivírus.</p></div>
+  </div>
+
+  <div class="dest">
+   <div class="big frio">
+    <span class="termo" aria-hidden="true">−°C</span>
+    <span class="big-tit" style="color:#38D6E8">Modo Frio</span>
+    <h3>Jogue mais tempo sem o celular virar um forno</h3>
+    <p>O Modo Frio acompanha a temperatura durante a partida e segura o calor sem desligar o boost do Modo Jogo.</p>
+    <ul><li>Vigia o calor durante toda a partida</li><li>Mantém o boost ligado</li><li>Histórico de cada sessão, com temperatura e bateria</li></ul>
+   </div>
+   <div class="big tec">
+    <div class="teclas" aria-hidden="true"><i>W</i><i>E</i><i>R</i><i>A</i><i>S</i><i>D</i></div>
+    <span class="big-tit" style="color:#B57BFF">Teclado e controles</span>
+    <h3>Controles de emulador por cima de qualquer jogo</h3>
+    <p>Monte seu layout de botões como nos emuladores de PC e use teclado ou controle físico no celular.</p>
+    <ul><li>Botão, analógico e macro</li><li>Teclado e controle físico</li><li>Um layout salvo para cada jogo</li></ul>
+   </div>
   </div>
  </div>
 </section>
-
 <section class="sec planos" id="planos" style="padding-top:40px">
  <div class="w">
   <div class="sec-cab">
