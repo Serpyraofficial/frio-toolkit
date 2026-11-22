@@ -1,8 +1,8 @@
 {
- "versionCode": 52,
- "versionName": "5.2",
- "notas": "- Atualização pelo próprio app: quando sair versão nova, ele avisa e instala com a sua autorização\n- Seu Pro continua ativo depois de atualizar\n- Botão \"Já comprei: recuperar meu Pro\" para quem reinstalar o app",
- "sha256": "1437d62dd314e142deb2924aabe67f7f0fd771aa48fc0b16d66f57a9dd0bebea",
- "tamanho": 1115309,
- "arquivo": "SerpyraToolkit-5.2-1437d62dd3.apk"
+ "versionCode": 53,
+ "versionName": "5.3",
+ "notas": "- Teste o Pro grátis por 3 dias\n- Planos de 1, 3 e 6 meses, com desconto nos maiores\n- Cupons de desconto na hora de assinar\n- Trocou de celular? Passe o Pro pelo e-mail da compra\n- Mira na tela para jogos de tiro (Pro)\n- Ping no painel do Modo Jogo\n- O Modo Jogo pode abrir os seus botões do teclado junto com o jogo (Pro)\n- Atalhos: segure o ícone do app para abrir Modo Jogo, Botões, Mira ou Raio-X\n- Aviso 2 dias antes do Pro vencer",
+ "sha256": "dc758cc2c75cf9245febda3efb910e1d920dfcfd22e7fdc7e0dc99c097ea20bf",
+ "tamanho": 1135953,
+ "arquivo": "SerpyraToolkit-5.3-dc758cc2c7.apk"
 }
