@@ -33,9 +33,70 @@ object Vendedor {
     const val NOME = "PC Toolkit"     // nome no QR (o banco do cliente mostra o titular real da chave)
     const val CIDADE = "Brasil"
     const val WHATSAPP = ""           // numero com DDI e DDD, so digitos (ex.: 5511999998888)
+    /** Endereco do servidor de vendas (Cloudflare Worker). Vazio = so o Pix manual. */
+    const val SERVIDOR = ""
     const val PRECO = "10.00"
     const val PRECO_TXT = "R$ 10"
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
+    fun automatico() = SERVIDOR.startsWith("https://")
+}
+
+/** Compra automatica: Pix pela PurinCash, chave por e-mail e ativacao sozinha. */
+object Compra {
+    class Pedido(val id: String, val numero: String, val brCode: String, val qr: String, val teste: Boolean)
+    class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String)
+
+    private fun http(metodo: String, caminho: String, corpo: String?): Pair<Int, String> {
+        val c = URL(Vendedor.SERVIDOR.trimEnd('/') + caminho).openConnection() as HttpURLConnection
+        c.requestMethod = metodo; c.connectTimeout = 15000; c.readTimeout = 25000
+        if (corpo != null) { c.doOutput = true; c.setRequestProperty("content-type", "application/json"); c.outputStream.use { it.write(corpo.toByteArray()) } }
+        val code = c.responseCode
+        val t = try { (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: "" } catch (e: Exception) { "" }
+        c.disconnect()
+        return Pair(code, t)
+    }
+
+    /** Cria o Pix. Devolve o pedido ou lanca erro com a mensagem para o usuario. */
+    fun criar(email: String): Pedido {
+        val atual = if (Licenca.ativo()) Licenca.diaValidade() else 0
+        val corpo = org.json.JSONObject().put("codigo", Licenca.codigo()).put("email", email).put("atual", atual).toString()
+        val (code, t) = http("POST", "/pedido", corpo)
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        if (code !in 200..299) throw IllegalStateException(o.optString("erro", "Não consegui gerar o Pix (erro $code)."))
+        val p = Pedido(o.getString("pedido"), o.optString("numero"), o.optString("brCode"), o.optString("qr"), o.optBoolean("teste"))
+        Store.putStr("lic_pedido", p.id); Store.putStr("lic_pedido_num", p.numero); Store.putStr("lic_pedido_br", p.brCode); Store.putStr("lic_pedido_qr", p.qr)
+        Store.putStr("lic_pedido_em", System.currentTimeMillis().toString())
+        Store.putStr("lic_email", email)
+        return p
+    }
+
+    fun consultar(id: String): Status? {
+        return try {
+            val (code, t) = http("GET", "/status?pedido=" + Uri.encode(id), null)
+            if (code == 404) return Status(false, "", "", false, "desconhecido")
+            val o = org.json.JSONObject(t)
+            Status(o.optString("status") == "pago", o.optString("chave"), o.optString("validade"), o.optBoolean("email"), o.optString("status"))
+        } catch (e: Exception) { null }
+    }
+
+    /** Confere um pedido pendente (ao abrir o app). Ativa sozinho se ja foi pago. */
+    fun conferirPendente(): Boolean {
+        if (!Vendedor.automatico()) return false
+        val id = Store.str("lic_pedido")
+        if (id.isEmpty()) return false
+        val desde = Store.str("lic_pedido_em").toLongOrNull() ?: 0L
+        val st = consultar(id) ?: return false
+        if (st.pago && st.chave.isNotEmpty()) { Licenca.ativar(st.chave); limpar(); return true }
+        if (st.outro == "expired" || st.outro == "cancelled" || st.outro == "desconhecido" || System.currentTimeMillis() - desde > 2 * 86_400_000L) limpar()
+        return false
+    }
+
+    fun limpar() { for (k in listOf("lic_pedido", "lic_pedido_num", "lic_pedido_br", "lic_pedido_qr", "lic_pedido_em")) Store.putStr(k, "") }
+
+    fun imagem(dataUri: String): Bitmap? = try {
+        val b = Base64.decode(dataUri.substringAfter("base64,"), Base64.DEFAULT)
+        android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)
+    } catch (e: Exception) { null }
 }
 
 /**
@@ -229,6 +290,8 @@ fun MainActivity.telaPro() {
     }
     col.addView(st, Ui.linhaLp(this, 0, 6))
 
+    if (Vendedor.automatico()) { secaoAutomatica(col, ativo); secaoChave(col); setContentView(raiz(col)); return }
+
     // passo 1: codigo
     col.addView(Ui.secao(this, if (ativo) "Renovar (os dias se somam)" else "Como assinar"))
     val c1 = Ui.vertical(this)
@@ -270,11 +333,102 @@ fun MainActivity.telaPro() {
     }
     col.addView(c2, Ui.linhaLp(this))
 
+    secaoChave(col)
+    setContentView(raiz(col))
+}
+
+@Volatile private var vigiaPix = 0
+
+/** Assinar com Pix automatico: e-mail -> QR -> confirma sozinho -> chave por e-mail. */
+private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
+    col.addView(Ui.secao(this, if (ativo) "Renovar (os dias se somam)" else "Assinar com Pix"))
+    val c = Ui.vertical(this)
+    c.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
+    c.background = Ui.forma(this, T.surface, 18, T.outline)
+    c.addView(Ui.texto(this, "Seu e-mail", 14.5f, T.texto, Ui.medio))
+    c.addView(Ui.texto(this, "Você recebe nele o pedido, a confirmação da compra e a sua chave de 30 dias.", 12f, T.texto3))
+    val et = EditText(this)
+    et.hint = "voce@email.com"
+    et.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+    et.setText(Store.str("lic_email"))
+    et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
+    c.addView(et)
+    val area = Ui.vertical(this)
+    val msg = Ui.texto(this, "", 13f, T.texto2)
+    msg.setPadding(0, Ui.dp(this, 8), 0, 0)
+    val botao = Ui.botao(this, "Gerar Pix de ${Vendedor.PRECO_TXT}", T.verde, true) { }
+    c.addView(botao, Ui.linhaLp(this, 12, 0))
+    c.addView(msg)
+    c.addView(area)
+    col.addView(c, Ui.linhaLp(this))
+
+    fun mostrarPix(numero: String, br: String, qr: String, teste: Boolean) {
+        area.removeAllViews()
+        val iv = ImageView(this)
+        val bmp = Compra.imagem(qr) ?: (if (br.isNotEmpty()) try { Licenca.qr(br, 600) } catch (e: Exception) { null } else null)
+        if (bmp != null) iv.setImageBitmap(bmp)
+        iv.setBackgroundColor(0xFFFFFFFF.toInt()); iv.setPadding(Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8))
+        val lpq = LinearLayout.LayoutParams(Ui.dp(this, 220), Ui.dp(this, 220)); lpq.gravity = Gravity.CENTER_HORIZONTAL; lpq.topMargin = Ui.dp(this, 12)
+        area.addView(iv, lpq)
+        val n = Ui.texto(this, "Pedido $numero · ${Vendedor.PRECO_TXT}" + if (teste) " · MODO DE TESTE" else "", 12.5f, T.texto2)
+        n.gravity = Gravity.CENTER; n.setPadding(0, Ui.dp(this, 8), 0, 0)
+        area.addView(n, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (br.isNotEmpty()) area.addView(Ui.botao(this, "Copiar Pix copia e cola", T.verde, false) { copiar("pix", br) }, Ui.linhaLp(this, 10, 0))
+    }
+
+    fun vigiar(id: String) {
+        val meu = ++vigiaPix
+        msg.text = "Aguardando o pagamento… o Pro ativa sozinho assim que o Pix cair."; msg.setTextColor(T.azul)
+        Thread {
+            val fim = System.currentTimeMillis() + 30 * 60_000L
+            while (vigiaPix == meu && System.currentTimeMillis() < fim) {
+                val st = Compra.consultar(id)
+                if (st != null && st.pago && st.chave.isNotEmpty()) {
+                    val (ok, m) = Licenca.ativar(st.chave)
+                    Compra.limpar()
+                    runOnUiThread {
+                        msg.text = (if (ok) "Pagamento confirmado! Pro ativo até ${st.validade}." else m) + if (st.emailEnviado) "\nEnviamos o pedido e a chave para o seu e-mail." else ""
+                        msg.setTextColor(if (ok) T.verde else T.amarelo)
+                        msg.postDelayed({ mostrar() }, 3500)
+                    }
+                    return@Thread
+                }
+                if (st != null && (st.outro == "expired" || st.outro == "cancelled")) {
+                    Compra.limpar()
+                    runOnUiThread { msg.text = "Este Pix expirou. Gere um novo."; msg.setTextColor(T.amarelo); area.removeAllViews() }
+                    return@Thread
+                }
+                try { Thread.sleep(4000) } catch (e: InterruptedException) { }
+            }
+        }.start()
+    }
+
+    botao.setOnClickListener {
+        val email = et.text.toString().trim()
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { msg.text = "Digite um e-mail válido."; msg.setTextColor(T.vermelho); return@setOnClickListener }
+        msg.text = "Gerando o Pix…"; msg.setTextColor(T.texto2)
+        botao.isEnabled = false
+        Thread {
+            try {
+                val p = Compra.criar(email)
+                runOnUiThread { botao.isEnabled = true; mostrarPix(p.numero, p.brCode, p.qr, p.teste); vigiar(p.id) }
+            } catch (e: Exception) {
+                runOnUiThread { botao.isEnabled = true; msg.text = e.message ?: "Sem conexão. Tente de novo."; msg.setTextColor(T.vermelho) }
+            }
+        }.start()
+    }
+
+    // retoma um Pix ja gerado (o app foi fechado antes de pagar)
+    val pend = Store.str("lic_pedido")
+    if (pend.isNotEmpty()) { mostrarPix(Store.str("lic_pedido_num"), Store.str("lic_pedido_br"), Store.str("lic_pedido_qr"), false); vigiar(pend) }
+}
+
+private fun MainActivity.secaoChave(col: LinearLayout) {
     // passo 3: ativar
     val c3 = Ui.vertical(this)
     c3.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
     c3.background = Ui.forma(this, T.surface, 18, T.outline)
-    c3.addView(Ui.texto(this, "3. Cole a chave que você recebeu", 14.5f, T.texto, Ui.medio))
+    c3.addView(Ui.texto(this, if (Vendedor.automatico()) "Já tem uma chave? Cole aqui" else "3. Cole a chave que você recebeu", 14.5f, T.texto, Ui.medio))
     val et = EditText(this)
     et.hint = "PCT-…"
     et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
@@ -295,5 +449,4 @@ fun MainActivity.telaPro() {
     }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     c3.addView(linha, Ui.linhaLp(this, 10, 0))
     col.addView(c3, Ui.linhaLp(this))
-    setContentView(raiz(col))
 }

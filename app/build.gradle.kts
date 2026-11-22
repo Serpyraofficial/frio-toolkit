@@ -11,8 +11,8 @@ android {
         applicationId = "com.pctoolkit.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 49
-        versionName = "4.9"
+        versionCode = 50
+        versionName = "5.0"
     }
 
     buildTypes {
