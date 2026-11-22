@@ -33,8 +33,8 @@ object Vendedor {
     const val NOME = "PC Toolkit"     // nome no QR (o banco do cliente mostra o titular real da chave)
     const val CIDADE = "Brasil"
     const val WHATSAPP = ""           // numero com DDI e DDD, so digitos (ex.: 5511999998888)
-    const val PRECO = "15.00"
-    const val PRECO_TXT = "R$ 15"
+    const val PRECO = "10.00"
+    const val PRECO_TXT = "R$ 10"
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
 }
 
