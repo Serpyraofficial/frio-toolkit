@@ -1,240 +1,167 @@
 package com.pctoolkit.mobile
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
-import android.os.storage.StorageManager
+import android.os.SystemClock
+import android.provider.DocumentsContract
 import android.provider.Settings
 import java.io.File
+import java.util.Locale
 
-/** SECAO 8: APARENCIA E DESEMPENHO INTELIGENTE. */
-object Aparencia {
-    fun nomeEstilo(i: Int) = when (i) { 0 -> "MAXIMO DESEMPENHO"; 1 -> "EQUILIBRADO"; else -> "VISUAL + RAPIDO" }
-
-    class Hw(val ramGb: Int, val ghz: Double, val hz: Float, val pontos: Int, val estilo: Int)
-
-    fun hardware(ctx: Context): Hw {
-        val ram = (Sensores.memoria(ctx).totalMem / (1024L * 1024 * 1024)).toInt() + 1
-        val pols = if (Sh.temRoot()) Cpu.politicas() else emptyList()
-        val ghz = (pols.maxOfOrNull { it.max } ?: 0) / 1_000_000.0
-        val (_, hz) = Sensores.tela(ctx)
-        var p = 0
-        if (ram >= 8) p += 2 else if (ram >= 6) p += 1
-        if (ghz >= 2.8) p += 2 else if (ghz >= 2.2) p += 1
-        if (hz >= 119) p += 1
-        val e = when { p >= 4 -> 2; p >= 2 -> 1; else -> 0 }
-        return Hw(ram, ghz, hz, p, e)
-    }
-
-    fun aplicar(idx: Int, ctx: Context): Boolean {
-        val u = Undo.global
-        val anim = if (idx == 0) "0" else "0.5"
-        for (k in listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")) u.setting("global", k, anim)
-        if (Build.VERSION.SDK_INT >= 31) u.setting("global", "disable_window_blurs", if (idx == 2) "0" else "1")
-        if (Build.VERSION.SDK_INT >= 31 && idx == 0) u.setting("secure", "accessibility_reduce_transparency", "1")
-        val (_, max) = Sensores.tela(ctx)
-        if (max > 61) u.setting("system", "peak_refresh_rate", String.format(java.util.Locale.US, "%.1f", max))
-        Log2.registrar("Aparencia: estilo $idx")
-        return true
-    }
-
-    fun executar(con: Console, ctx: Context) {
-        con.titulo("APARENCIA E DESEMPENHO INTELIGENTE")
-        con.linha("Ajusta animacoes, desfoque, transparencia e taxa da tela conforme o SEU hardware.")
-        if (!con.exigeRoot()) return
-        val hw = hardware(ctx)
-        con.linha("Seu hardware:", C.ciano)
-        con.linha("  RAM: ${hw.ramGb} GB  |  CPU ate " + String.format(java.util.Locale.US, "%.2f GHz", hw.ghz) + "  |  tela " + String.format(java.util.Locale.US, "%.0f Hz", hw.hz))
-        con.linha("  Pontuacao: ${hw.pontos}/5 -> estilo recomendado: ${nomeEstilo(hw.estilo)}", C.amarelo)
-        con.linha("Estado atual: animacoes " + Sh.setting("global", "animator_duration_scale").ifEmpty { "1.0" } + "x, desfoque " + (if (Sh.setting("global", "disable_window_blurs") == "1") "desligado" else "ligado"), C.cinza)
-        val op = con.escolher("Escolha o estilo", listOf(
-            "AUTOMATICO - o recomendado para o seu celular (${nomeEstilo(hw.estilo)})",
-            "MAXIMO DESEMPENHO - sem animacoes, sem desfoque, menos transparencia",
-            "EQUILIBRADO - animacoes rapidas (0.5x), sem desfoque",
-            "VISUAL + RAPIDO - animacoes rapidas, mantem o desfoque"
-        ))
+/** APARENCIA, MANUTENCAO, BACKUP e DESFAZER. */
+object Sistema {
+    // ---------------- aparencia ----------------
+    fun aparencia(con: Console) {
+        con.titulo("Aparência e fluidez")
+        con.linha("Equilíbrio entre visual bonito e sistema rápido.", T.texto2)
+        val anim = Ajuste.ler("global", "animator_duration_scale").ifEmpty { "1" }
+        val blur = Ajuste.ler("global", "disable_window_blurs")
+        con.linha("Animações: ${anim}x" + if (Build.VERSION.SDK_INT >= 31) " · Desfoque de janelas: " + if (blur == "1") "desligado" else "ligado" else "")
+        val op = con.escolher("Estilo", listOf("Máximo desempenho (sem animações e sem desfoque)", "Equilibrado (animações 0.5x)", "Visual completo (padrão do Android)"))
         if (op < 0) return
-        val idx = if (op == 0) hw.estilo else op - 1
-        if (aplicar(idx, ctx)) con.ok("Estilo aplicado: ${nomeEstilo(idx)} (vale na hora)")
-        if (con.ask("Usar TEMA ESCURO? Em tela OLED gasta menos bateria e esquenta menos.")) {
-            val atual = Sh.root("cmd uimode night", 10).out.lowercase()
-            val antes = if (atual.contains("yes")) "yes" else if (atual.contains("auto")) "auto" else "no"
-            Undo.global.comando("uimode", "cmd uimode night yes", "cmd uimode night $antes")
-            con.ok("Tema escuro ligado")
+        val v = listOf("0", "0.5", "1")[op]
+        if (Ajuste.pode()) {
+            for (k in listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")) Ajuste.mudar("global", k, v)
+            if (Build.VERSION.SDK_INT >= 31) Ajuste.mudar("global", "disable_window_blurs", if (op == 0) "1" else "0")
+            con.ok("Estilo aplicado (reversível em Desfazer)")
+        } else {
+            con.linha("Vou abrir as Opções do desenvolvedor. Ajuste as três “Escala de animação” para ${v}x" + if (op == 0 && Build.VERSION.SDK_INT >= 31) " e ligue “Desativar desfoque de janelas”." else ".", T.azul)
+            con.info("Se não abrir: Configurações > Sobre o telefone > toque 7 vezes em “Número da versão”.")
+            con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
         }
-        con.linha("")
-        con.linha("Memoria virtual (equivale ao arquivo de paginacao do Windows):", C.ciano)
-        val swaps = Sh.ler("/proc/swaps").lines().drop(1).filter { it.isNotBlank() }
-        if (swaps.isEmpty()) con.aviso("Sem memoria virtual (zram/swap). Em celular com pouca RAM, os apps recarregam toda hora.")
-        else for (s in swaps) { val p = s.trim().split(Regex("\\s+")); con.linha("  ${p[0]}: ${fmtTam((p.getOrNull(2)?.toLongOrNull() ?: 0L) * 1024)}") }
-        con.info("'Expansao de RAM'/'RAM Plus' do fabricante: ajuda com 4-6 GB de RAM; com 8 GB+ pode desligar para menos escrita no armazenamento.")
-        if (hw.ramGb <= 4) con.info("Seu celular tem pouca RAM: mantenha a memoria virtual ligada.")
-    }
-}
-
-/** SECAO 6: MANUTENCAO. */
-object Manutencao {
-    fun dexopt(con: Console) {
-        if (!con.exigeRoot()) return
-        con.info("Otimizando (compilando) os apps... pode levar de 2 a 15 minutos. Nao feche o app.")
-        val r = Sh.root("cmd package bg-dexopt-job 2>&1", 1800)
-        if (r.ok) con.ok("Apps otimizados") else con.aviso("O Android nao concluiu a otimizacao: " + (r.out + r.err).take(160))
-    }
-
-    fun reparar(con: Console, ctx: Context) {
-        con.titulo("REPARAR / OTIMIZAR O SISTEMA")
-        con.linha("Equivale ao DISM + SFC do Windows: recompila os apps (ART), libera caches do sistema e mostra quem anda travando.")
-        if (!con.exigeRoot()) return
-        if (!con.ask("Executar agora? (pode levar alguns minutos)")) return
-        con.linha("[1/3] Liberando caches do sistema...", C.amarelo)
-        Sh.root("pm trim-caches 999G", 120); con.ok("Caches do sistema liberados")
-        con.linha("[2/3] Otimizando os apps (ART)...", C.amarelo)
-        dexopt(con)
-        con.linha("[3/3] Apps que mais travaram/fecharam sozinhos recentemente:", C.amarelo)
-        val crashes = HashMap<String, Int>()
-        for (tag in listOf("data_app_crash", "data_app_anr", "system_app_crash")) {
-            val out = Sh.root("dumpsys dropbox $tag --print 2>/dev/null | grep '^Process:'", 60).out
-            for (l in out.lines()) { val p = l.removePrefix("Process:").trim(); if (p.isNotEmpty()) crashes[p] = (crashes[p] ?: 0) + 1 }
-        }
-        if (crashes.isEmpty()) con.ok("Nenhum travamento registrado.")
-        for ((p, n) in crashes.entries.sortedByDescending { it.value }.take(10)) con.linha("  $n x  " + Jogos.nome(ctx, p) + " ($p)", if (n >= 3) C.amarelo else C.texto)
-        if (crashes.values.any { it >= 3 }) con.info("App que trava muito: limpe os dados dele, atualize ou reinstale.")
-    }
-
-    fun trim(con: Console) {
-        con.titulo("OTIMIZAR ARMAZENAMENTO (TRIM)")
-        con.linha("Equivale ao 'Otimizar unidades' do Windows para SSD: o armazenamento do celular (UFS/eMMC) volta a gravar rapido.")
-        if (!con.exigeRoot()) return
-        val r = Sh.root("sm fstrim 2>&1", 900)
-        if (r.ok) con.ok("TRIM concluido") else con.aviso("O Android nao aceitou o comando agora (ele tambem faz isso sozinho de madrugada carregando).")
-    }
-
-    fun atualizacoes(con: Console, ctx: Context) {
-        con.titulo("ATUALIZACOES E DRIVER DE VIDEO")
-        con.linha("Sistema: ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}, patch de seguranca " + (if (Build.VERSION.SDK_INT >= 23) Build.VERSION.SECURITY_PATCH else "?"))
-        con.linha("No celular o 'driver de video' vem junto com a atualizacao do sistema. Alguns aparelhos tambem")
-        con.linha("recebem o driver de jogos atualizavel (Game Driver) pela loja: use Ajustes por jogo para ativar.")
-        con.abrirConfig("android.settings.SYSTEM_UPDATE_SETTINGS", Settings.ACTION_DEVICE_INFO_SETTINGS)
-        if (con.ask("Abrir a Play Store para atualizar os apps/jogos tambem?")) {
-            val i = ctx.packageManager.getLaunchIntentForPackage("com.android.vending")
-            if (i != null) con.abrir(i)
+        if (op == 0) {
+            con.info("Tema escuro economiza bateria em telas AMOLED.")
+            if (con.ask("Abrir Tela para ativar o tema escuro?")) con.abrirEEsperar(Intent(Settings.ACTION_DISPLAY_SETTINGS))
         }
     }
-}
 
-/** SECAO 2: MEGAZORD - backup conferido + restauracao de fabrica. */
-object Megazord {
-    @Volatile var backupOk: String? = null
-
-    private fun volumesExternos(ctx: Context): List<Pair<String, String>> {
-        val r = ArrayList<Pair<String, String>>()
-        val sm = ctx.getSystemService(Context.STORAGE_SERVICE) as StorageManager
-        for (v in sm.storageVolumes) {
-            if (v.isPrimary) continue
-            val uuid = v.uuid ?: continue
-            val nome = v.getDescription(ctx)
-            r.add(Pair("/mnt/media_rw/$uuid", "$nome ($uuid)"))
-        }
-        return r
-    }
-
-    private fun checagens(con: Console, ctx: Context) {
-        con.titulo("CHECAGENS")
+    // ---------------- manutencao ----------------
+    fun saude(con: Console) {
+        val ctx = con.ctx
+        con.titulo("Saúde do celular")
+        con.linha("${Build.MANUFACTURER} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", T.azul)
+        con.info("Processador: ${Sensores.soc()} · ${Runtime.getRuntime().availableProcessors()} núcleos")
+        con.info("Atualização de segurança: ${Build.VERSION.SECURITY_PATCH}")
         val b = Sensores.bateria(ctx)
-        if (b.nivel >= 50 || b.carregando) con.ok("Bateria ${b.nivel}%" + if (b.carregando) " (carregando)" else "") else con.aviso("Bateria em ${b.nivel}%: coloque para carregar antes de restaurar.")
-        if (Sh.temRoot()) con.ok("Root liberado") else con.aviso("Sem root: o backup fica limitado")
-        con.aviso("Confirme que voce sabe a senha da conta Google (e Samsung/Xiaomi, se tiver): depois da restauracao o celular pede (protecao FRP).")
-        con.info("WhatsApp: faca o backup PELO PROPRIO WhatsApp (Configuracoes > Conversas > Backup) - so a midia e copiada aqui.")
-        con.info("Fotos: se usa Google Fotos com backup ligado, confira se esta tudo sincronizado.")
+        con.subtitulo("Bateria")
+        con.linha("Saúde informada: " + Sensores.nomeSaude(b.saude), if (b.saude == android.os.BatteryManager.BATTERY_HEALTH_GOOD) T.verde else T.amarelo)
+        b.ciclos?.let { con.linha("Ciclos de carga: $it", if (it > 800) T.vermelho else if (it > 500) T.amarelo else T.verde); if (it > 500) con.info("Acima de ~500 ciclos a bateria costuma ter 80% ou menos da capacidade original.") }
+        con.info("Tensão: ${b.tensaoMv} mV · Temperatura: ${f1(b.tempC)} °C")
+        con.subtitulo("Uso")
+        val horas = SystemClock.elapsedRealtime() / 3_600_000
+        con.linha("Ligado há: " + if (horas >= 24) "${horas / 24} dias e ${horas % 24} h" else "$horas h", if (horas >= 168) T.amarelo else T.texto)
+        if (horas >= 168) con.aviso("Mais de uma semana sem reiniciar. Reiniciar limpa a memória e resolve lentidão e travadinhas.")
         val (livre, total) = Sensores.armazenamento()
-        con.linha("Armazenamento: ${fmtTam(total - livre)} usados de ${fmtTam(total)}")
+        con.linha("Armazenamento: ${fmtTam(livre)} livres de ${fmtTam(total)}", if (total > 0 && livre * 100 / total < 10) T.vermelho else T.texto)
+        val m = Sensores.memoria(ctx)
+        con.linha("Memória: ${fmtTam(m.availMem)} livres de ${fmtTam(m.totalMem)}")
+        val ns = Store.str("seg_ultimo")
+        if (ns.isNotEmpty()) con.info("Última verificação de segurança: $ns")
     }
 
-    private fun inventario(con: Console, ctx: Context, pasta: String) {
-        Sh.root("mkdir -p ${Sh.q(pasta)}", 10)
-        val pm = ctx.packageManager
-        val apps = Jogos.todosApps(ctx).joinToString("\n") { it.nome + "  [" + it.pkg + "]  instalado por: " + (Seguranca.instalador(pm, it.pkg) ?: "?") }
-        Sh.gravar("$pasta/apps-instalados.txt", apps)
-        con.ok("Lista de apps instalados salva")
-        val jogos = Jogos.instalados(ctx).joinToString("\n") { it.nome + "  [" + it.pkg + "]" }
-        Sh.gravar("$pasta/jogos-instalados.txt", jogos)
-        con.ok("Lista de jogos salva")
-        val wifi = Sh.root("cat /data/misc/apexdata/com.android.wifi/WifiConfigStore.xml 2>/dev/null || cat /data/misc/wifi/WifiConfigStore.xml 2>/dev/null", 15).out
-        val redes = Regex("<string name=\"SSID\">&quot;(.*?)&quot;</string>").findAll(wifi).map { it.groupValues[1] }.toList()
-        if (redes.isNotEmpty()) { Sh.gravar("$pasta/redes-wifi.txt", redes.joinToString("\n")); con.ok("Nomes das redes Wi-Fi salvos (${redes.size})") }
-        val check = listOf(
-            "CHECKLIST POS-RESTAURACAO", "========================", "${Build.MANUFACTURER} ${Build.MODEL} - Android ${Build.VERSION.RELEASE}", "",
-            "1. Configure o celular e entre na conta Google (tenha a senha e o 2o fator por perto).",
-            "2. Atualize o sistema (Configuracoes > Atualizacao) ate nao ter mais nada.",
-            "3. Restaure o WhatsApp pelo backup do proprio WhatsApp ANTES de copiar a midia de volta.",
-            "4. Reinstale so os apps que usa, consultando apps-instalados.txt (de preferencia pela Play Store).",
-            "5. Jogos: reinstale pela loja; o progresso costuma voltar pela conta do jogo (Google Play Games, Facebook, conta propria).",
-            "6. Copie de volta as pastas do backup (DCIM, Pictures, Download...).",
-            "7. Root: reinstale o Magisk/KernelSU/APatch se quiser (a restauracao pode remover).",
-            "8. Depois rode o PC Toolkit Mobile: Assistente (opcao 1) deixa limpeza, FPS e seguranca prontos."
-        ).joinToString("\n")
-        Sh.gravar("$pasta/CHECKLIST-POS-RESTAURACAO.txt", check)
-        con.ok("Checklist pos-restauracao salvo")
-    }
-
-    fun preparar(con: Console, ctx: Context) {
-        backupOk = null
-        checagens(con, ctx)
-        if (!con.exigeRoot()) return
-        con.titulo("DESTINO DO BACKUP")
-        con.linha("O backup precisa sair do celular: cartao SD, pen drive (OTG) ou copiar a pasta para o PC pelo cabo.", C.amarelo)
-        val vols = volumesExternos(ctx)
-        val ops = vols.map { "Cartao/pen drive: " + it.second } + listOf("Pasta no armazenamento interno (voce copia para o PC pelo cabo depois)")
-        val e = con.escolher("Destino", ops)
-        if (e < 0) return
-        val raiz = if (e < vols.size) vols[e].first else Sd.base
-        val livre = Sh.root("df -k ${Sh.q(raiz)} | tail -1", 15).out.trim().split(Regex("\\s+")).getOrNull(3)?.toLongOrNull()?.times(1024) ?: 0L
-        val fontes = listOf("DCIM", "Pictures", "Movies", "Music", "Download", "Documents", "Recordings", "Audiobooks", "Android/media/com.whatsapp/WhatsApp/Media", "Android/media/org.telegram.messenger")
-            .filter { Sh.root("[ -d ${Sh.q(Sd.base + "/" + it)} ]", 10).ok }
-        con.info("Medindo o que sera copiado...")
-        val tams = fontes.map { f -> Pair(f, (Sh.root("du -sk ${Sh.q(Sd.base + "/" + f)} 2>/dev/null", 300).out.trim().split(Regex("\\s+")).firstOrNull()?.toLongOrNull() ?: 0L) * 1024) }
-        val sel = con.varios("O que copiar?", tams.map { it.first + "  (" + fmtTam(it.second) + ")" }, true)
-        if (sel.isEmpty()) { con.linha("Nada selecionado."); return }
-        val total = sel.sumOf { tams[it].second }
-        con.linha("Total a copiar: ${fmtTam(total)} | livre no destino: ${fmtTam(livre)}", C.ciano)
-        if (raiz != Sd.base && total * 105 / 100 > livre) { con.erro("Nao cabe no destino. Desmarque pastas ou use um cartao maior."); return }
-        if (raiz == Sd.base) con.aviso("Backup no armazenamento interno: COPIE a pasta para o PC antes de restaurar, senao ela sera apagada junto!")
-        if (!con.ask("Iniciar o backup?")) return
-        val dest = raiz + "/Backup-Celular-" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-        con.titulo("INVENTARIO")
-        inventario(con, ctx, "$dest/_Inventario")
-        con.titulo("BACKUP (pode levar bastante tempo; deixe a tela ligada)")
-        var tudoOk = true
-        for (i in sel) {
-            val f = tams[i].first
-            if (con.cancelado) { tudoOk = false; break }
-            val alvo = "$dest/" + f.replace('/', '_')
-            con.linha("  Copiando $f (${fmtTam(tams[i].second)})...")
-            Sh.root("mkdir -p ${Sh.q(alvo)} && cp -r ${Sh.q(Sd.base + "/" + f)}/. ${Sh.q(alvo)}/", 7200)
-            val nOrig = Sh.root("find ${Sh.q(Sd.base + "/" + f)} -type f | wc -l", 300).out.trim().toIntOrNull() ?: -1
-            val nDest = Sh.root("find ${Sh.q(alvo)} -type f | wc -l", 300).out.trim().toIntOrNull() ?: -2
-            if (nOrig == nDest) con.ok("$f: $nDest arquivos conferidos") else { con.aviso("$f: diferenca (origem $nOrig / destino $nDest arquivos)"); tudoOk = false }
+    fun atualizacoes(con: Console) {
+        con.titulo("Atualizações")
+        con.item("Sistema: atualização de segurança de ${Build.VERSION.SECURITY_PATCH}")
+        if (con.ask("Procurar atualização do sistema?")) con.abrirEEsperar(Intent("android.settings.SYSTEM_UPDATE_SETTINGS"))
+        if (con.ask("Abrir a Play Store para atualizar os apps? (perfil > Gerenciar apps)")) {
+            try { con.abrirEEsperar(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${con.ctx.packageName}"))) } catch (e: Exception) { Links.abrirPacote(con.ctx, "com.android.vending") }
         }
-        con.linha("")
-        if (tudoOk) { backupOk = dest; con.linha("BACKUP CONFERIDO COM SUCESSO em: ${dest.replace(Sd.base, "/sdcard")}", C.verde); con.info("Abra alguns arquivos para conferir antes de restaurar.") }
-        else con.linha("O backup teve diferencas. Nao restaure ate resolver (feche apps e rode de novo).", C.vermelho)
+        con.info("Jogos atualizados costumam trazer correções de desempenho e de aquecimento.")
     }
 
-    fun redefinir(con: Console) {
-        con.titulo("RESTAURACAO DE FABRICA (apaga TUDO do celular)")
-        val b = backupOk
-        if (b != null) con.linha("Backup conferido nesta sessao: ${b.replace(Sd.base, "/sdcard")}", C.verde) else con.linha("Nenhum backup conferido nesta sessao.", C.vermelho)
-        con.linha("Sera APAGADO: todos os apps, jogos, fotos, conversas, contas e configuracoes.", C.amarelo)
-        con.linha("Mantenha carregando. Leva de 10 a 30 minutos.")
-        if (!con.ask("Seus arquivos importantes estao salvos FORA do celular (e voce conferiu)?")) { con.linha("Cancelado. Faca o Passo 1 primeiro."); return }
-        val t = con.texto("Para continuar, digite exatamente REDEFINIR") ?: ""
-        if (t != "REDEFINIR") { con.linha("Cancelado."); return }
+    fun reiniciar(con: Console) {
+        con.titulo("Reiniciar")
+        if (Sh.rootConhecido()) { if (con.ask("Reiniciar o celular agora?")) Sh.root("svc power reboot || reboot", 10); return }
+        con.linha("Um app comum não pode reiniciar o celular. Segure o botão de ligar (ou Ligar + Volume para cima) e toque em Reiniciar.", T.texto2)
+    }
+
+    // ---------------- backup ----------------
+    private fun criar(cr: android.content.ContentResolver, pai: Uri, mime: String, nome: String): Uri? = try { DocumentsContract.createDocument(cr, pai, mime, nome) } catch (e: Exception) { null }
+
+    fun backup(con: Console) {
+        val ctx = con.ctx
+        con.titulo("Backup")
+        con.linha("Copia fotos, vídeos, documentos e downloads para um pendrive, cartão SD ou pasta que você escolher, e confere a cópia.", T.texto2)
+        if (!con.garantirNome("Acesso aos arquivos")) return
+        val base = Limpeza.raiz
+        val opcoes = listOf("DCIM" to "Câmera (DCIM)", "Pictures" to "Imagens e prints", "Movies" to "Vídeos", "Documents" to "Documentos", "Download" to "Downloads", "Music" to "Músicas",
+            "Android/media/com.whatsapp/WhatsApp/Media" to "Mídias do WhatsApp").filter { File(base, it.first).exists() }
+        val sel = con.varios("O que copiar?", opcoes.map { it.second + "  ·  " + fmtTam(tamanho(File(base, it.first))) }, true)
+        if (sel.isEmpty()) return
+        con.info("Escolha a pasta de destino (pendrive, cartão SD ou outra pasta).")
+        val tree = con.escolherPasta() ?: run { con.linha("Cancelado."); return }
+        try { ctx.contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { }
+        val cr = ctx.contentResolver
+        val raizDoc = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+        val pasta = criar(cr, raizDoc, DocumentsContract.Document.MIME_TYPE_DIR, "Backup PC Toolkit " + agora().replace("/", "-").replace(":", "h")) ?: run { con.erro("Não consegui criar a pasta no destino."); return }
+        var arquivos = 0; var bytes = 0L; var falhas = 0
+        fun copiar(orig: File, destPai: Uri) {
+            if (con.cancelado) return
+            if (orig.isDirectory) {
+                val d = criar(cr, destPai, DocumentsContract.Document.MIME_TYPE_DIR, orig.name) ?: run { falhas++; return }
+                for (f in orig.listFiles() ?: emptyArray()) copiar(f, d)
+            } else {
+                val u = criar(cr, destPai, "application/octet-stream", orig.name) ?: run { falhas++; return }
+                try {
+                    var n = 0L
+                    cr.openOutputStream(u)?.use { os -> orig.inputStream().use { n = it.copyTo(os) } }
+                    if (n == orig.length()) { arquivos++; bytes += n } else falhas++
+                } catch (e: Exception) { falhas++ }
+                if (arquivos % 200 == 0 && arquivos > 0) con.info("... $arquivos arquivos (${fmtTam(bytes)})")
+            }
+        }
+        for (i in sel) {
+            val (cam, nome) = opcoes[i]
+            con.info("Copiando $nome...")
+            copiar(File(base, cam), pasta)
+        }
+        // inventario de apps
+        val inv = criar(cr, pasta, "text/plain", "apps-instalados.txt")
+        if (inv != null) try { cr.openOutputStream(inv)?.use { os -> os.write(Jogos.todosApps(ctx).joinToString("\n") { it.nome + "  (" + it.pkg + ")" }.toByteArray()) } } catch (e: Exception) { }
         con.linha("")
-        con.linha("Abrindo as Configuracoes. Siga:", C.ciano)
-        con.linha("  Sistema (ou Gerenciamento geral) > Opcoes de redefinicao / Redefinir > Apagar todos os dados (restaurar padrao)")
-        con.info("Faco pela tela oficial do Android de proposito: e a forma segura (apaga a criptografia e protege seus dados).")
-        con.abrirConfig(Settings.ACTION_SETTINGS)
+        if (falhas == 0 && !con.cancelado) con.ok("Backup conferido: $arquivos arquivos, ${fmtTam(bytes)}") else con.aviso("$arquivos copiados (${fmtTam(bytes)}), $falhas falharam")
+        con.info("Também salvei a lista dos seus apps (apps-instalados.txt). Conversas do WhatsApp: use o backup do próprio WhatsApp.")
+        Store.putStr("ultimo_backup", agora() + " · " + fmtTam(bytes))
+    }
+
+    private fun tamanho(f: File): Long { var t = 0L; Limpeza.andar(f, null, { t += it.length() }); return t }
+
+    fun restaurarFabrica(con: Console) {
+        con.titulo("Restauração de fábrica")
+        con.linha("Apaga TUDO e deixa o celular como novo. Resolve lentidão grave e vírus que não saem.", T.amarelo)
+        val ub = Store.str("ultimo_backup")
+        con.item("Último backup feito pelo app: " + ub.ifEmpty { "nenhum" }, if (ub.isEmpty()) T.vermelho else T.verde)
+        con.item("Confira se a sua conta Google está sincronizada (Configurações > Google > Backup)")
+        con.item("Faça o backup do WhatsApp dentro do próprio WhatsApp")
+        con.item("Anote as senhas das contas dos jogos (ou vincule ao Google/Facebook)")
+        if (!con.ask("Já fez tudo isso e quer abrir a tela de restauração do Android?", "Abrir", "Ainda não")) return
+        con.abrirEEsperar(Intent(Settings.ACTION_PRIVACY_SETTINGS))
+        con.info("Procure “Redefinir” / “Restaurar” / “Gerenciamento geral > Redefinir”, se não estiver nesta tela.")
+    }
+
+    // ---------------- desfazer ----------------
+    fun desfazer(con: Console) {
+        con.titulo("Desfazer alterações")
+        val n = Ajuste.quantos()
+        if (n == 0) { con.linha("Nada para desfazer: o app não mudou nenhuma configuração."); return }
+        con.linha("$n configuração(ões) alteradas pelo PC Toolkit.")
+        if (!Ajuste.pode()) { con.aviso("Para desfazer automaticamente o app precisa do Modo avançado (ADB) ou root, os mesmos usados para mudar."); return }
+        if (!con.ask("Voltar tudo ao original?")) return
+        val r = Ajuste.desfazer { con.ok("Restaurado: $it") }
+        con.linha("")
+        con.ok("$r item(ns) restaurado(s)")
+    }
+
+    fun info(con: Console) {
+        con.titulo("Sobre o PC Toolkit Mobile")
+        con.linha("Versão 4.1", T.verde)
+        con.linha("Funciona sem root. Níveis de acesso:", T.texto2)
+        con.item("Padrão: permissões do Android (arquivos, uso, não perturbe, sobreposição)")
+        con.item("Avançado (ADB): um comando no PC libera os ajustes automáticos")
+        con.item("Root (opcional): medidor de FPS real, limite de CPU e quarentena de apps")
+        con.linha("")
+        con.linha("Nível atual: ${Acesso.nivel()}", T.azul)
+        con.info(String.format(Locale.US, "Configurações alteradas: %d", Ajuste.quantos()))
     }
 }

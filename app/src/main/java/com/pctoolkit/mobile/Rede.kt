@@ -1,34 +1,47 @@
 package com.pctoolkit.mobile
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.provider.Settings
 import java.io.ByteArrayOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.HttpURLConnection
 import java.net.InetAddress
+import java.net.URL
+import java.util.Locale
 
-/** REDE PARA JOGOS ONLINE. */
+/** REDE PARA JOGOS ONLINE (tudo sem root). */
 object Rede {
     class Ping(val media: Double, val min: Double, val max: Double, val jitter: Double, val perda: Int)
 
-    fun rssi(ctx: Context): Int? {
-        return try {
-            val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            @Suppress("DEPRECATION")
-            val r = wm.connectionInfo?.rssi ?: return null
-            if (r <= -127 || r >= 0) null else r
-        } catch (e: Exception) { null }
+    @Suppress("DEPRECATION")
+    private fun info(ctx: Context) = try { (ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager).connectionInfo } catch (e: Exception) { null }
+
+    fun rssi(ctx: Context): Int? { val r = info(ctx)?.rssi ?: return null; return if (r <= -127 || r >= 0) null else r }
+    fun frequencia(ctx: Context): Int? { val f = info(ctx)?.frequency ?: return null; return if (f <= 0) null else f }
+    fun velocidadeLink(ctx: Context): Int? { val v = info(ctx)?.linkSpeed ?: return null; return if (v <= 0) null else v }
+
+    fun tipo(ctx: Context): String {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val c = cm.getNetworkCapabilities(cm.activeNetwork) ?: return "sem conexão"
+        return when {
+            c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            c.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Dados móveis"
+            c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Cabo"
+            else -> "Outra"
+        }
     }
 
-    private fun frequenciaWifi(ctx: Context): Int? = try {
-        val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        @Suppress("DEPRECATION")
-        val f = wm.connectionInfo?.frequency
-        if (f == null || f <= 0) null else f
-    } catch (e: Exception) { null }
+    fun economiaDados(ctx: Context): Boolean {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return cm.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+    }
 
     fun gateway(ctx: Context): String? {
         val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -50,101 +63,139 @@ object Rede {
 
     fun medirPing(host: String, n: Int): Ping? {
         var r = Sh.sh("ping -c $n -i 0.3 -W 2 $host 2>/dev/null", (n + 10).toLong())
-        if (!r.out.contains("time=")) r = Sh.root("ping -c $n -i 0.3 -W 2 $host 2>/dev/null", (n + 10).toLong())
+        if (!r.out.contains("time=")) r = Sh.sh("ping -c $n -W 2 $host 2>/dev/null", (n + 10).toLong())
         val t = Regex("time[=<]([0-9.]+)").findAll(r.out).mapNotNull { it.groupValues[1].toDoubleOrNull() }.toList()
-        if (t.isEmpty()) return null
+        if (t.isEmpty()) return medirTcp(host, n)
         var j = 0.0
         for (i in 1 until t.size) j += Math.abs(t[i] - t[i - 1])
         if (t.size > 1) j /= (t.size - 1)
         return Ping(t.average(), t.min(), t.max(), j, ((n - t.size) * 100 / n).coerceIn(0, 100))
     }
 
-    fun testeCompleto(con: Console, ctx: Context) {
-        con.titulo("TESTE DE CONEXAO PARA JOGOS")
-        con.info("Mede ping, JITTER (variacao, o que causa 'teleporte'/lag) e PERDA de pacotes ate o roteador e ate a internet.")
-        con.info("Assim da para saber se o problema e na sua casa (Wi-Fi) ou no provedor/operadora. Leva ~30 s.")
-        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-        val wifi = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-        con.linha("Conexao: " + when { wifi -> "Wi-Fi"; caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "dados moveis (4G/5G)"; else -> "desconhecida" })
-        if (wifi) {
-            val r = rssi(ctx)
-            val f = frequenciaWifi(ctx)
-            if (r != null) con.linha("Sinal do Wi-Fi: $r dBm " + when { r >= -60 -> "(otimo)"; r >= -70 -> "(bom)"; else -> "(FRACO)" }, if (r < -70) C.vermelho else if (r < -60) C.amarelo else C.verde)
-            if (f != null) con.linha("Faixa: " + if (f > 4900) "5 GHz (melhor para jogar)" else "2.4 GHz (mais interferencia; prefira 5 GHz se o roteador tiver)", if (f > 4900) C.verde else C.amarelo)
+    /** Alternativa ao ping quando o ICMP esta bloqueado: tempo de abrir uma conexao TCP na porta 443/53. */
+    private fun medirTcp(host: String, n: Int): Ping? {
+        val t = ArrayList<Double>()
+        repeat(n.coerceAtMost(10)) {
+            try {
+                val s = java.net.Socket()
+                val t0 = System.nanoTime()
+                s.connect(java.net.InetSocketAddress(host, if (host.startsWith("192.") || host.startsWith("10.")) 53 else 443), 2000)
+                t.add((System.nanoTime() - t0) / 1e6)
+                s.close()
+            } catch (e: Exception) { }
         }
-        val gw = gateway(ctx)
+        if (t.isEmpty()) return null
+        var j = 0.0
+        for (i in 1 until t.size) j += Math.abs(t[i] - t[i - 1])
+        if (t.size > 1) j /= (t.size - 1)
+        val tot = n.coerceAtMost(10)
+        return Ping(t.average(), t.min(), t.max(), j, ((tot - t.size) * 100 / tot).coerceIn(0, 100))
+    }
+
+    fun infoWifi(con: Console) {
+        val ctx = con.ctx
+        con.linha("Conexão: " + tipo(ctx))
+        if (tipo(ctx) == "Wi-Fi") {
+            val r = rssi(ctx)
+            val f = frequencia(ctx)
+            val v = velocidadeLink(ctx)
+            if (r != null) con.linha("Sinal: $r dBm " + when { r >= -60 -> "(ótimo)"; r >= -70 -> "(bom)"; else -> "(FRACO)" }, if (r < -70) T.vermelho else if (r < -60) T.amarelo else T.verde)
+            if (f != null) con.linha("Faixa: " + when { f > 5900 -> "6 GHz (excelente)"; f > 4900 -> "5 GHz (melhor para jogar)"; else -> "2,4 GHz (mais interferência; prefira 5 GHz)" }, if (f > 4900) T.verde else T.amarelo)
+            if (v != null) con.linha("Velocidade do link: $v Mbps", T.texto2)
+        }
+        if (economiaDados(ctx)) con.aviso("Economia de dados LIGADA: pode atrasar downloads e sincronizações em segundo plano.")
+    }
+
+    fun testeCompleto(con: Console) {
+        val ctx = con.ctx
+        con.titulo("Teste de conexão para jogos")
+        con.linha("Mede ping, jitter (variação que causa “teleporte”) e perda de pacotes até o roteador e até a internet.", T.texto2)
+        con.info("Mostra se o problema está na sua casa (Wi-Fi) ou no provedor. Leva cerca de 30 s.")
+        infoWifi(con)
+        val gw = if (tipo(ctx) == "Wi-Fi") gateway(ctx) else null
         val alvos = ArrayList<Triple<String, String, Boolean>>()
         if (gw != null) alvos.add(Triple("Seu roteador", gw, true))
-        alvos.add(Triple("Cloudflare (1.1.1.1)", "1.1.1.1", false))
-        alvos.add(Triple("Google (8.8.8.8)", "8.8.8.8", false))
+        alvos.add(Triple("Cloudflare", "1.1.1.1", false))
+        alvos.add(Triple("Google", "8.8.8.8", false))
         val res = HashMap<String, Ping?>()
+        con.subtitulo("Resultados")
         for ((nome, h, local) in alvos) {
+            if (con.cancelado) return
             con.info("medindo $nome...")
             val p = medirPing(h, 20)
             res[nome] = p
-            if (p == null) { con.linha(String.format(java.util.Locale.US, "  %-22s sem resposta", nome), C.amarelo); continue }
-            val cor = when {
-                p.perda > 0 || p.jitter > 15 -> C.vermelho
-                p.jitter > 5 || (local && p.media > 8) -> C.amarelo
-                else -> C.verde
-            }
-            con.linha(String.format(java.util.Locale.US, "  %-22s ping %4.0f ms | min %.0f | max %.0f | jitter %.1f ms | perda %d%%", nome, p.media, p.min, p.max, p.jitter, p.perda), cor)
+            if (p == null) { con.linha("$nome: sem resposta", T.amarelo); continue }
+            val cor = when { p.perda > 0 || p.jitter > 15 -> T.vermelho; p.jitter > 5 || (local && p.media > 8) -> T.amarelo; else -> T.verde }
+            con.linha(String.format(Locale.US, "%s: ping %.0f ms · jitter %.1f ms · perda %d%%", nome, p.media, p.jitter, p.perda), cor)
+            con.info(String.format(Locale.US, "mín %.0f ms · máx %.0f ms", p.min, p.max))
         }
         con.linha("")
         val loc = res["Seu roteador"]
-        val net = res["Cloudflare (1.1.1.1)"]
+        val net = res["Cloudflare"]
         when {
             loc != null && (loc.jitter > 5 || loc.perda > 0 || loc.media > 8) -> {
-                con.aviso("O problema esta DENTRO DE CASA (entre o celular e o roteador).")
-                con.linha("  Chegue mais perto do roteador, use 5 GHz, evite paredes/micro-ondas e outros aparelhos baixando.", C.amarelo)
+                con.aviso("O problema está DENTRO DE CASA (entre o celular e o roteador).")
+                con.info("Chegue mais perto do roteador, use 5 GHz, evite paredes e outros aparelhos baixando.")
             }
             net != null && (net.jitter > 10 || net.perda > 0) -> {
-                con.aviso("Sua rede local esta boa; a instabilidade vem do PROVEDOR/operadora ou de alguem usando muito a internet.")
-                con.linha("  Pause downloads/streaming durante o jogo. Se continuar, reclame com o provedor mostrando estes numeros.", C.amarelo)
+                con.aviso("Sua rede local está boa; a instabilidade vem do provedor/operadora ou de alguém usando muito a internet.")
+                con.info("Pause downloads e streaming durante o jogo. Se continuar, mostre estes números ao provedor.")
             }
-            net != null -> con.ok("Conexao estavel para jogar.")
+            net != null -> con.ok("Conexão estável para jogar.")
+            else -> con.erro("Sem resposta da internet.")
         }
-        con.info("Referencia: ping ate 40 ms otimo no celular | jitter ate 5 ms otimo | perda tem que ser 0%.")
+        con.info("Referência: ping até 40 ms ótimo · jitter até 5 ms ótimo · perda tem que ser 0%.")
+        net?.let { Store.putInt("ultimo_ping", it.media.toInt()) }
     }
 
-    fun ajustesTcp(con: Console) {
-        con.titulo("AJUSTES DE TCP (kernel)")
-        if (!con.exigeRoot()) return
-        con.linha("Equivalente ao 'desligar Nagle' do PC: ajustes do kernel que reduzem atraso em rajadas pequenas de dados.")
-        con.info("Valem ate reiniciar o celular. Reversiveis no Desfazer.")
-        val disp = Sh.ler("/proc/sys/net/ipv4/tcp_available_congestion_control")
-        val itens = ArrayList<Triple<String, String, String>>()
-        if (disp.split(Regex("\\s+")).contains("bbr")) itens.add(Triple("/proc/sys/net/ipv4/tcp_congestion_control", "bbr", "Controle de congestionamento BBR (menos fila/latencia em redes instaveis)"))
-        itens.add(Triple("/proc/sys/net/ipv4/tcp_slow_start_after_idle", "0", "Sem 'partida lenta' depois de pausas (respostas mais rapidas)"))
-        itens.add(Triple("/proc/sys/net/ipv4/tcp_fastopen", "3", "TCP Fast Open (conexoes novas mais rapidas)"))
-        if (Sh.root("[ -f /proc/sys/net/ipv4/tcp_low_latency ]", 10).ok) itens.add(Triple("/proc/sys/net/ipv4/tcp_low_latency", "1", "Modo de baixa latencia do TCP"))
-        for (t in itens) con.linha("  - " + t.third + "  (atual: " + Sh.ler(t.first).trim() + ")")
-        if (!con.ask("Aplicar?")) return
-        for ((p, v, d) in itens) { if (Undo.global.sysfs(p, v)) con.ok(d) else con.aviso("Kernel recusou: $d") }
+    fun velocidade(con: Console) {
+        con.titulo("Teste de velocidade")
+        con.linha("Baixa e envia dados de teste pela Cloudflare. Usa cerca de 50 MB de internet.", T.texto2)
+        if (tipo(con.ctx) == "Dados móveis" && !con.ask("Você está nos dados móveis. Continuar mesmo assim?")) return
+        val p = medirTcp("speed.cloudflare.com", 5)
+        if (p != null) con.linha(String.format(Locale.US, "Latência: %.0f ms", p.media))
+        con.info("Medindo download...")
+        var baixado = 0L
+        val t0 = System.nanoTime()
+        try {
+            for (i in 0 until 4) {
+                if (con.cancelado) return
+                val c = URL("https://speed.cloudflare.com/__down?bytes=10000000").openConnection() as HttpURLConnection
+                c.connectTimeout = 10000; c.readTimeout = 20000
+                c.inputStream.use { s -> val b = ByteArray(65536); while (true) { val n = s.read(b); if (n <= 0) break; baixado += n } }
+                c.disconnect()
+                if ((System.nanoTime() - t0) / 1e9 > 12) break
+            }
+        } catch (e: Exception) { con.aviso("Download interrompido: " + (e.message ?: "")) }
+        val sD = (System.nanoTime() - t0) / 1e9
+        val down = if (sD > 0) baixado * 8 / sD / 1e6 else 0.0
+        con.linha(String.format(Locale.US, "Download: %.1f Mbps", down), if (down >= 25) T.verde else if (down >= 8) T.amarelo else T.vermelho)
+        con.info("Medindo upload...")
+        var enviado = 0L
+        val t1 = System.nanoTime()
+        try {
+            val dados = ByteArray(2_000_000)
+            for (i in 0 until 4) {
+                if (con.cancelado) return
+                val c = URL("https://speed.cloudflare.com/__up").openConnection() as HttpURLConnection
+                c.requestMethod = "POST"; c.doOutput = true
+                c.connectTimeout = 10000; c.readTimeout = 20000
+                c.setFixedLengthStreamingMode(dados.size)
+                c.outputStream.use { it.write(dados) }
+                c.responseCode
+                c.disconnect()
+                enviado += dados.size
+                if ((System.nanoTime() - t1) / 1e9 > 10) break
+            }
+        } catch (e: Exception) { con.aviso("Upload interrompido: " + (e.message ?: "")) }
+        val sU = (System.nanoTime() - t1) / 1e9
+        val up = if (sU > 0) enviado * 8 / sU / 1e6 else 0.0
+        con.linha(String.format(Locale.US, "Upload: %.1f Mbps", up), if (up >= 10) T.verde else if (up >= 3) T.amarelo else T.vermelho)
+        con.linha("")
+        con.info("Para jogar online, estabilidade (jitter/perda) importa mais que velocidade: 5 Mbps já bastam para a partida.")
     }
 
-    fun placaRede(con: Console) {
-        con.titulo("WI-FI PARA JOGOS (baixa latencia)")
-        if (!con.exigeRoot()) return
-        con.linha("Liga o modo de BAIXA LATENCIA e de ALTO DESEMPENHO do Wi-Fi e desliga a varredura em segundo plano")
-        con.linha("(as varreduras periodicas sao a causa mais comum de pico de ping a cada ~1 minuto no celular).")
-        con.info("Gasta um pouco mais de bateria. Reversivel no Desfazer. Os modos forcados valem ate reiniciar.")
-        if (!con.ask("Aplicar?")) return
-        val u = Undo.global
-        val r1 = Sh.root("cmd wifi force-low-latency-mode enabled 2>&1", 15)
-        if (r1.ok && !r1.out.contains("nknown")) { u.registrar("wifi:lowlat", "cmd wifi force-low-latency-mode disabled"); con.ok("Wi-Fi em modo de baixa latencia") } else con.aviso("Este Android nao oferece o modo de baixa latencia forcado")
-        val r2 = Sh.root("cmd wifi force-hi-perf-mode enabled 2>&1", 15)
-        if (r2.ok && !r2.out.contains("nknown")) { u.registrar("wifi:hiperf", "cmd wifi force-hi-perf-mode disabled"); con.ok("Wi-Fi em modo de alto desempenho") }
-        u.setting("global", "wifi_scan_always_enabled", "0")
-        u.setting("global", "ble_scan_always_enabled", "0")
-        con.ok("Varredura de Wi-Fi/Bluetooth em segundo plano desligada")
-        if (Sh.root("which iw", 10).ok) {
-            if (Sh.root("iw dev wlan0 set power_save off", 10).ok) { u.registrar("wifi:ps", "iw dev wlan0 set power_save on"); con.ok("Economia de energia do Wi-Fi desligada") }
-        }
-    }
-
-    /** Consulta DNS crua por UDP: mede o tempo real de resposta de um servidor especifico. */
+    // ---------------- DNS ----------------
     private fun consultaDns(servidor: String, dominio: String): Double? {
         return try {
             val id = (Math.random() * 65535).toInt()
@@ -175,9 +226,10 @@ object Rede {
         return t.average()
     }
 
-    fun dns(con: Console, ctx: Context) {
-        con.titulo("DNS MAIS RAPIDO")
-        con.info("O DNS nao muda o ping DENTRO da partida, mas acelera login, matchmaking, lojas e downloads de atualizacao.")
+    fun dns(con: Console) {
+        val ctx = con.ctx
+        con.titulo("DNS mais rápido")
+        con.linha("O DNS não muda o ping dentro da partida, mas acelera login, busca de partida, lojas e downloads.", T.texto2)
         val atuais = dnsAtuais(ctx)
         class Cand(val nome: String, val ip: String, val host: String?, val atual: Boolean)
         val cands = ArrayList<Cand>()
@@ -185,38 +237,42 @@ object Rede {
         cands.add(Cand("Cloudflare", "1.1.1.1", "one.one.one.one", false))
         cands.add(Cand("Google", "8.8.8.8", "dns.google", false))
         cands.add(Cand("Quad9", "9.9.9.9", "dns.quad9.net", false))
-        cands.add(Cand("AdGuard (bloqueia anuncios)", "94.140.14.14", "dns.adguard-dns.com", false))
+        cands.add(Cand("AdGuard (bloqueia anúncios)", "94.140.14.14", "dns.adguard-dns.com", false))
         val dom = listOf("garena.com", "pubgmobile.com", "riotgames.com", "roblox.com", "supercell.com", "epicgames.com", "playstation.com", "discord.com")
         val res = ArrayList<Pair<Cand, Double?>>()
         for (c in cands) {
+            if (con.cancelado) return
             con.info("testando ${c.nome}...")
             medirDns(c.ip, dom)
             res.add(Pair(c, medirDns(c.ip, dom)))
         }
-        con.linha("")
+        con.subtitulo("Tempo de resposta")
         val val0 = res.filter { it.second != null }.sortedBy { it.second }
         for ((c, ms) in res) {
-            if (ms == null) { con.linha(String.format(java.util.Locale.US, "  %-28s sem resposta", c.nome), C.amarelo); continue }
-            val barra = "#".repeat(Math.min(40, Math.max(1, (ms / 3).toInt())))
-            con.linha(String.format(java.util.Locale.US, "  %-28s %6.1f ms  %s", c.nome, ms, barra), if (val0.isNotEmpty() && val0[0].first == c) C.verde else C.cinza)
+            if (ms == null) { con.linha("${c.nome}: sem resposta", T.amarelo); continue }
+            con.linha(String.format(Locale.US, "%s: %.1f ms", c.nome, ms), if (val0.isNotEmpty() && val0[0].first == c) T.verde else T.texto2)
         }
         if (val0.isEmpty()) return
         val melhor = val0[0]
-        if (melhor.first.atual) { con.linha(""); con.ok("O seu DNS atual ja e o mais rapido daqui."); return }
+        con.linha("")
+        if (melhor.first.atual) { con.ok("O seu DNS atual já é o mais rápido daqui."); return }
         val atualMs = res.firstOrNull { it.first.atual }?.second
-        if (atualMs != null && atualMs - (melhor.second ?: 0.0) < 3) { con.linha(""); con.ok("Diferenca menor que 3 ms: nao vale trocar."); return }
-        if (Build.VERSION.SDK_INT < 28) { con.info("Trocar DNS pelo sistema exige Android 9+. Configure no roteador."); return }
-        if (con.ask("Usar ${melhor.first.nome} como DNS Privado do Android (criptografado, vale no Wi-Fi e nos dados moveis)?")) {
-            if (!con.exigeRoot()) return
-            Undo.global.setting("global", "private_dns_mode", "hostname")
-            Undo.global.setting("global", "private_dns_specifier", melhor.first.host ?: "")
-            con.ok("DNS Privado: ${melhor.first.host}")
+        if (atualMs != null && atualMs - (melhor.second ?: 0.0) < 3) { con.ok("Diferença menor que 3 ms: não vale trocar."); return }
+        val host = melhor.first.host ?: return
+        if (Build.VERSION.SDK_INT < 28) { con.info("Trocar o DNS pelo sistema exige Android 9+. Configure no roteador: ${melhor.first.ip}"); return }
+        if (!con.ask("Usar ${melhor.first.nome} como DNS Privado (criptografado, vale no Wi-Fi e nos dados móveis)?")) return
+        if (Ajuste.pode()) {
+            Ajuste.mudar("global", "private_dns_mode", "hostname")
+            Ajuste.mudar("global", "private_dns_specifier", host)
+            con.ok("DNS Privado: $host (dá para voltar em Desfazer)")
+        } else {
+            con.ctx.let { (it.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("dns", host)) }
+            con.linha("Copiei \"$host\". Vou abrir as configurações de rede:", T.azul)
+            con.item("Toque em “DNS privado” (às vezes em Mais conexões / Rede e internet).")
+            con.item("Escolha “Nome do host do provedor” e cole: $host")
+            con.abrirEEsperar(android.content.Intent(Settings.ACTION_WIRELESS_SETTINGS))
+            val modo = Ajuste.ler("global", "private_dns_mode")
+            if (modo == "hostname") con.ok("DNS Privado ativo") else con.info("Se não encontrou, busque “DNS privado” na barra de pesquisa das Configurações.")
         }
-    }
-
-    fun restaurarDns(con: Console) {
-        if (!con.exigeRoot()) return
-        val n = Undo.global.desfazerPrefixo("set:global:private_dns") { }
-        if (n > 0) con.ok("DNS original restaurado") else con.linha("O toolkit nao trocou o DNS.")
     }
 }

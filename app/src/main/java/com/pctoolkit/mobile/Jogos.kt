@@ -1,24 +1,28 @@
 package com.pctoolkit.mobile
 
+import android.app.usage.StorageStatsManager
+import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.os.Process
+import android.os.storage.StorageManager
 
 data class Jogo(val pkg: String, val nome: String, val origem: String)
+data class TamanhoApp(val app: Long, val dados: Long, val cache: Long) { val total get() = app + dados }
 
-/** Deteccao de jogos instalados (equivale a Steam/Epic/GOG... do PC: aqui e a categoria Jogo do Android + editoras conhecidas). */
+/** Jogos instalados (categoria Jogo do Android + editoras conhecidas + os que voce adicionar). */
 object Jogos {
     private val rxEditoras = Regex(
         "pubg|tencent\\.ig|freefire|dts\\.freefire|garena|supercell|mojang|roblox|epicgames|activision|callofduty|mihoyo|hoyoverse|cognosphere|" +
             "gameloft|riotgames|netease|netmarble|nexon|moonton|mobile\\.legends|levelinfinite|krafton|ubisoft|rockstargames|bandainamco|sega|" +
             "squareenix|square_enix|com\\.ea\\.|kiloo|halfbrick|miniclip|nianticlabs|playrix|com\\.king\\.|zynga|scopely|ninjakiwi|axlebolt|" +
-            "madfingergames|innersloth|pixonic|wildlife|kurogame|yostar|dreamotion|com\\.gof\\.|fortnite|brawlstars|clashroyale|clashofclans",
+            "madfingergames|innersloth|pixonic|wildlife|kurogame|yostar|com\\.gof\\.|brawlstars|clashroyale|clashofclans",
         RegexOption.IGNORE_CASE
     )
 
     fun instalados(ctx: Context): List<Jogo> {
         val pm = ctx.packageManager
-        val extras = Store.set("jogos_extra")
+        val extras = Store.conjunto("jogos_extra")
         val r = ArrayList<Jogo>()
         @Suppress("DEPRECATION")
         val apps = pm.getInstalledApplications(0)
@@ -31,11 +35,7 @@ object Jogos {
             val porNome = rxEditoras.containsMatchIn(ai.packageName)
             val extra = extras.contains(ai.packageName)
             if (porCat || porFlag || porNome || extra) {
-                val origem = when {
-                    extra -> "adicionado por voce"
-                    porCat || porFlag -> "categoria Jogo"
-                    else -> "editora de jogos"
-                }
+                val origem = when { extra -> "adicionado por você"; porCat || porFlag -> "jogo"; else -> "editora de jogos" }
                 r.add(Jogo(ai.packageName, pm.getApplicationLabel(ai).toString(), origem))
             }
         }
@@ -56,66 +56,62 @@ object Jogos {
         pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
     } catch (e: Exception) { pkg }
 
-    /** Escolher o jogo (lista + ultimo jogo + outro app). */
-    fun escolher(con: Console, ctx: Context, titulo: String = "Escolha o jogo"): Jogo? {
-        con.info("Procurando jogos instalados...")
+    fun escolher(con: Console, titulo: String = "Escolha o jogo"): Jogo? {
+        val ctx = con.ctx
         val lista = instalados(ctx)
         val ult = Store.str("ultimo_jogo")
         val opcoes = ArrayList<String>()
         val alvo = ArrayList<Jogo?>()
-        if (ult.isNotEmpty() && lista.any { it.pkg == ult }) {
-            val j = lista.first { it.pkg == ult }
-            opcoes.add("Ultimo jogo: ${j.nome}"); alvo.add(j)
-        }
-        for (j in lista) { opcoes.add("${j.nome}   [${j.origem}]"); alvo.add(j) }
-        opcoes.add("+ Outro app (lista de todos os apps)"); alvo.add(null)
-        if (lista.isEmpty()) con.aviso("Nenhum jogo encontrado automaticamente. Use '+ Outro app'.")
+        val u = lista.firstOrNull { it.pkg == ult }
+        if (u != null) { opcoes.add("★  ${u.nome} (último)"); alvo.add(u) }
+        for (j in lista) { opcoes.add(j.nome); alvo.add(j) }
+        opcoes.add("+  Outro app..."); alvo.add(null)
         val i = con.escolher(titulo, opcoes)
         if (i < 0) return null
         val j = alvo[i]
         if (j != null) { Store.putStr("ultimo_jogo", j.pkg); return j }
         val todos = todosApps(ctx)
-        val k = con.escolher("Todos os apps", todos.map { it.nome + "  (" + it.pkg + ")" })
+        val k = con.escolher("Todos os apps", todos.map { it.nome })
         if (k < 0) return null
         val esc = todos[k]
-        if (con.ask("Lembrar '${esc.nome}' como jogo nas proximas vezes?")) {
-            val s = Store.set("jogos_extra"); s.add(esc.pkg); Store.putSet("jogos_extra", s)
+        if (con.ask("Lembrar \"${esc.nome}\" como jogo nas próximas vezes?")) {
+            val s = Store.conjunto("jogos_extra"); s.add(esc.pkg); Store.putConjunto("jogos_extra", s)
         }
         Store.putStr("ultimo_jogo", esc.pkg)
-        return Jogo(esc.pkg, esc.nome, "adicionado por voce")
+        return Jogo(esc.pkg, esc.nome, "adicionado por você")
     }
 
-    fun abrir(ctx: Context, pkg: String): Boolean {
-        val i: Intent = ctx.packageManager.getLaunchIntentForPackage(pkg) ?: return false
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return try { ctx.startActivity(i); true } catch (e: Exception) { false }
-    }
+    /** Tamanho real do app (precisa de Acesso ao uso). */
+    fun tamanho(ctx: Context, pkg: String): TamanhoApp? = try {
+        val ssm = ctx.getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
+        val s = ssm.queryStatsForPackage(StorageManager.UUID_DEFAULT, pkg, Process.myUserHandle())
+        TamanhoApp(s.appBytes, s.dataBytes, s.cacheBytes)
+    } catch (e: Exception) { null }
 
-    /** Abre o jogo pelo root (funciona mesmo a partir do servico em segundo plano). */
-    fun abrirRoot(ctx: Context, pkg: String): Boolean {
-        val comp = ctx.packageManager.getLaunchIntentForPackage(pkg)?.component?.flattenToShortString()
-        if (comp != null && Sh.root("am start -n ${Sh.q(comp)} 2>&1", 20).let { it.ok && !it.out.contains("Error") }) return true
-        if (Sh.root("monkey -p $pkg -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1", 30).ok) return true
-        return abrir(ctx, pkg)
-    }
-
-    /** Pastas do jogo para medir tamanho. */
-    fun pastas(ctx: Context, pkg: String): List<String> {
-        val r = ArrayList<String>()
+    /** Ultimo uso de cada app nos ultimos [dias] (precisa de Acesso ao uso). */
+    fun ultimoUso(ctx: Context, dias: Int): Map<String, Long> {
+        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val fim = System.currentTimeMillis()
+        val ini = fim - dias * 86_400_000L
+        val r = HashMap<String, Long>()
         try {
-            val ai = ctx.packageManager.getApplicationInfo(pkg, 0)
-            val src = ai.sourceDir
-            if (src != null) r.add(java.io.File(src).parent ?: src)
-            r.add(ai.dataDir)
+            for (s in usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, ini, fim)) {
+                val t = s.lastTimeUsed
+                if (t > (r[s.packageName] ?: 0L)) r[s.packageName] = t
+            }
         } catch (e: Exception) { }
-        r.add("${Sd.base}/Android/data/$pkg")
-        r.add("${Sd.base}/Android/obb/$pkg")
         return r
     }
-}
 
-/** Armazenamento interno visto pelo root (o mesmo que /sdcard, mas sempre acessivel ao su). */
-object Sd {
-    const val base = "/data/media/0"
-    const val lixeira = "$base/.PCToolkit-Lixeira"
+    /** Tempo de tela de cada app hoje (ms). */
+    fun usoHoje(ctx: Context): Map<String, Long> {
+        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0); cal.set(java.util.Calendar.MINUTE, 0)
+        val r = HashMap<String, Long>()
+        try {
+            for ((k, v) in usm.queryAndAggregateUsageStats(cal.timeInMillis, System.currentTimeMillis())) r[k] = v.totalTimeInForeground
+        } catch (e: Exception) { }
+        return r
+    }
 }

@@ -5,6 +5,8 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.util.Locale
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
 class PcApp : Application() {
@@ -18,56 +20,113 @@ class PcApp : Application() {
     }
 }
 
-/** Cores do "console" (mesma ideia das cores do PowerShell). */
-object C {
-    const val fundo = 0xFF0D1117.toInt()
-    const val painel = 0xFF161B22.toInt()
-    const val texto = 0xFFE6EDF3.toInt()
-    const val verde = 0xFF3FB950.toInt()
-    const val amarelo = 0xFFD29922.toInt()
-    const val vermelho = 0xFFF85149.toInt()
-    const val ciano = 0xFF58A6FF.toInt()
-    const val cinza = 0xFF8B949E.toInt()
-    const val magenta = 0xFFBC8CFF.toInt()
+/** Paleta do app (tema escuro profissional). */
+object T {
+    const val bg = 0xFF0A0E14.toInt()
+    const val surface = 0xFF121821.toInt()
+    const val surface2 = 0xFF1A222D.toInt()
+    const val outline = 0xFF263142.toInt()
+    const val texto = 0xFFE8EEF5.toInt()
+    const val texto2 = 0xFF9AA8BA.toInt()
+    const val texto3 = 0xFF66758A.toInt()
+    const val verde = 0xFF3DDC97.toInt()
+    const val azul = 0xFF4C8DFF.toInt()
+    const val roxo = 0xFFB57BFF.toInt()
+    const val laranja = 0xFFFF9F45.toInt()
+    const val vermelho = 0xFFFF5A6E.toInt()
+    const val amarelo = 0xFFF5C542.toInt()
+    const val ciano = 0xFF38D6E8.toInt()
+    const val cinza = 0xFF8F9BB3.toInt()
 }
 
-/** Execucao de comandos (normal e como root via su). */
+/** Comandos de shell. Root e opcional: so usado se o celular tiver e o usuario permitir. */
 object Sh {
     data class R(val code: Int, val out: String, val err: String) {
         val ok: Boolean get() = code == 0
     }
 
-    @Volatile
-    private var temRoot: Boolean? = null
+    @Volatile private var root: Boolean? = null
+    @Volatile var detalheRoot: String = ""
+        private set
+    private var suPath = "su"
 
-    /** Comandos curtos usam um shell root persistente (o Magisk pede/avisa uma vez so); longos usam su novo. */
-    fun root(cmd: String, timeoutS: Long = 60): R =
-        if (timeoutS <= 60) persistente(cmd, timeoutS) else run(arrayOf("su", "-c", cmd), timeoutS)
+    fun sh(cmd: String, timeoutS: Long = 30): R = exec(arrayOf("sh", "-c", cmd), timeoutS)
 
-    private var proc: Process? = null
-    private var entrada: java.io.OutputStream? = null
-    private var fila = java.util.concurrent.LinkedBlockingQueue<String>()
-    private var erros = StringBuffer()
-
-    private fun abrirShell(): Boolean {
+    private fun exec(argv: Array<String>, timeoutS: Long): R {
         return try {
-            val p = ProcessBuilder("su").start()
-            val f = java.util.concurrent.LinkedBlockingQueue<String>()
-            val er = StringBuffer()
-            fila = f
-            erros = er
-            Thread { try { p.inputStream.bufferedReader().forEachLine { f.put(it) } } catch (e: Exception) { }; f.put("\u0000FIM") }.apply { isDaemon = true }.start()
-            Thread { try { p.errorStream.bufferedReader().forEachLine { er.append(it).append('\n') } } catch (e: Exception) { } }.apply { isDaemon = true }.start()
-            proc = p
-            entrada = p.outputStream
-            true
-        } catch (e: Exception) { false }
+            val p = ProcessBuilder(*argv).start()
+            p.outputStream.close()
+            val o = StringBuilder()
+            val e = StringBuilder()
+            val to = Thread { try { p.inputStream.bufferedReader().forEachLine { synchronized(o) { o.append(it).append('\n') } } } catch (x: Exception) { } }
+            val te = Thread { try { p.errorStream.bufferedReader().forEachLine { synchronized(e) { e.append(it).append('\n') } } } catch (x: Exception) { } }
+            to.start(); te.start()
+            val fim = p.waitFor(timeoutS, TimeUnit.SECONDS)
+            if (!fim) p.destroy()
+            to.join(2000); te.join(2000)
+            R(if (fim) p.exitValue() else -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
+        } catch (x: Exception) {
+            R(-1, "", x.message ?: "erro")
+        }
     }
 
+    fun getprop(nome: String): String = sh("getprop $nome", 5).out.trim()
+
+    /** Ha algum binario su no aparelho? (nao pede permissao) */
+    fun suExiste(): Boolean {
+        val caminhos = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su", "/su/bin/su", "/vendor/bin/su")
+        if (caminhos.any { File(it).exists() }) return true
+        return sh("command -v su", 5).out.isNotBlank()
+    }
+
+    /** Pede root ao gerenciador (Magisk/KernelSU/APatch). So chamar quando o usuario quiser. */
+    fun verificarRoot(): Boolean {
+        val cands = listOf("su", "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su", "/data/adb/ksu/bin/su", "/data/adb/ap/bin/su")
+        val det = StringBuilder()
+        for (c in cands) {
+            val r = exec(arrayOf(c, "-c", "id"), 40)
+            if (r.ok && r.out.contains("uid=0")) {
+                suPath = c; root = true; detalheRoot = "Root liberado via $c"
+                return true
+            }
+            if (r.code != -1 || r.err.isNotEmpty()) det.append("$c: codigo ${r.code} ${r.err.take(80)}\n")
+        }
+        root = false
+        detalheRoot = if (det.isEmpty()) "Nenhum su encontrado" else det.toString().trim()
+        return false
+    }
+
+    /** Estado conhecido do root, sem pedir nada. */
+    fun rootConhecido(): Boolean = root == true
+
+    fun temRoot(): Boolean = root ?: (if (suExiste()) verificarRoot() else { root = false; detalheRoot = "Este celular nao tem root"; false })
+
+    // ---- shell root persistente (um pedido de permissao so) ----
+    private var proc: Process? = null
+    private var entrada: java.io.OutputStream? = null
+    private var fila = LinkedBlockingQueue<String>()
+    private var erros = StringBuffer()
+
+    fun root(cmd: String, timeoutS: Long = 60): R {
+        if (!temRoot()) return R(-1, "", "sem root")
+        if (timeoutS > 60) return exec(arrayOf(suPath, "-c", cmd), timeoutS)
+        return persistente(cmd, timeoutS)
+    }
+
+    private fun abrirShell(): Boolean = try {
+        val p = ProcessBuilder(suPath).start()
+        val f = LinkedBlockingQueue<String>()
+        val er = StringBuffer()
+        fila = f; erros = er
+        Thread { try { p.inputStream.bufferedReader().forEachLine { f.put(it) } } catch (x: Exception) { }; f.put("\u0000FIM") }.apply { isDaemon = true }.start()
+        Thread { try { p.errorStream.bufferedReader().forEachLine { er.append(it).append('\n') } } catch (x: Exception) { } }.apply { isDaemon = true }.start()
+        proc = p; entrada = p.outputStream
+        true
+    } catch (x: Exception) { false }
+
     private fun fecharShell() {
-        try { proc?.destroy() } catch (e: Exception) { }
+        try { proc?.destroy() } catch (x: Exception) { }
         proc = null; entrada = null
-        fila.clear()
     }
 
     @Synchronized
@@ -75,13 +134,12 @@ object Sh {
         val p0 = proc
         if (p0 == null || !p0.isAlive) { fecharShell(); if (!abrirShell()) return R(-1, "", "su indisponivel") }
         val marca = "__PCTK_" + System.nanoTime() + "__"
-        fila.clear()
-        erros.setLength(0)
+        fila.clear(); erros.setLength(0)
         try {
             val e = entrada ?: return R(-1, "", "sem shell")
             e.write(("(" + cmd + "\n)\necho \"" + marca + ":\$?\"\n").toByteArray())
             e.flush()
-        } catch (ex: Exception) { fecharShell(); return R(-1, "", ex.message ?: "erro") }
+        } catch (x: Exception) { fecharShell(); return R(-1, "", x.message ?: "erro") }
         val out = StringBuilder()
         val limite = System.currentTimeMillis() + timeoutS * 1000
         while (true) {
@@ -89,72 +147,21 @@ object Sh {
             if (resta <= 0) { fecharShell(); return R(-2, out.toString().trim(), "tempo esgotado") }
             val l = fila.poll(resta, TimeUnit.MILLISECONDS) ?: continue
             if (l == "\u0000FIM") { fecharShell(); return R(-1, out.toString().trim(), "shell encerrado") }
-            if (l.startsWith(marca)) {
-                val code = l.substringAfter(':').trim().toIntOrNull() ?: -1
-                return R(code, out.toString().trim(), erros.toString().trim())
-            }
+            if (l.startsWith(marca)) return R(l.substringAfter(':').trim().toIntOrNull() ?: -1, out.toString().trim(), erros.toString().trim())
             out.append(l).append('\n')
         }
     }
-    fun sh(cmd: String, timeoutS: Long = 30): R = run(arrayOf("sh", "-c", cmd), timeoutS)
 
-    private fun run(argv: Array<String>, timeoutS: Long): R {
-        return try {
-            val p = ProcessBuilder(*argv).start()
-            p.outputStream.close()
-            val outB = StringBuilder()
-            val errB = StringBuilder()
-            val to = Thread { try { p.inputStream.bufferedReader().forEachLine { synchronized(outB) { outB.append(it).append('\n') } } } catch (e: Exception) { } }
-            val te = Thread { try { p.errorStream.bufferedReader().forEachLine { synchronized(errB) { errB.append(it).append('\n') } } } catch (e: Exception) { } }
-            to.start(); te.start()
-            val fim = p.waitFor(timeoutS, TimeUnit.SECONDS)
-            if (!fim) p.destroy()
-            to.join(3000); te.join(3000)
-            val code = if (fim) p.exitValue() else -2
-            R(code, synchronized(outB) { outB.toString().trim() }, synchronized(errB) { errB.toString().trim() })
-        } catch (e: Exception) {
-            R(-1, "", e.message ?: "erro")
-        }
-    }
-
-    fun verificarRoot(): Boolean {
-        val r = root("id", 60)
-        val ok = r.ok && r.out.contains("uid=0")
-        temRoot = ok
-        return ok
-    }
-
-    fun temRoot(): Boolean = temRoot ?: verificarRoot()
-
-    /** Aspas seguras para o shell. */
     fun q(s: String): String = "'" + s.replace("'", "'\\''") + "'"
-
-    fun ler(path: String): String = root("cat ${q(path)} 2>/dev/null", 15).out
-
-    /** Grava um arquivo como root mantendo dono/permissao do arquivo existente. */
-    fun gravar(path: String, conteudo: String): Boolean {
-        val tmp = File(PcApp.ctx.cacheDir, "w-" + System.nanoTime() + ".tmp")
-        tmp.writeText(conteudo)
-        tmp.setReadable(true, false)
-        val r = root("cat ${q(tmp.absolutePath)} > ${q(path)}", 20)
-        tmp.delete()
-        return r.ok
-    }
-
-    fun setting(ns: String, key: String): String {
-        val v = root("settings get $ns $key", 10).out.trim()
-        return if (v == "null") "" else v
-    }
 }
 
-/** Configuracoes e listas persistentes (JSON na pasta privada do app). */
+/** Configuracoes e listas persistentes. */
 object Store {
     private fun f(nome: String) = File(PcApp.ctx.filesDir, nome)
     private val prefs get() = PcApp.ctx.getSharedPreferences("config", Context.MODE_PRIVATE)
 
     fun lerArr(nome: String): JSONArray = try {
-        val a = f(nome)
-        if (a.exists()) JSONArray(a.readText()) else JSONArray()
+        val a = f(nome); if (a.exists()) JSONArray(a.readText()) else JSONArray()
     } catch (e: Exception) { JSONArray() }
 
     fun salvarArr(nome: String, a: JSONArray, max: Int = 0) {
@@ -167,12 +174,7 @@ object Store {
         f(nome).writeText(x.toString())
     }
 
-    fun adicionar(nome: String, o: JSONObject, max: Int) {
-        val a = lerArr(nome)
-        a.put(o)
-        salvarArr(nome, a, max)
-    }
-
+    fun adicionar(nome: String, o: JSONObject, max: Int) { val a = lerArr(nome); a.put(o); salvarArr(nome, a, max) }
     fun apagar(nome: String) { f(nome).delete() }
 
     fun str(k: String, def: String = ""): String = prefs.getString(k, def) ?: def
@@ -181,88 +183,8 @@ object Store {
     fun putInt(k: String, v: Int) = prefs.edit().putInt(k, v).apply()
     fun bool(k: String, def: Boolean): Boolean = prefs.getBoolean(k, def)
     fun putBool(k: String, v: Boolean) = prefs.edit().putBoolean(k, v).apply()
-    fun set(k: String): MutableSet<String> = HashSet(prefs.getStringSet(k, emptySet()) ?: emptySet())
-    fun putSet(k: String, v: Set<String>) = prefs.edit().putStringSet(k, v).apply()
-}
-
-/**
- * Registro de "desfazer": antes de mudar qualquer coisa, guarda o comando que volta ao valor original.
- * Igual ao Set-RegBackup do toolkit do PC.
- */
-class UndoLog(private val arquivo: String) {
-    @Synchronized
-    fun registrar(chave: String, comandoReverter: String) {
-        val a = Store.lerArr(arquivo)
-        for (i in 0 until a.length()) if (a.getJSONObject(i).optString("k") == chave) return
-        a.put(JSONObject().put("k", chave).put("c", comandoReverter))
-        Store.salvarArr(arquivo, a)
-    }
-
-    fun setting(ns: String, key: String, valor: String): Boolean {
-        val atual = Sh.setting(ns, key)
-        val rev = if (atual.isEmpty()) "settings delete $ns $key" else "settings put $ns $key ${Sh.q(atual)}"
-        registrar("set:$ns:$key", rev)
-        return Sh.root("settings put $ns $key ${Sh.q(valor)}", 10).ok
-    }
-
-    fun sysfs(path: String, valor: String): Boolean {
-        val atual = Sh.ler(path).trim()
-        if (atual.isNotEmpty()) registrar("sys:$path", "echo ${Sh.q(atual)} > ${Sh.q(path)}")
-        return Sh.root("echo ${Sh.q(valor)} > ${Sh.q(path)}", 10).ok
-    }
-
-    fun prop(nome: String, valor: String): Boolean {
-        val atual = Sh.root("getprop $nome", 10).out.trim()
-        registrar("prop:$nome", "setprop $nome ${Sh.q(atual)}")
-        return Sh.root("setprop $nome ${Sh.q(valor)}", 10).ok
-    }
-
-    fun comando(chave: String, aplicar: String, reverter: String): Boolean {
-        registrar(chave, reverter)
-        return Sh.root(aplicar, 30).ok
-    }
-
-    fun quantos(): Int = Store.lerArr(arquivo).length()
-
-    fun tem(prefixo: String): Boolean {
-        val a = Store.lerArr(arquivo)
-        for (i in 0 until a.length()) if (a.getJSONObject(i).optString("k").startsWith(prefixo)) return true
-        return false
-    }
-
-    @Synchronized
-    fun desfazerPrefixo(prefixo: String, log: (String) -> Unit): Int {
-        val a = Store.lerArr(arquivo)
-        val resto = JSONArray()
-        var n = 0
-        for (i in a.length() - 1 downTo 0) {
-            val o = a.getJSONObject(i)
-            if (o.getString("k").startsWith(prefixo)) { Sh.root(o.getString("c"), 30); log(o.getString("k")); n++ }
-        }
-        for (i in 0 until a.length()) {
-            val o = a.getJSONObject(i)
-            if (!o.getString("k").startsWith(prefixo)) resto.put(o)
-        }
-        Store.salvarArr(arquivo, resto)
-        return n
-    }
-
-    @Synchronized
-    fun desfazer(log: (String) -> Unit): Int {
-        val a = Store.lerArr(arquivo)
-        for (i in a.length() - 1 downTo 0) {
-            val o = a.getJSONObject(i)
-            Sh.root(o.getString("c"), 30)
-            log(o.getString("k"))
-        }
-        Store.apagar(arquivo)
-        return a.length()
-    }
-}
-
-object Undo {
-    val global = UndoLog("undo.json")
-    val sessao = UndoLog("sessao-undo.json")
+    fun conjunto(k: String): MutableSet<String> = HashSet(prefs.getStringSet(k, emptySet()) ?: emptySet())
+    fun putConjunto(k: String, v: Set<String>) = prefs.edit().putStringSet(k, v).apply()
 }
 
 object Log2 {
@@ -270,20 +192,21 @@ object Log2 {
         try {
             val f = File(PcApp.ctx.filesDir, "toolkit.log")
             if (f.exists() && f.length() > 512 * 1024) f.delete()
-            f.appendText("[" + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date()) + "] " + msg + "\n")
+            f.appendText("[" + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(java.util.Date()) + "] " + msg + "\n")
         } catch (e: Exception) { }
     }
 }
 
 fun fmtTam(bytes: Long): String {
-    val v = bytes.toDouble()
-    val s = if (v < 0) "-" else ""
-    val a = kotlin.math.abs(v)
+    val a = kotlin.math.abs(bytes.toDouble())
+    val s = if (bytes < 0) "-" else ""
     return when {
-        a >= 1024.0 * 1024 * 1024 -> String.format(java.util.Locale.US, "%s%.1f GB", s, a / (1024.0 * 1024 * 1024))
-        a >= 1024.0 * 1024 -> String.format(java.util.Locale.US, "%s%.0f MB", s, a / (1024.0 * 1024))
-        else -> String.format(java.util.Locale.US, "%s%.0f KB", s, a / 1024.0)
+        a >= 1024.0 * 1024 * 1024 -> String.format(Locale.US, "%s%.1f GB", s, a / (1024.0 * 1024 * 1024))
+        a >= 1024.0 * 1024 -> String.format(Locale.US, "%s%.0f MB", s, a / (1024.0 * 1024))
+        else -> String.format(Locale.US, "%s%.0f KB", s, a / 1024.0)
     }
 }
 
-fun agora(): String = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+fun agora(): String = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(java.util.Date())
+fun f1(v: Double): String = String.format(Locale.US, "%.1f", v)
+fun f0(v: Double): String = String.format(Locale.US, "%.0f", v)

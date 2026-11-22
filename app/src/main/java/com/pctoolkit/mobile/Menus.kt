@@ -1,145 +1,111 @@
 package com.pctoolkit.mobile
 
-import android.os.Build
-
-/** Menus (mesma estrutura do PC Toolkit 4.0). */
+/** Estrutura de navegacao do app. */
 object Menus {
-    private val ctx get() = PcApp.ctx
+    private const val L = R.drawable.ic_limpeza
+    private const val F = R.drawable.ic_fps
+    private const val A = R.drawable.ic_aparencia
+    private const val TP = R.drawable.ic_temperatura
+    private const val S = R.drawable.ic_seguranca
+    private const val M = R.drawable.ic_manutencao
+    private const val B = R.drawable.ic_backup
+    private const val D = R.drawable.ic_desfazer
+    private const val J = R.drawable.ic_jogo
+    private const val RD = R.drawable.ic_rede
+    private const val RX = R.drawable.ic_raiox
+    private const val CH = R.drawable.ic_chave
 
-    fun principal(): Menu {
-        val (livre, total) = Sensores.armazenamento()
-        val nota = Store.int("nota_fps", -1)
-        val sub = "Armazenamento: ${fmtTam(livre)} livres de ${fmtTam(total)}" + if (nota >= 0) "   |   Nota de FPS: $nota/100" else ""
-        return Menu("PC TOOLKIT MOBILE 4.0", sub, listOf(
-            Item("1) ASSISTENTE: fazer tudo", "Limpeza + Raio-X de FPS + otimizacao + aparencia + seguranca, passo a passo", C.verde, acao = { assistente(it) }),
-            Item("2) Limpeza do celular", "Padrao, profunda, simulacao, arquivos grandes, jogos, Lixeira...", sub = { limpeza() }),
-            Item("3) CENTRAL DE FPS", "Raio-X, Modo Jogo TURBO, medidor de FPS, tela, rede, latencia", C.verde, sub = { fps() }),
-            Item("4) Aparencia e desempenho INTELIGENTE", "Animacoes, desfoque e tela conforme o seu hardware", C.verde, acao = { Aparencia.executar(it, ctx) }),
-            Item("5) Temperatura e refrigeracao", "Diagnostico, monitor ao vivo, perfis frios, teste de estresse", sub = { temperatura() }),
-            Item("6) SEGURANCA", "Cacar malware, app espiao, minerador e acesso indevido", C.vermelho, sub = { seguranca() }),
-            Item("7) Manutencao do sistema", "Reparar/otimizar apps, TRIM, atualizacoes", sub = { manutencao() }),
-            Item("8) Megazord: backup + restauracao de fabrica", "", C.magenta, sub = { megazord() }),
-            Item("9) Desfazer TODAS as mudancas do toolkit", "", C.amarelo, acao = { desfazer(it) })
-        ))
-    }
+    private fun selo(precisa: Boolean, texto: String) = if (precisa) texto else ""
 
-    fun limpeza() = Menu("LIMPEZA DO CELULAR", "", listOf(
-        Item("1) Analisar o armazenamento", "Mostra o que ocupa espaco, nao apaga nada", acao = { Limpeza.analisar(it, ctx) }),
-        Item("2) Limpeza padrao", "Cache de todos os apps (menos jogos e apps abertos), miniaturas, temporarios", acao = { Limpeza.limpar(it, ctx, false, false) }),
-        Item("3) Limpeza PROFUNDA", "+ logs do sistema, cache dos jogos (com aviso), otimizacao dos apps", C.magenta, acao = { Limpeza.limpar(it, ctx, true, false) }),
-        Item("4) SIMULAR limpeza profunda", "Mostra quanto liberaria, sem apagar", acao = { Limpeza.limpar(it, ctx, true, true) }),
-        Item("5) Revisar arquivos grandes", "Voce escolhe o que vai para a Lixeira do toolkit", acao = { Limpeza.revisarGrandes(it) }),
-        Item("6) Revisar Downloads antigos", "Voce escolhe o que vai para a Lixeira do toolkit", acao = { Limpeza.revisarDownloads(it) }),
-        Item("7) Quanto cada jogo ocupa", "", acao = { Limpeza.tamanhoJogos(it, ctx) }),
-        Item("8) Otimizar os apps (ART)", "Equivale ao CompactOS: apps e jogos abrem mais rapido", acao = { Manutencao.dexopt(it) }),
-        Item("9) Apps instalados (os maiores primeiro)", "Para desinstalar o que nao usa", acao = { Limpeza.appsInstalados(it, ctx) }),
-        Item("10) Lixeira do toolkit", "Restaurar ou esvaziar", acao = { Limpeza.lixeira(it) })
+    fun categorias(): List<Item> = listOf(
+        Item("Desempenho e FPS", "Raio-X, teste, otimizar, tela", F, T.verde, sub = { fps() }),
+        Item("Limpeza", "Espaço, cache, duplicados", L, T.azul, sub = { limpeza() }),
+        Item("Rede para jogos", "Ping, velocidade, DNS", RD, T.ciano, sub = { rede() }),
+        Item("Temperatura", "Calor, monitor, alerta", TP, T.laranja, sub = { temperatura() }),
+        Item("Segurança", "Vírus, espiões, golpes", S, T.vermelho, sub = { seguranca() }),
+        Item("Aparência", "Fluidez e animações", A, T.roxo, acao = { Sistema.aparencia(it) }),
+        Item("Manutenção", "Saúde, bateria, backup", M, T.amarelo, sub = { manutencao() }),
+        Item("Acesso e permissões", "Nível: " + Acesso.nivel(), CH, T.texto2, tela = { it.abrirTela { it.telaPermissoes() } })
+    )
+
+    fun fps() = Menu("Desempenho e FPS", "Tudo que deixa o jogo mais fluido", F, T.verde, listOf(
+        Item("Raio-X de desempenho", "Nota de 0 a 100 e correção com um toque", RX, T.verde, "Recomendado", T.verde, acao = { RaioX.executar(it) }),
+        Item("Modo Jogo", "Silencia, libera memória, abre o jogo e vigia o calor", J, T.verde, acao = { ModoJogo.executar(it) }),
+        Item("Otimizar o celular para jogos", "Passo a passo completo", F, T.verde, acao = { Fps.otimizar(it) }),
+        Item("Teste de desempenho", "Força do processador e estabilidade com calor", F, T.azul, acao = { Fps.benchmark(it) }),
+        Item("Taxa de atualização da tela", "Destravar 90/120 Hz", F, T.azul, acao = { Fps.tela(it) }),
+        Item("Ajustes para um jogo", "Bateria sem restrição e gráficos ideais", J, T.azul, acao = { Fps.porJogo(it) }),
+        Item("Liberar memória", "Encerra apps em segundo plano", F, T.roxo, acao = { Fps.liberarRam(it) }),
+        Item("Apps em segundo plano", "Quem inicia sozinho e gasta recursos", F, T.roxo, acao = { Fps.segundoPlano(it) }),
+        Item("Medidor de FPS", "FPS real com root, ou como ver sem root", F, T.cinza, selo(!Sh.rootConhecido(), "Root"), T.cinza, acao = { Fps.medidor(it) }),
+        Item("Histórico do Modo Jogo", "Sessões, temperatura e bateria", J, T.cinza, acao = { ModoJogo.historico(it) })
     ))
 
-    fun fps(): Menu {
-        val nota = Store.int("nota_fps", -1)
-        return Menu("CENTRAL DE FPS / JOGOS", if (nota >= 0) "Ultima nota do Raio-X: $nota/100" else "", listOf(
-            Item("1) RAIO-X DE FPS", "Nota do celular + correcao com 1 toque (comece por aqui)", C.verde, acao = { RaioX.executar(it, ctx) }),
-            Item("2) MODO JOGO", "Prepara, abre o jogo, pacote TURBO, mede FPS e restaura tudo", C.verde, acao = { ModoJogo.executar(it, ctx) }),
-            Item("3) Medir FPS / benchmark ANTES x DEPOIS", "FPS medio, pior momento, estabilidade, gargalo", acao = { Fps.benchmark(it, ctx) }),
-            Item("4) Otimizar o Android para jogos", "Perfil de CPU, Modo de Jogo, bateria, animacoes, Wi-Fi", acao = { Fps.otimizarAndroid(it, ctx) }),
-            Item("5) Otimizar graficos dos jogos", "Minecraft, Roblox, Unreal + escala de resolucao/FPS para qualquer jogo", acao = { Fps.otimizarGraficos(it, ctx) }),
-            Item("6) Ajustes por jogo", "Desempenho, Game Driver, escala, segundo plano - qualquer jogo", acao = { Fps.ajustesPorJogo(it, ctx) }),
-            Item("7) Tela: Hz maximo e limite de FPS ideal", "", acao = { Fps.tela(it, ctx) }),
-            Item("8) Rede para jogos online", "Jitter, perda, DNS mais rapido, Wi-Fi de baixa latencia", sub = { rede() }),
-            Item("9) Diagnostico completo do celular", "", acao = { Fps.diagnostico(it, ctx) }),
-            Item("10) Apps que abrem com o celular", "Desativar / restringir em segundo plano", acao = { Fps.inicializacao(it, ctx) }),
-            Item("11) Liberar RAM agora", "", acao = { Fps.liberarRam(it, ctx) }),
-            Item("12) Historico de sessoes e medicoes", "", acao = { Fps.historico(it) }),
-            Item("13) Desfazer todas as mudancas", "", C.amarelo, acao = { desfazer(it) })
-        ))
-    }
-
-    fun rede() = Menu("REDE PARA JOGOS ONLINE", "", listOf(
-        Item("1) Teste completo de conexao", "Ping, jitter e perda: roteador x internet", acao = { Rede.testeCompleto(it, ctx) }),
-        Item("2) Ajustes de TCP", "BBR, sem partida lenta, Fast Open (equivale ao Nagle do PC)", acao = { Rede.ajustesTcp(it) }),
-        Item("3) Wi-Fi para jogos", "Baixa latencia, alto desempenho, sem varredura em segundo plano", acao = { Rede.placaRede(it) }),
-        Item("4) DNS: testar o mais rapido e trocar", "Usa o DNS Privado do Android", acao = { Rede.dns(it, ctx) }),
-        Item("5) DNS: voltar ao original", "", acao = { Rede.restaurarDns(it) })
+    fun limpeza() = Menu("Limpeza", "Livre: " + fmtTam(Sensores.armazenamento().first), L, T.azul, listOf(
+        Item("Limpeza rápida", "Lixo seguro + cache de todos os apps", L, T.azul, "Recomendado", T.verde, acao = { Limpeza.rapida(it, false) }),
+        Item("Simular limpeza", "Mostra quanto libera sem apagar nada", L, T.azul, acao = { Limpeza.rapida(it, true) }),
+        Item("Analisar armazenamento", "O que ocupa espaço, por tipo e pasta", L, T.azul, acao = { Limpeza.analisar(it) }),
+        Item("Arquivos grandes", "Encontre os maiores arquivos", L, T.roxo, acao = { Limpeza.grandes(it) }),
+        Item("Arquivos duplicados", "Cópias idênticas de fotos e vídeos", L, T.roxo, acao = { Limpeza.duplicados(it) }),
+        Item("Downloads antigos", "Arquivos esquecidos na pasta Download", L, T.roxo, acao = { Limpeza.downloadsAntigos(it) }),
+        Item("Quanto cada jogo ocupa", "Tamanho real com dados e cache", J, T.verde, acao = { Limpeza.tamanhoJogos(it) }),
+        Item("Apps que mais ocupam", "Limpar dados ou desinstalar", L, T.amarelo, acao = { Limpeza.appsMaiores(it) }),
+        Item("Apps esquecidos", "Sem uso há semanas", L, T.amarelo, acao = { Limpeza.esquecidos(it) }),
+        Item("Lixeira do PC Toolkit", fmtTam(Lixeira.tamanho()) + " · restaurar ou esvaziar", D, T.cinza, acao = { Limpeza.lixeiraMenu(it) })
     ))
 
-    fun temperatura(): Menu = Menu("TEMPERATURA E REFRIGERACAO", "Perfil ativo: " + Store.str("perfil_ativo").ifEmpty { "padrao do celular" }, listOf(
-        Item("1) Diagnostico termico", "Temperaturas, throttling, quem esquenta o celular", acao = { Temperatura.diagnostico(it, ctx) }),
-        Item("2) Monitor ao vivo", "CPU, bateria, clock, uso por nucleo, GPU e FPS", acao = { Temperatura.monitor(it, ctx) }),
-        Item("3) Aplicar perfil de energia/temperatura", "Maximo FPS / Equilibrado frio / Silencioso / Personalizado", acao = { Temperatura.aplicarPerfilMenu(it) }),
-        Item("4) Voltar a CPU/GPU ao original", "", acao = { Temperatura.restaurarPerfil(it) }),
-        Item("5) Teste de estresse da CPU", "Verifica se a refrigeracao aguenta", acao = { Temperatura.estresse(it, ctx) }),
-        Item("6) Dicas de refrigeracao", "O que realmente baixa a temperatura", acao = { Temperatura.dicas(it) }),
-        Item("7) Limite da protecao termica do Modo Jogo", "", acao = { Temperatura.configurarLimite(it) })
+    fun rede() = Menu("Rede para jogos", "Conexão: " + Rede.tipo(PcApp.ctx), RD, T.ciano, listOf(
+        Item("Teste de conexão para jogos", "Ping, jitter e perda até o roteador e a internet", RD, T.ciano, "Recomendado", T.verde, acao = { Rede.testeCompleto(it) }),
+        Item("Teste de velocidade", "Download e upload", RD, T.ciano, acao = { Rede.velocidade(it) }),
+        Item("DNS mais rápido", "Testa 5 servidores e configura o melhor", RD, T.azul, acao = { Rede.dns(it) }),
+        Item("Informações do Wi-Fi", "Sinal, faixa e velocidade do link", RD, T.azul, acao = { it.titulo("Wi-Fi"); Rede.infoWifi(it) })
     ))
 
-    fun seguranca() = Menu("SEGURANCA: MALWARE, ESPIOES, MINERADORES", "", listOf(
-        Item("1) Varredura RAPIDA", "Apps, permissoes, CPU, rede, configuracoes (~1 min)", acao = { Seguranca.cacar(it, ctx, "Rapida") }),
-        Item("2) Varredura COMPLETA", "+ arquivos suspeitos e APKs de mod/cheat baixados", acao = { Seguranca.cacar(it, ctx, "Completa") }),
-        Item("3) Cacar so MINERADORES", "", acao = { Seguranca.cacar(it, ctx, "Minerador") }),
-        Item("4) Protecao do Google (Play Protect)", "Equivale ao antivirus do Windows", acao = { Seguranca.playProtect(it) }),
-        Item("5) Quarentena", "Ver / restaurar / desinstalar", acao = { Seguranca.menuQuarentena(it, ctx) }),
-        Item("6) Ver o ultimo relatorio", "", acao = { Seguranca.ultimoRelatorio(it, ctx) }),
-        Item("7) BLINDAGEM", "Proteger agora, caixa de areia, VirusTotal", C.magenta, sub = { blindagem() })
+    fun temperatura() = Menu("Temperatura", "Bateria agora: " + f1(Sensores.bateria(PcApp.ctx).tempC) + " °C", TP, T.laranja, listOf(
+        Item("Diagnóstico", "Temperatura, limitação por calor e sensores", TP, T.laranja, acao = { Temperatura.diagnostico(it) }),
+        Item("Monitor em tempo real", "Temperatura, bateria, RAM e CPU", TP, T.laranja, acao = { Temperatura.monitor(it) }),
+        Item("Teste de calor", "Quanto esquenta e se perde força", TP, T.vermelho, acao = { Temperatura.estresse(it) }),
+        Item("Alerta de calor", "Limite atual: " + Store.int("limite_bateria", 43) + " °C", TP, T.amarelo, acao = { Temperatura.limite(it) }),
+        Item("Dicas para esquentar menos", "O que realmente funciona", TP, T.verde, acao = { Temperatura.dicas(it) }),
+        Item("Economia de energia", if (Sensores.economiaEnergia(PcApp.ctx)) "Ligada agora" else "Desligada", TP, T.cinza, acao = { Temperatura.economia(it) }),
+        Item("Limitar a CPU", "Perfis frio e silencioso", TP, T.cinza, selo(!Sh.rootConhecido(), "Root"), T.cinza, acao = { Temperatura.limitarCpu(it) })
     ))
 
-    fun blindagem() = Menu("BLINDAGEM: NAO DEIXAR O TROJAN ENTRAR", "Pensado para mod/cheat/crack baixado que vem com trojan/stealer junto", listOf(
-        Item("1) PROTEGER AGORA (recomendado)", "Play Protect total, bloqueia instalacao de APK por navegador/Telegram, procura APKs suspeitos", C.verde, acao = { Seguranca.protegerAgora(it, ctx) }),
-        Item("2) CAIXA DE AREIA", "Como testar um app suspeito isolado do seu perfil principal", C.verde, acao = { Seguranca.caixaDeAreia(it) }),
-        Item("3) Verificar arquivo ou app na VirusTotal", "~70 antivirus de uma vez (chave gratuita)", acao = { Seguranca.verificarArquivoVt(it, ctx) }),
-        Item("4) Configurar/trocar a chave da VirusTotal", "", acao = { Seguranca.configurarVt(it) })
+    fun seguranca() = Menu("Segurança", Store.str("seg_ultimo").ifEmpty { "Nenhuma verificação ainda" }, S, T.vermelho, listOf(
+        Item("Verificação de segurança", "Apps espiões, golpes e configurações de risco", S, T.vermelho, "Recomendado", T.verde, acao = { Seguranca.cacar(it) }),
+        Item("Verificar na VirusTotal", "APK ou app com ~70 antivírus", S, T.vermelho, acao = { Seguranca.verificarArquivoVt(it) }),
+        Item("Blindagem", "Fechar as portas de entrada de vírus", S, T.amarelo, acao = { Seguranca.blindagem(it) }),
+        Item("Testar um app com segurança", "Como isolar apps duvidosos", S, T.azul, acao = { Seguranca.caixaDeAreia(it) }),
+        Item("Último relatório", "Resultado da última verificação", S, T.cinza, acao = { Seguranca.ultimoRelatorio(it) })
     ))
 
-    fun manutencao() = Menu("MANUTENCAO DO SISTEMA", "", listOf(
-        Item("1) Reparar / otimizar o sistema", "Caches do sistema + ART + apps que mais travam", acao = { Manutencao.reparar(it, ctx) }),
-        Item("2) Otimizar armazenamento (TRIM)", "", acao = { Manutencao.trim(it) }),
-        Item("3) Atualizacoes e driver de video", "", acao = { Manutencao.atualizacoes(it, ctx) })
+    fun manutencao() = Menu("Manutenção", "Saúde, backup e restauração", M, T.amarelo, listOf(
+        Item("Saúde do celular", "Bateria, ciclos, tempo ligado e armazenamento", M, T.amarelo, acao = { Sistema.saude(it) }),
+        Item("Atualizações", "Sistema e apps", M, T.amarelo, acao = { Sistema.atualizacoes(it) }),
+        Item("Backup", Store.str("ultimo_backup").ifEmpty { "Copiar fotos e arquivos com conferência" }, B, T.azul, acao = { Sistema.backup(it) }),
+        Item("Restauração de fábrica", "Checklist seguro antes de apagar tudo", B, T.vermelho, acao = { Sistema.restaurarFabrica(it) }),
+        Item("Desfazer alterações", Ajuste.quantos().toString() + " configuração(ões) alteradas", D, T.texto2, acao = { Sistema.desfazer(it) }),
+        Item("Reiniciar", "Resolve lentidão acumulada", M, T.cinza, acao = { Sistema.reiniciar(it) }),
+        Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })
     ))
 
-    fun megazord() = Menu("MEGAZORD: RESTAURACAO DE FABRICA", Megazord.backupOk?.let { "Backup conferido: " + it.replace(Sd.base, "/sdcard") } ?: "", listOf(
-        Item("1) PASSO 1 - Preparar", "Checagens + inventario + BACKUP conferido", acao = { Megazord.preparar(it, ctx) }),
-        Item("2) PASSO 2 - Restaurar o celular", "Apaga TUDO", C.vermelho, acao = { Megazord.redefinir(it) })
-    ))
-
-    fun desfazer(con: Console) {
-        con.titulo("DESFAZER MUDANCAS DO TOOLKIT")
-        if (!con.exigeRoot()) return
-        var feito = false
-        val n = Undo.global.quantos()
-        if (n > 0) {
-            Undo.global.desfazer { con.info("revertido: $it") }
-            con.ok("$n configuracoes revertidas (CPU, tela, animacoes, rede, DNS, jogos, permissoes...)")
-            Store.putStr("perfil_ativo", "")
-            feito = true
-        }
-        if (!feito) con.linha("Nao havia nada para desfazer.")
-        else con.linha("Pronto. Reinicie o celular para tudo voltar 100% ao normal.", C.verde)
-        con.info("A quarentena de apps e a Lixeira do toolkit tem menus proprios (restaurar).")
-    }
-
+    /** Assistente: faz o essencial em sequencia. */
     fun assistente(con: Console) {
-        con.titulo("ASSISTENTE: LIMPEZA + FPS + APARENCIA + SEGURANCA")
-        con.linha("Vou guiar voce em 7 etapas, perguntando antes de cada uma:")
-        con.linha("  1) Limpeza profunda   2) Raio-X de FPS   3) Otimizar o Android + perfil de temperatura")
-        con.linha("  4) Aparencia          5) Graficos dos jogos   6) Diagnostico termico   7) Varredura de seguranca")
-        if (!con.ask("Comecar?")) return
-        if (!con.exigeRoot()) return
-        con.linha(""); con.linha("[1/7] Limpeza profunda", C.ciano)
-        if (con.ask("Fazer a limpeza profunda agora?")) Limpeza.limpar(con, ctx, true, false)
-        con.linha(""); con.linha("[2/7] Raio-X de FPS", C.ciano)
-        if (con.ask("Rodar o Raio-X de FPS (nota e correcoes)?")) RaioX.executar(con, ctx)
-        con.linha(""); con.linha("[3/7] Otimizar o Android + perfil de energia/temperatura", C.ciano)
-        if (con.ask("Aplicar agora?")) Fps.otimizarAndroid(con, ctx)
-        con.linha(""); con.linha("[4/7] Aparencia e desempenho inteligente", C.ciano)
-        if (con.ask("Ajustar conforme o seu hardware?")) Aparencia.executar(con, ctx)
-        con.linha(""); con.linha("[5/7] Graficos dos jogos", C.ciano)
-        if (con.ask("Otimizar os graficos dos jogos agora?")) Fps.otimizarGraficos(con, ctx)
-        con.linha(""); con.linha("[6/7] Diagnostico termico", C.ciano)
-        Temperatura.diagnostico(con, ctx)
-        con.linha(""); con.linha("[7/7] Varredura de seguranca", C.ciano)
-        if (con.ask("Fazer a varredura RAPIDA de ameacas agora?")) Seguranca.cacar(con, ctx, "Rapida")
+        con.titulo("Assistente")
+        con.linha("Faz o essencial em sequência. Desmarque o que não quiser.", T.texto2)
+        val etapas = listOf("Raio-X de desempenho e correções", "Limpeza rápida", "Liberar memória", "Verificação de segurança", "Teste de conexão para jogos")
+        val sel = con.varios("Etapas", etapas, true)
+        for (i in sel) {
+            if (con.cancelado) break
+            when (i) {
+                0 -> RaioX.executar(con)
+                1 -> Limpeza.rapida(con, false)
+                2 -> Fps.liberarRam(con)
+                3 -> Seguranca.cacar(con)
+                4 -> Rede.testeCompleto(con)
+            }
+        }
         con.linha("")
-        con.linha("Assistente concluido. Para jogar, use o MODO JOGO (Central de FPS).", C.verde)
-        con.info("Para ver o ganho real: Medir FPS antes e depois, no mesmo lugar do jogo. (Android ${Build.VERSION.RELEASE})")
+        if (!con.cancelado) con.ok("Assistente concluído. Para jogar, use o Modo Jogo.")
     }
 }
