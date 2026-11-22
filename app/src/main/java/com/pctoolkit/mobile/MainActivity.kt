@@ -202,6 +202,8 @@ class MainActivity : Activity() {
         if (intent?.getBooleanExtra("teclado", false) == true) executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
         if (intent?.getBooleanExtra("pro", false) == true) abrirTela { telaPro() }
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
+        else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
+        Atualizador.aoAbrir(this)
         if (!GameService.rodando && Sessao.pendente() && Store.str("sessao_cfg").isNotEmpty()) {
             // o Android encerrou o Modo Jogo no meio da partida: retoma a sessao de onde parou
             try { startForegroundService(android.content.Intent(this, GameService::class.java)) } catch (e: Exception) { Sessao.restaurar(this) }
@@ -251,6 +253,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        Atualizador.tela = java.lang.ref.WeakReference(this)
         voltaLatch?.countDown()
         if (!naTarefa && pilha.isNotEmpty()) mostrar()
     }

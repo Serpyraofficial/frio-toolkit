@@ -100,6 +100,7 @@ object Menus {
         Item("Restauração de fábrica", "Checklist seguro antes de apagar tudo", B, T.vermelho, acao = { Sistema.restaurarFabrica(it) }),
         Item("Desfazer alterações", Ajuste.quantos().toString() + " configuração(ões) alteradas", D, T.texto2, acao = { Sistema.desfazer(it) }),
         Item("Reiniciar", "Resolve lentidão acumulada", M, T.cinza, acao = { Sistema.reiniciar(it) }),
+        Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })
     ))
 

@@ -155,7 +155,7 @@ object Sistema {
 
     fun info(con: Console) {
         con.titulo("Sobre o SerpyraToolkit")
-        con.linha("Versão 5.1", T.verde)
+        con.linha("Versão " + BuildConfig.VERSION_NAME, T.verde)
         con.linha("Funciona sem root. Níveis de acesso:", T.texto2)
         con.item("Padrão: permissões do Android (arquivos, uso, não perturbe, sobreposição)")
         con.item("Automático (Shizuku): libera as permissões e faz os ajustes sozinho, sem PC")

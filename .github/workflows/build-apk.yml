@@ -21,22 +21,50 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Compilar APK (debug, ja assinado e instalavel)
+      - name: Chave de assinatura fixa (segredos do GitHub)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/serpyra.jks"
+            echo "SERPYRA_KS=$RUNNER_TEMP/serpyra.jks" >> "$GITHUB_ENV"
+            echo "Assinatura fixa: sim"
+          else
+            echo "::warning::Sem KEYSTORE_B64: o APK sai com assinatura temporaria e NAO sera publicado como atualizacao."
+          fi
+
+      - name: Compilar APK
+        env:
+          SERPYRA_KS_SENHA: ${{ secrets.KEYSTORE_SENHA }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
           name: SerpyraToolkit-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/release/*.apk
 
-      - name: Guardar o APK na branch (pasta apk/)
+      - name: Publicar a atualizacao (pasta apk/)
+        if: env.SERPYRA_KS != ''
         run: |
           mkdir -p apk
-          cp app/build/outputs/apk/debug/app-debug.apk apk/SerpyraToolkit-5.1.apk
+          cp app/build/outputs/apk/release/app-release.apk apk/SerpyraToolkit.apk
+          CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          NOME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          SHA=$(sha256sum apk/SerpyraToolkit.apk | cut -d' ' -f1)
+          TAM=$(stat -c %s apk/SerpyraToolkit.apk)
+          python3 - "$CODE" "$NOME" "$SHA" "$TAM" <<'PY'
+          import json, sys
+          code, nome, sha, tam = sys.argv[1:]
+          try: notas = open("NOVIDADES.txt", encoding="utf-8").read().strip()
+          except FileNotFoundError: notas = ""
+          json.dump({"versionCode": int(code), "versionName": nome, "notas": notas, "sha256": sha, "tamanho": int(tam)},
+                    open("apk/versao.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+          PY
+          cat apk/versao.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/SerpyraToolkit-5.1.apk
-          git commit -m "APK gerado [skip ci]" || echo "sem mudancas"
+          git add apk/SerpyraToolkit.apk apk/versao.json
+          git commit -m "APK $NOME publicado [skip ci]" || echo "sem mudancas"
           git push

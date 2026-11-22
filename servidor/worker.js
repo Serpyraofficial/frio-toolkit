@@ -122,6 +122,7 @@ async function liberar(env, id, valorPago) {
   p.status = "pago";
   p.pagoEm = new Date().toISOString();
   await env.PCT.put("lic:" + p.codigo, String(dia));
+  await env.PCT.put("chave:" + p.codigo, JSON.stringify({ chave: p.chave, dia }));
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
   const agora = new Date(Date.now() - 3 * 3600000); // horário de Brasília
   p.email_status = await enviarEmail(env, {
@@ -197,6 +198,37 @@ async function webhook(req, env) {
   return new Response("ok");
 }
 
+/** Devolve a chave mais recente deste celular (reinstalou o app). A chave só funciona no próprio aparelho. */
+async function licenca(url, env) {
+  const codigo = String(url.searchParams.get("codigo") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!codigoValido(codigo)) return json({ erro: "Código inválido." }, 400);
+  const raw = await env.PCT.get("chave:" + codigo);
+  if (!raw) return json({ status: "nenhuma" }, 404);
+  const o = JSON.parse(raw);
+  if (o.dia < hoje()) return json({ status: "vencida", validade: dataBr(o.dia) }, 404);
+  return json({ status: "ativa", chave: o.chave, validade: dataBr(o.dia) });
+}
+
+/* ---------- atualização do app: o APK fica no GitHub; GITHUB_TOKEN só é preciso se o repositório for privado ---------- */
+const APK_RAW = "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/apk/";
+function github(env, arquivo) {
+  const h = { "user-agent": "serpyratoolkit" };
+  if (env.GITHUB_TOKEN) h.authorization = "token " + env.GITHUB_TOKEN;
+  return fetch(APK_RAW + arquivo + "?v=" + Math.floor(Date.now() / 120000), { headers: h });
+}
+async function versao(env) {
+  const r = await github(env, "versao.json");
+  if (!r.ok) return json({ erro: "Versão indisponível (" + r.status + ")." }, 502);
+  return new Response(await r.text(), { headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" } });
+}
+async function baixarApk(env) {
+  const r = await github(env, "SerpyraToolkit.apk");
+  if (!r.ok) return json({ erro: "APK indisponível (" + r.status + ")." }, 502);
+  const h = { "content-type": "application/vnd.android.package-archive", "content-disposition": "attachment; filename=SerpyraToolkit.apk", "cache-control": "no-store" };
+  const n = r.headers.get("content-length"); if (n) h["content-length"] = n;
+  return new Response(r.body, { headers: h });
+}
+
 /** Só no modo de teste (chave ps_test_): simula o pagamento de um pedido. */
 async function simular(url, env) {
   if (!String(env.PURIN_KEY || "").startsWith("ps_test_")) return json({ erro: "Só funciona com a chave de teste ps_test_." }, 403);
@@ -215,6 +247,9 @@ export default {
       if (req.method === "GET" && url.pathname === "/status") return await status(url, env);
       if (req.method === "POST" && url.pathname === "/webhook") return await webhook(req, env);
       if (req.method === "POST" && url.pathname === "/simular") return await simular(url, env);
+      if (req.method === "GET" && url.pathname === "/licenca") return await licenca(url, env);
+      if (req.method === "GET" && url.pathname === "/versao") return await versao(env);
+      if (req.method === "GET" && url.pathname === "/apk") return await baixarApk(env);
       if (url.pathname === "/") {
         const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL"].filter(k => !env[k]);
         return json({ servico: "SerpyraToolkit Pro", ok: faltando.length === 0 && !!env.PCT, faltando: env.PCT ? faltando : faltando.concat(["KV PCT"]), modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", preco: reais(preco(env)) });

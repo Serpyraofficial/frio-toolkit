@@ -11,14 +11,32 @@ android {
         applicationId = "com.serpyra.toolkit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 51
-        versionName = "5.1"
+        versionCode = 52
+        versionName = "5.2"
+    }
+
+    // Assinatura fixa (sempre a mesma): sem ela o Android recusa a atualizacao por cima.
+    // O arquivo e a senha vem dos segredos do GitHub (KEYSTORE_B64 / KEYSTORE_SENHA).
+    val ks = System.getenv("SERPYRA_KS")
+    signingConfigs {
+        if (ks != null && file(ks).exists()) {
+            create("fixa") {
+                storeFile = file(ks)
+                storePassword = System.getenv("SERPYRA_KS_SENHA")
+                keyAlias = "serpyra"
+                keyPassword = System.getenv("SERPYRA_KS_SENHA")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("fixa") ?: signingConfigs.getByName("debug")
         }
+    }
+    buildFeatures {
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

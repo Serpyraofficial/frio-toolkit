@@ -91,6 +91,23 @@ object Compra {
         return false
     }
 
+    /**
+     * Recupera a chave deste celular no servidor (reinstalou o app, limpou os dados...).
+     * A chave so funciona neste aparelho, entao o servidor pode devolve-la pelo codigo.
+     */
+    fun restaurar(forcar: Boolean = false): Boolean {
+        if (!Vendedor.automatico() || Licenca.ativo()) return false
+        val ultima = Store.str("lic_rest_em").toLongOrNull() ?: 0L
+        if (!forcar && System.currentTimeMillis() - ultima < 12 * 3_600_000L) return false
+        Store.putStr("lic_rest_em", System.currentTimeMillis().toString())
+        return try {
+            val (code, t) = http("GET", "/licenca?codigo=" + Licenca.codigo(), null)
+            if (code != 200) return false
+            val ch = org.json.JSONObject(t).optString("chave")
+            ch.isNotEmpty() && Licenca.ativar(ch).first
+        } catch (e: Exception) { false }
+    }
+
     fun limpar() { for (k in listOf("lic_pedido", "lic_pedido_num", "lic_pedido_br", "lic_pedido_qr", "lic_pedido_em")) Store.putStr(k, "") }
 
     fun imagem(dataUri: String): Bitmap? = try {
@@ -448,5 +465,18 @@ private fun MainActivity.secaoChave(col: LinearLayout) {
         if (ok) msg.postDelayed({ mostrar() }, 1200)
     }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     c3.addView(linha, Ui.linhaLp(this, 10, 0))
+    if (Vendedor.automatico() && !Licenca.ativo()) {
+        c3.addView(Ui.botao(this, "Já comprei: recuperar meu Pro", T.azul, false) {
+            msg.text = "Procurando sua compra..."; msg.setTextColor(T.texto2)
+            Thread {
+                val ok = Compra.restaurar(forcar = true)
+                runOnUiThread {
+                    msg.text = if (ok) "Pro recuperado! Ativo até ${Licenca.validadeTexto()}." else "Não achei compra ativa para este celular. Se comprou, cole a chave que chegou no seu e-mail."
+                    msg.setTextColor(if (ok) T.verde else T.amarelo)
+                    if (ok) msg.postDelayed({ mostrar() }, 1400)
+                }
+            }.start()
+        }, Ui.linhaLp(this, 8, 0))
+    }
     col.addView(c3, Ui.linhaLp(this))
 }
