@@ -199,6 +199,7 @@ class MainActivity : Activity() {
         }.start()
         try { rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(aoShizuku) } catch (e: Throwable) { }
         if (!Modo.definido()) { boasVindas(); return }
+        if (intent?.getBooleanExtra("teclado", false) == true) executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
         if (!GameService.rodando && Sessao.pendente() && Store.str("sessao_cfg").isNotEmpty()) {
             // o Android encerrou o Modo Jogo no meio da partida: retoma a sessao de onde parou
             try { startForegroundService(android.content.Intent(this, GameService::class.java)) } catch (e: Exception) { Sessao.restaurar(this) }
@@ -354,7 +355,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 4.5  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Mobile 4.6  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)

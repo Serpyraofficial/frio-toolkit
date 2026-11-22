@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="desc_acessibilidade">Transforma as teclas de um teclado ou controle físico em toques na tela do jogo (como no MuMu Player), usando os botões que você criou no PC Toolkit. Não lê o conteúdo da tela nem o que você digita fora do jogo.</string>
+    <string name="tile_teclado">Teclado PC Toolkit</string>
+</resources>
