@@ -210,23 +210,30 @@ async function licenca(url, env) {
 }
 
 /* ---------- atualização do app: o APK fica no GitHub; GITHUB_TOKEN só é preciso se o repositório for privado ---------- */
-const APK_RAW = "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/apk/";
+const RAW = "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/";
 function github(env, arquivo) {
   const h = { "user-agent": "serpyratoolkit" };
   if (env.GITHUB_TOKEN) h.authorization = "token " + env.GITHUB_TOKEN;
-  return fetch(APK_RAW + arquivo + "?v=" + Math.floor(Date.now() / 120000), { headers: h });
+  return fetch(RAW + arquivo + "?v=" + Math.floor(Date.now() / 120000), { headers: h });
 }
 async function versao(env) {
-  const r = await github(env, "versao.json");
+  const r = await github(env, "apk/versao.json");
   if (!r.ok) return json({ erro: "Versão indisponível (" + r.status + ")." }, 502);
   return new Response(await r.text(), { headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" } });
 }
 async function baixarApk(env) {
-  const r = await github(env, "SerpyraToolkit.apk");
+  const r = await github(env, "apk/SerpyraToolkit.apk");
   if (!r.ok) return json({ erro: "APK indisponível (" + r.status + ")." }, 502);
   const h = { "content-type": "application/vnd.android.package-archive", "content-disposition": "attachment; filename=SerpyraToolkit.apk", "cache-control": "no-store" };
   const n = r.headers.get("content-length"); if (n) h["content-length"] = n;
   return new Response(r.body, { headers: h });
+}
+
+/** Site de apresentação (site/index.html do repositório). */
+async function site(env) {
+  const r = await github(env, "site/index.html");
+  if (!r.ok) return new Response("Site indisponível no momento.", { status: 502, headers: { "content-type": "text/plain; charset=utf-8" } });
+  return new Response(await r.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=120" } });
 }
 
 /** Só no modo de teste (chave ps_test_): simula o pagamento de um pedido. */
@@ -250,7 +257,9 @@ export default {
       if (req.method === "GET" && url.pathname === "/licenca") return await licenca(url, env);
       if (req.method === "GET" && url.pathname === "/versao") return await versao(env);
       if (req.method === "GET" && url.pathname === "/apk") return await baixarApk(env);
-      if (url.pathname === "/") {
+      if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) return await site(env);
+      if (req.method === "GET" && url.pathname === "/baixar") return await baixarApk(env);
+      if (url.pathname === "/saude") {
         const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL"].filter(k => !env[k]);
         return json({ servico: "SerpyraToolkit Pro", ok: faltando.length === 0 && !!env.PCT, faltando: env.PCT ? faltando : faltando.concat(["KV PCT"]), modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", preco: reais(preco(env)) });
       }
