@@ -258,6 +258,7 @@ class MainActivity : Activity() {
 
     fun abrirMenu(gerador: () -> Menu) { pilha.add { telaMenu(gerador()) }; mostrar() }
     fun abrirTela(render: () -> Unit) { pilha.add(render); mostrar() }
+    fun abrirTelaAtual(render: () -> Unit) { if (pilha.isNotEmpty()) pilha[pilha.size - 1] = render else pilha.add(render); mostrar() }
 
     private fun voltar() {
         if (naTarefa) { mostrar(); return }
@@ -273,7 +274,7 @@ class MainActivity : Activity() {
         voltar()
     }
 
-    private fun raiz(conteudo: View, rolar: Boolean = true): View {
+    fun raiz(conteudo: View, rolar: Boolean = true): View {
         val f = FrameLayout(this)
         f.setBackgroundColor(T.bg)
         if (rolar) {
@@ -287,7 +288,7 @@ class MainActivity : Activity() {
         return f
     }
 
-    private fun barraTopo(titulo: String, sub: String, podeVoltar: Boolean = true): View {
+    fun barraTopo(titulo: String, sub: String, podeVoltar: Boolean = true): View {
         val l = Ui.horizontal(this)
         l.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 14))
         if (podeVoltar) {
@@ -313,7 +314,7 @@ class MainActivity : Activity() {
         voltar()
     }
 
-    private fun coluna(): LinearLayout {
+    fun coluna(): LinearLayout {
         val c = Ui.vertical(this)
         c.setPadding(Ui.dp(this, 18), Ui.dp(this, 16), Ui.dp(this, 18), Ui.dp(this, 28))
         return c
@@ -350,7 +351,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 4.2  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Mobile 4.3  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
@@ -407,8 +408,9 @@ class MainActivity : Activity() {
         val ac = Ui.horizontal(this)
         ac.addView(Ui.botao(this, "Modo Jogo", T.verde, true, R.drawable.ic_jogo) { executar("Modo Jogo") { ModoJogo.executar(it) } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         ac.addView(Ui.espaco(this, 10, 1))
-        ac.addView(Ui.botao(this, "Assistente", T.verde, false, R.drawable.ic_assistente) { executar("Assistente") { Menus.assistente(it) } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        ac.addView(Ui.botao(this, "Tuner", T.verde, false, R.drawable.ic_fps) { abrirTela { telaTuner() } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         col.addView(ac)
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
 
         // ferramentas
         col.addView(Ui.secao(this, "Ferramentas"))

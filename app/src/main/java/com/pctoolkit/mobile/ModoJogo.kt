@@ -32,7 +32,7 @@ import java.util.Locale
 
 /** MODO JOGO sem root: prepara o celular, abre o jogo, vigia o calor e restaura tudo no fim. */
 object ModoJogo {
-    fun executar(con: Console) {
+    fun executar(con: Console, pkgFixo: String? = null) {
         val ctx = con.ctx
         con.titulo("Modo Jogo")
         con.linha("Prepara o celular, abre o jogo, mostra um painel com temperatura e memória e, quando você terminar, devolve tudo ao normal.", T.texto2)
@@ -41,7 +41,9 @@ object ModoJogo {
             if (con.ask("Encerrar a sessão agora?", "Encerrar", "Continuar", importante = true)) { ctx.startService(Intent(ctx, GameService::class.java).setAction("parar")); con.ok("Encerrando...") }
             return
         }
-        val jogo = Jogos.escolher(con) ?: run { con.linha("Cancelado."); return }
+        val jogo = (if (pkgFixo != null) Jogo(pkgFixo, Jogos.nome(ctx, pkgFixo), "tuner") else Jogos.escolher(con)) ?: run { con.linha("Cancelado."); return }
+        val perfil = Tuner.perfil(jogo.pkg)
+        if (perfil.aplicado) con.info("Perfil do Tuner: " + perfil.resumo())
         con.linha("Jogo: ${jogo.nome}", T.verde)
 
         val nomes = arrayListOf(
@@ -56,7 +58,7 @@ object ModoJogo {
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
         for (i in chaves.indices) op[chaves[i]] = sel.contains(i)
-        op["mj_turbo"] = Sh.privOk() && con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true)
+        op["mj_turbo"] = Sh.privOk() && (perfil.turbo || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
         if (op["mj_dnd"] == true && !Sh.privOk() && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
         if (op["mj_painel"] == true && !con.garantirNome("Sobrepor a outros apps")) op["mj_painel"] = false
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
@@ -70,6 +72,7 @@ object ModoJogo {
 
         val i = Intent(ctx, GameService::class.java).putExtra("pkg", jogo.pkg).putExtra("nome", jogo.nome).putExtra("limite", limite)
         for ((k, v) in op) i.putExtra(k, v)
+        if (perfil.aplicado && perfil.resGlobal in 40..99 && Sh.privOk()) i.putExtra("res", perfil.resGlobal)
         ctx.startForegroundService(i)
         con.linha("")
         con.ok("Sessão iniciada. O jogo vai abrir em instantes.")
@@ -135,6 +138,7 @@ object Sessao {
         }
         if (Store.bool("perf_fixo", false)) { Sh.root("cmd power set-fixed-performance-mode-enabled false", 10); Store.putBool("perf_fixo", false) }
         if (Store.bool("dnd_cmd", false)) { Sh.root("cmd notification set_dnd off", 10); Store.putBool("dnd_cmd", false) }
+        Tuner.restaurarResolucao()
         Store.putBool("sessao_ativa", false)
     }
 }
@@ -229,6 +233,8 @@ class GameService : Service() {
             Sh.root("dumpsys deviceidle whitelist +$pkg >/dev/null 2>&1", 10)
             if (it.getBooleanExtra("mj_turbo", false) && Sh.root("cmd power set-fixed-performance-mode-enabled true 2>&1", 10).let { r -> r.ok && !r.out.contains("rror") }) Store.putBool("perf_fixo", true)
             if (it.getBooleanExtra("mj_ram", false)) Sh.root("am kill-all", 15)
+            val res = it.getIntExtra("res", 0)
+            if (res in 40..99) Tuner.aplicarResolucao(res)
         }
         if (it.getBooleanExtra("mj_sync", false)) {
             try { if (ContentResolver.getMasterSyncAutomatically()) { ContentResolver.setMasterSyncAutomatically(false); Store.putBool("sync_pausada", true) } } catch (e: Exception) { }

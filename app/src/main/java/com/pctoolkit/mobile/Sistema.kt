@@ -155,7 +155,7 @@ object Sistema {
 
     fun info(con: Console) {
         con.titulo("Sobre o PC Toolkit Mobile")
-        con.linha("Versão 4.2", T.verde)
+        con.linha("Versão 4.3", T.verde)
         con.linha("Funciona sem root. Níveis de acesso:", T.texto2)
         con.item("Padrão: permissões do Android (arquivos, uso, não perturbe, sobreposição)")
         con.item("Automático (Shizuku): libera as permissões e faz os ajustes sozinho, sem PC")
