@@ -26,7 +26,7 @@ object Fps {
         val apps = pm.getInstalledApplications(0).filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && it.packageName != ctx.packageName }
         var n = 0
         for (a in apps) { try { am.killBackgroundProcesses(a.packageName); n++ } catch (e: Exception) { } }
-        if (Sh.rootConhecido()) Sh.root("am kill-all; echo 3 > /proc/sys/vm/drop_caches", 20)
+        if (Sh.privOk()) Sh.root("am kill-all; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null", 20)
         con.sleep(1500)
         val depois = Sensores.memoria(ctx).availMem
         con.ok("Processos em segundo plano encerrados ($n apps verificados)")
@@ -131,7 +131,7 @@ object Fps {
         if (atual + 1 >= max && !con.ask("A tela já está no máximo agora. Quer fixar no máximo mesmo assim (evita cair durante o jogo)?")) return
         if (Ajuste.pode()) {
             Ajuste.mudar("system", "peak_refresh_rate", f0(max.toDouble()))
-            if (con.ask("Também travar o MÍNIMO em ${f0(max.toDouble())} Hz? (mais fluido, gasta mais bateria)")) Ajuste.mudar("system", "min_refresh_rate", f0(max.toDouble()))
+            if (con.ask("Também travar o MÍNIMO em ${f0(max.toDouble())} Hz? (mais fluido, gasta mais bateria)", importante = true)) Ajuste.mudar("system", "min_refresh_rate", f0(max.toDouble()))
             if (android.os.Build.MANUFACTURER.equals("samsung", true)) Ajuste.mudar("secure", "refresh_rate_mode", "1")
             con.ok("Tela no máximo (desfaça em Desfazer)")
         } else {
@@ -169,7 +169,7 @@ object Fps {
         con.subtitulo("1. Economia de energia")
         if (Sensores.economiaEnergia(ctx)) {
             con.aviso("Economia de energia LIGADA: limita a CPU e a tela a 60 Hz.")
-            if (con.ask("Abrir para desligar?")) { con.abrirEEsperar(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)); if (!Sensores.economiaEnergia(ctx)) { con.ok("Desligada"); feitos++ } }
+            if (con.ask("Desligar?")) { if (Auto.desligarEconomia(con)) feitos++ }
         } else con.ok("Desligada")
 
         con.subtitulo("2. Tela")
@@ -183,7 +183,7 @@ object Fps {
         con.subtitulo("4. Antisserrilhado forçado (MSAA 4x)")
         if (Sh.getprop("debug.egl.force_msaa") == "true" || Ajuste.ler("global", "force_msaa") == "1") {
             con.aviso("“Forçar MSAA 4x” está LIGADO nas Opções do desenvolvedor: derruba muito o FPS.")
-            if (con.ask("Abrir para desligar?")) con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+            if (con.ask("Desligar?")) { Auto.desligarMsaa(con); feitos++ }
         } else con.ok("Desligado")
 
         con.subtitulo("5. Varredura de Wi-Fi e Bluetooth")
@@ -228,7 +228,7 @@ object Fps {
             "Abrir pelo Modo Jogo"
         ))
         for (i in op) when (i) {
-            0 -> {
+            0 -> if (!Auto.liberarJogo(con, j.pkg)) {
                 con.linha("Vou abrir o app: toque em Bateria > Sem restrição (ou Irrestrito).", T.azul)
                 con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + j.pkg)))
             }
@@ -256,8 +256,8 @@ object Fps {
     // ---------------- medidor de FPS ----------------
     fun medidor(con: Console) {
         con.titulo("Medidor de FPS")
-        if (!Sh.rootConhecido()) {
-            con.linha("Um app comum não pode ler o FPS de outro app sem root (bloqueio de segurança do Android).", T.texto2)
+        if (!Sh.privOk() || Sensores.contadorQuadros() == null) {
+            con.linha("Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo automático (Shizuku) ou root, o medidor funciona.", T.texto2)
             con.subtitulo("Como ver o FPS sem root")
             val f = FerramentaFabricante.encontrar(con.ctx)
             if (f != null) con.item("${f.second}: tem contador de FPS no painel durante o jogo", T.verde)
@@ -267,7 +267,7 @@ object Fps {
             if (f != null && con.ask("Abrir ${f.second}?")) { if (!Links.abrirPacote(con.ctx, f.first)) Links.app(con.ctx, f.first) }
             return
         }
-        con.linha("Abra o jogo agora. Vou medir por 60 s (root).", T.texto2)
+        con.linha("Abra o jogo agora. Vou medir por 60 s.", T.texto2)
         if (!con.ask("Começar?")) return
         val amostras = ArrayList<Double>()
         var ant = Sensores.contadorQuadros() ?: run { con.erro("Não consegui ler o contador de quadros"); return }
@@ -305,7 +305,7 @@ object Fps {
             for ((p, ms) in Jogos.usoHoje(ctx).entries.sortedByDescending { it.value }.take(10)) if (ms > 60000) con.item("${Jogos.nome(ctx, p)}: ${ms / 60000} min")
         }
         con.info("Para um app não rodar escondido: abra-o e escolha Bateria > Restrita (ou Otimizada).")
-        val sel = con.varios("Abrir quais para restringir?", nomes.map { it.second })
-        for (i in sel) con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + nomes[i].first)))
+        val sel = con.varios(if (Sh.privOk()) "Impedir quais de rodar escondidos?" else "Abrir quais para restringir?", nomes.map { it.second })
+        for (i in sel) if (!Auto.restringirSegundoPlano(con, nomes[i].first, nomes[i].second)) con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + nomes[i].first)))
     }
 }

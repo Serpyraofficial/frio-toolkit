@@ -12,7 +12,7 @@ object RaioX {
         val ctx = con.ctx
         val r = ArrayList<Item>()
         val eco = Sensores.economiaEnergia(ctx)
-        r.add(Item("Economia de energia", !eco, if (eco) "Ligada: limita CPU e tela" else "Desligada", 15) { c -> c.abrirEEsperar(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)) })
+        r.add(Item("Economia de energia", !eco, if (eco) "Ligada: limita CPU e tela" else "Desligada", 15) { c -> Auto.desligarEconomia(c) })
 
         val (hz, max) = Sensores.tela(ctx)
         val telaOk = max <= 61 || hz + 1 >= max
@@ -38,7 +38,7 @@ object RaioX {
         r.add(Item("Animações do sistema", an <= 0.5f, "${an}x", 4) { c -> Fps.animacoes(c) })
 
         val msaa = Sh.getprop("debug.egl.force_msaa") == "true"
-        r.add(Item("MSAA 4x forçado", !msaa, if (msaa) "Ligado nas Opções do desenvolvedor (pesa muito)" else "Desligado", 8) { c -> c.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) })
+        r.add(Item("MSAA 4x forçado", !msaa, if (msaa) "Ligado nas Opções do desenvolvedor (pesa muito)" else "Desligado", 8) { c -> Auto.desligarMsaa(c) })
 
         val tipo = Rede.tipo(ctx)
         if (tipo == "Wi-Fi") {

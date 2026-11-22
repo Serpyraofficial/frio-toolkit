@@ -107,7 +107,12 @@ object Sh {
     private var fila = LinkedBlockingQueue<String>()
     private var erros = StringBuffer()
 
+    /** Pode rodar comandos privilegiados (root ou Shizuku)? */
+    fun privOk(): Boolean = rootConhecido() || Priv.pronto()
+
+    /** Comando privilegiado: usa root se houver; senao o Shizuku. */
     fun root(cmd: String, timeoutS: Long = 60): R {
+        if (!rootConhecido() && Priv.pronto()) return Priv.exec(cmd, timeoutS)
         if (!temRoot()) return R(-1, "", "sem root")
         if (timeoutS > 60) return exec(arrayOf(suPath, "-c", cmd), timeoutS)
         return persistente(cmd, timeoutS)

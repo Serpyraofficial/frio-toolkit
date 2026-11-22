@@ -82,8 +82,10 @@ object Seguranca {
     private fun scanConfig(ctx: Context, r: MutableList<Achado>) {
         fun g(k: String) = Ajuste.ler("global", k)
         if (g("package_verifier_enable") == "0") r.add(Achado(3, "Play Protect DESLIGADO", "Malware costuma pedir para desligar. Ligue de novo.", "playprotect"))
-        if (g("adb_wifi_enabled") == "1") r.add(Achado(3, "Depuração sem fio (ADB por Wi-Fi) LIGADA", "Um computador pareado na mesma rede controla o celular. Desligue se não estiver usando.", "dev"))
-        if (g("adb_enabled") == "1") r.add(Achado(1, "Depuração USB ligada", "Um computador conectado pode instalar apps. Desligue quando não estiver usando" + if (Acesso.adb()) " (o Modo avançado do PC Toolkit continua funcionando)." else ".", "dev"))
+        val shizuku = Priv.rodando()
+        if (shizuku && (g("adb_wifi_enabled") == "1" || g("adb_enabled") == "1")) r.add(Achado(0, "Depuração ligada (usada pelo Shizuku)", "Necessária para o modo automático. Não deixe ninguém parear computadores com o seu celular."))
+        else if (g("adb_wifi_enabled") == "1") r.add(Achado(3, "Depuração sem fio (ADB por Wi-Fi) LIGADA", "Um computador pareado na mesma rede controla o celular. Desligue se não estiver usando.", "dev"))
+        if (!shizuku && g("adb_enabled") == "1") r.add(Achado(1, "Depuração USB ligada", "Um computador conectado pode instalar apps. Desligue quando não estiver usando" + if (Acesso.adb()) " (o Modo avançado do PC Toolkit continua funcionando)." else ".", "dev"))
         val proxy = g("http_proxy")
         if (proxy.isNotEmpty() && proxy != ":0") r.add(Achado(2, "Proxy global configurado: $proxy", "Todo o tráfego passa por esse servidor. Se não foi você, remova.", "set", "global:http_proxy::0"))
         val km = ctx.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
@@ -143,15 +145,15 @@ object Seguranca {
             "app", "app+acess", "app+admin" -> {
                 if (a.acao == "app+acess") { con.linha("Primeiro desligue a acessibilidade dele (senão ele pode impedir a remoção).", T.amarelo); con.abrirEEsperar(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
                 if (a.acao == "app+admin") { con.linha("Primeiro tire ele de administrador: Segurança > Apps de administração do dispositivo.", T.amarelo); con.abrirEEsperar(Intent(Settings.ACTION_SECURITY_SETTINGS)) }
-                val op = con.escolher(a.titulo, listOf("Desinstalar", "Abrir informações do app", if (Sh.rootConhecido()) "Quarentena: desativar (root, reversível)" else "Ignorar"))
+                val op = con.escolher(a.titulo, listOf("Desinstalar", "Abrir informações do app", if (Sh.privOk()) "Quarentena: desativar o app (reversível)" else "Ignorar"))
                 when (op) {
-                    0 -> con.abrirEEsperar(Intent(Intent.ACTION_DELETE, Uri.parse("package:" + a.alvo)))
+                    0 -> Auto.desinstalar(con, a.alvo, a.titulo.removePrefix("App suspeito: "))
                     1 -> con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.alvo)))
-                    2 -> if (Sh.rootConhecido()) { Ajuste.comandoRoot("q:${a.alvo}", "pm disable-user --user 0 ${a.alvo}", "pm enable ${a.alvo}"); con.ok("Desativado (reative em Desfazer)") }
+                    2 -> if (Sh.privOk()) { Ajuste.comandoRoot("q:${a.alvo}", "pm disable-user --user 0 ${a.alvo}", "pm enable ${a.alvo}"); con.ok("Desativado (reative em Desfazer)") }
                 }
                 if (!Links.instalado(ctx, a.alvo)) con.ok("Removido")
             }
-            "playprotect" -> { con.linha("Abrindo a Play Store: toque na foto do perfil > Play Protect > Configurações > ligue “Verificar apps”.", T.azul); if (!Links.abrirPacote(ctx, "com.android.vending")) con.abrirConfig(Settings.ACTION_SECURITY_SETTINGS); con.sleep(1500) }
+            "playprotect" -> if (Ajuste.pode()) { Ajuste.mudar("global", "package_verifier_enable", "1"); con.ok("Play Protect ligado (automático)") } else { con.linha("Abrindo a Play Store: toque na foto do perfil > Play Protect > Configurações > ligue “Verificar apps”.", T.azul); if (!Links.abrirPacote(ctx, "com.android.vending")) con.abrirConfig(Settings.ACTION_SECURITY_SETTINGS); con.sleep(1500) }
             "dev" -> con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
             "set" -> {
                 val p = a.alvo.split(':', limit = 3)
@@ -273,7 +275,7 @@ object Seguranca {
         if (code == 404) {
             con.aviso("Arquivo ainda desconhecido pela VirusTotal.")
             if (tamanho > 32L * 1024 * 1024) { con.info("Tem mais de 32 MB: envie pelo site virustotal.com."); return -1 }
-            if (!con.ask("Enviar o arquivo para análise agora? (1 a 3 minutos)")) return -1
+            if (!con.ask("Enviar o arquivo para análise da VirusTotal agora? (1 a 3 minutos)", importante = true)) return -1
             val id = httpUpload(chave, nome, abrir) ?: run { con.erro("Falha no envio."); return -1 }
             con.info("Enviado. Aguardando o resultado...")
             val fim = System.currentTimeMillis() + 5 * 60_000
@@ -329,7 +331,7 @@ object Seguranca {
                 val i = con.escolher("Qual app?", apps.map { it.nome })
                 if (i < 0) return
                 val f = File(ctx.packageManager.getApplicationInfo(apps[i].pkg, 0).sourceDir)
-                if (verificarVt(con, apps[i].nome + ".apk", f.length()) { f.inputStream() } == 2 && con.ask("Desinstalar ${apps[i].nome} agora?")) con.abrirEEsperar(Intent(Intent.ACTION_DELETE, Uri.parse("package:" + apps[i].pkg)))
+                if (verificarVt(con, apps[i].nome + ".apk", f.length()) { f.inputStream() } == 2 && con.ask("Desinstalar ${apps[i].nome} agora?", importante = true)) Auto.desinstalar(con, apps[i].pkg, apps[i].nome)
             }
             2 -> configurarVt(con)
         }

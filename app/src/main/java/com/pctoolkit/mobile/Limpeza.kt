@@ -137,13 +137,13 @@ object Limpeza {
         if (apks.arquivos.isNotEmpty()) {
             con.item("Instaladores .apk: ${apks.arquivos.size}, ${fmtTam(apks.tam)}", T.amarelo)
             if (!simular) {
-                val sel = con.varios("Apagar quais instaladores? (o app instalado continua)", apks.arquivos.map { it.name + "  ·  " + fmtTam(it.length()) }, true)
+                val sel = con.varios("Apagar quais instaladores? (o app instalado continua)", apks.arquivos.map { it.name + "  ·  " + fmtTam(it.length()) }, true, importante = true)
                 for (i in sel) { total += apks.arquivos[i].length(); apks.arquivos[i].delete() }
             } else total += apks.tam
         }
         if (Lixeira.tamanho() > 0) {
             con.item("Lixeira do PC Toolkit: ${fmtTam(Lixeira.tamanho())}")
-            if (!simular && con.ask("Esvaziar a Lixeira do PC Toolkit (${fmtTam(Lixeira.tamanho())})?")) { total += Lixeira.tamanho(); Lixeira.esvaziar() }
+            if (!simular && con.ask("Esvaziar a Lixeira do PC Toolkit (${fmtTam(Lixeira.tamanho())})?", importante = true)) { total += Lixeira.tamanho(); Lixeira.esvaziar() }
         }
 
         // cache de todos os apps
@@ -160,8 +160,8 @@ object Limpeza {
             return
         }
         con.info("O cache dos jogos guarda shaders: apagar não aumenta o FPS e as primeiras partidas podem engasgar um pouco.")
-        if (Sh.rootConhecido()) {
-            if (con.ask("Limpar o cache de todos os apps agora? (root)")) { Sh.root("pm trim-caches 999G", 120); con.ok("Cache dos apps liberado") }
+        if (Sh.privOk()) {
+            if (con.ask("Limpar o cache de todos os apps agora?")) { Sh.root("pm trim-caches 999999999999", 120); con.ok("Cache dos apps liberado (automático)") }
         } else if (Build.VERSION.SDK_INT >= 30) {
             if (con.ask("Limpar o cache de TODOS os apps? O Android vai pedir confirmação.")) {
                 val r = (con.ctx as MainActivity).pedirResultado(Intent(StorageManager.ACTION_CLEAR_APP_CACHE))
@@ -187,7 +187,7 @@ object Limpeza {
         var n = 0; var t = 0L
         for (i in sel) { val f = arqs[i]; val tam = f.length(); if (Lixeira.mover(f)) { n++; t += tam } else con.aviso("Não consegui mover: ${f.name}") }
         con.ok("$n arquivo(s) na Lixeira (${fmtTam(t)})")
-        if (con.ask("Esvaziar a Lixeira agora para liberar o espaço?")) { Lixeira.esvaziar(); con.ok("Lixeira esvaziada") }
+        if (con.ask("Esvaziar a Lixeira agora para liberar o espaço?", importante = true)) { Lixeira.esvaziar(); con.ok("Lixeira esvaziada") }
     }
 
     fun grandes(con: Console) {
@@ -247,11 +247,11 @@ object Limpeza {
         }
         con.linha("")
         con.linha("Espaço desperdiçado: ${fmtTam(desperdicio)}. Vou manter a cópia mais antiga de cada grupo.", T.amarelo)
-        val sel = con.varios("Mover as cópias extras para a Lixeira", copias.map { it.absolutePath.removePrefix(raiz.absolutePath + "/") + "  ·  " + fmtTam(it.length()) }, true)
+        val sel = con.varios("Mover as cópias extras para a Lixeira", copias.map { it.absolutePath.removePrefix(raiz.absolutePath + "/") + "  ·  " + fmtTam(it.length()) }, true, importante = true)
         var n = 0
         for (i in sel) if (Lixeira.mover(copias[i])) n++
         con.ok("$n cópia(s) movidas para a Lixeira")
-        if (n > 0 && con.ask("Esvaziar a Lixeira agora?")) { Lixeira.esvaziar(); con.ok("Lixeira esvaziada") }
+        if (n > 0 && con.ask("Esvaziar a Lixeira agora?", importante = true)) { Lixeira.esvaziar(); con.ok("Lixeira esvaziada") }
     }
 
     fun tamanhoJogos(con: Console) {
@@ -263,7 +263,7 @@ object Limpeza {
         con.linha("")
         con.linha("Total em jogos: ${fmtTam(l.sumOf { it.second.total })}", T.azul)
         val sel = con.varios("Desinstalar algum?", l.map { it.first.nome + "  ·  " + fmtTam(it.second.total) })
-        for (i in sel) con.abrirEEsperar(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:" + l[i].first.pkg)))
+        for (i in sel) Auto.desinstalar(con, l[i].first.pkg, l[i].first.nome)
     }
 
     fun esquecidos(con: Console) {
@@ -283,8 +283,8 @@ object Limpeza {
         for ((a, t) in l) { val u = uso[a.pkg]; con.item("${a.nome}  ·  ${fmtTam(t)}  ·  " + (if (u != null && u > 0) "último uso ${fmt.format(java.util.Date(u))}" else "sem uso registrado")) }
         con.linha("")
         con.linha("Total: ${fmtTam(l.sumOf { it.second })}", T.amarelo)
-        val sel = con.varios("Desinstalar quais? (o Android confirma cada um)", l.map { it.first.nome + "  ·  " + fmtTam(it.second) })
-        for (i in sel) con.abrirEEsperar(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:" + l[i].first.pkg)))
+        val sel = con.varios("Desinstalar quais?", l.map { it.first.nome + "  ·  " + fmtTam(it.second) })
+        for (i in sel) Auto.desinstalar(con, l[i].first.pkg, l[i].first.nome)
     }
 
     fun appsMaiores(con: Console) {

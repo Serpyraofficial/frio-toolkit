@@ -82,7 +82,16 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
         return r
     }
 
-    fun ask(pergunta: String, sim: String = "Sim", nao: String = "Não"): Boolean = naUi(false) { cb ->
+    /**
+     * Confirmacao. No modo Automatico so pergunta o que e importante (apagar, desinstalar, reiniciar...);
+     * o resto segue sozinho e fica registrado no relatorio.
+     */
+    fun ask(pergunta: String, sim: String = "Sim", nao: String = "Não", importante: Boolean = false): Boolean {
+        if (!importante && Modo.auto() && !cancelado) { add("→  " + pergunta.lineSequence().first().removeSuffix("?") + ": " + sim.lowercase(), T.texto3); return true }
+        return perguntar(pergunta, sim, nao)
+    }
+
+    private fun perguntar(pergunta: String, sim: String, nao: String): Boolean = naUi(false) { cb ->
         AlertDialog.Builder(act).setMessage(pergunta)
             .setPositiveButton(sim) { _, _ -> cb(true) }
             .setNegativeButton(nao) { _, _ -> cb(false) }
@@ -96,7 +105,12 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
             .setOnCancelListener { cb(-1) }.show()
     }
 
-    fun varios(titulo: String, opcoes: List<String>, marcados: Boolean = false): List<Int> = naUi(emptyList()) { cb ->
+    fun varios(titulo: String, opcoes: List<String>, marcados: Boolean = false, importante: Boolean = false): List<Int> {
+        if (marcados && !importante && Modo.auto() && !cancelado && opcoes.isNotEmpty()) { add("→  $titulo: todos", T.texto3); return opcoes.indices.toList() }
+        return escolherVarios(titulo, opcoes, marcados)
+    }
+
+    private fun escolherVarios(titulo: String, opcoes: List<String>, marcados: Boolean): List<Int> = naUi(emptyList()) { cb ->
         if (opcoes.isEmpty()) { cb(emptyList()); return@naUi }
         val sel = BooleanArray(opcoes.size) { marcados }
         AlertDialog.Builder(act).setTitle(titulo)
@@ -135,6 +149,20 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
     /** Garante uma permissao: explica, abre a tela certa e confere na volta. */
     fun garantir(p: Permissao): Boolean {
         if (p.ok) return true
+        if (Modo.permissoesAuto()) {
+            if (!Priv.pronto() && Priv.rodando()) Priv.pedir()
+            if (Priv.pronto()) {
+                Priv.autoConfigurar(true)
+                val ok = Acesso.lista().firstOrNull { it.nome == p.nome }?.ok ?: false
+                if (ok) { ok("${p.nome}: liberado automaticamente"); return true }
+            } else if (!Store.bool("shizuku_oferecido", false)) {
+                Store.putBool("shizuku_oferecido", true)
+                if (perguntar("Quer que o app libere esta e as outras permissões sozinho?\n\nPara isso ele usa o Shizuku (gratuito, sem root e sem PC). Leva 1 minuto, só na primeira vez.", "Configurar", "Fazer manualmente") && Priv.ativar(this)) {
+                    val ok = Acesso.lista().firstOrNull { it.nome == p.nome }?.ok ?: false
+                    if (ok) return true
+                }
+            }
+        }
         if (!ask("${p.nome}\n\n${p.desc}\n\nVou abrir a tela do Android para você permitir.", "Permitir", "Agora não")) return false
         if (p.runtime != null) act.pedirPermissaoRuntime(p.runtime)
         else if (p.pedir != null) abrirEEsperar(p.pedir)
@@ -169,12 +197,49 @@ class MainActivity : Activity() {
             if (Sh.suExiste()) Sh.temRoot()
             runOnUiThread { if (!naTarefa && pilha.size == 1) mostrar() }
         }.start()
+        try { rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(aoShizuku) } catch (e: Throwable) { }
+        if (!Modo.definido()) { boasVindas(); return }
         if (!GameService.rodando && Sessao.pendente()) {
             executar("Recuperando o Modo Jogo") { con ->
                 con.aviso("Uma sessão do Modo Jogo não terminou direito. Restaurando o normal...")
                 Sessao.restaurar(this)
                 con.ok("Tudo restaurado")
             }
+        }
+    }
+
+    private val aoShizuku = rikka.shizuku.Shizuku.OnBinderReceivedListener {
+        Thread {
+            if (Priv.permitido()) Priv.autoConfigurar()
+            else if (Modo.definido() && Modo.permissoesAuto() && !Store.bool("shizuku_pedido", false)) { Store.putBool("shizuku_pedido", true); if (Priv.pedir()) Priv.autoConfigurar(true) }
+            runOnUiThread { if (!naTarefa) mostrar() }
+        }.start()
+    }
+
+    override fun onDestroy() {
+        try { rikka.shizuku.Shizuku.removeBinderReceivedListener(aoShizuku) } catch (e: Throwable) { }
+        super.onDestroy()
+    }
+
+    private fun boasVindas() {
+        executar("Bem-vindo ao PC Toolkit") { con ->
+            con.linha("Duas escolhas rápidas e o app passa a trabalhar sozinho. Dá para mudar depois em Acesso e permissões.", T.texto2)
+            val p = con.escolher("Como liberar as permissões do app?", listOf(
+                "Automático (recomendado): o app libera tudo sozinho pelo Shizuku",
+                "Pedir uma por uma: abro as telas do Android para você permitir"))
+            Modo.definirPermissoes(p != 1)
+            val c = con.escolher("Como o app deve confirmar as ações?", listOf(
+                "Automático (recomendado): faz sozinho e só pergunta antes de apagar, desinstalar ou reiniciar",
+                "Perguntar antes de cada passo"))
+            Modo.definir(c != 1)
+            con.ok("Permissões: " + (if (Modo.permissoesAuto()) "automático" else "uma por uma") + " · Confirmações: " + Modo.nome())
+            if (Modo.permissoesAuto()) {
+                Store.putBool("shizuku_oferecido", true)
+                if (Priv.ativar(con)) con.ok("Pronto! O app já consegue fazer tudo sozinho.")
+                else con.info("Sem o Shizuku agora, o app pede as permissões quando precisar. Ative depois em Acesso e permissões.")
+            }
+            con.linha("")
+            con.ok("Toque em Concluir para começar. Dica: comece pelo Raio-X.")
         }
     }
 
@@ -285,7 +350,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 4.1  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Mobile 4.2  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
@@ -395,6 +460,29 @@ class MainActivity : Activity() {
     fun telaPermissoes() {
         val col = coluna()
         col.addView(barraTopo("Acesso e permissões", "Nível atual: " + Acesso.nivel()))
+
+        // modo automatico
+        val sz = Ui.vertical(this)
+        sz.setPadding(Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16))
+        sz.background = Ui.gradiente(this, 0xFF0F2A22.toInt(), 0xFF101C30.toInt(), 20)
+        val szT = Ui.horizontal(this)
+        szT.addView(Ui.texto(this, "Modo automático (Shizuku)", 15.5f, T.texto, Ui.negrito), Ui.peso())
+        val est = Priv.estado(this)
+        szT.addView(Ui.chip(this, est, if (est == "Ativo") T.verde else T.amarelo))
+        sz.addView(szT)
+        val szD = Ui.texto(this, if (est == "Ativo") "O app libera as próprias permissões e aplica os ajustes sozinho, sem root e sem PC." else "Com o Shizuku (gratuito) o app libera todas as permissões e faz os ajustes sozinho, sem root e sem PC. Configura uma vez em 1 minuto.", 12.5f, T.texto2)
+        szD.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12))
+        sz.addView(szD)
+        sz.addView(Ui.botao(this, if (est == "Ativo") "Liberar tudo de novo" else "Ativar modo automático", T.verde, true) { executar("Modo automático") { Priv.ativar(it) } })
+        col.addView(sz, Ui.linhaLp(this, 0, 6))
+
+        col.addView(Ui.secao(this, "Preferências"))
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.verde, "Permissões", if (Modo.permissoesAuto()) "Automático: libera sozinho quando possível" else "Uma por uma pelas telas do Android", "Trocar", T.azul) {
+            Modo.definirPermissoes(!Modo.permissoesAuto()); mostrar()
+        })
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Confirmações", if (Modo.auto()) "Automático: só pergunta antes de apagar, desinstalar ou reiniciar" else "Pergunta antes de cada passo", "Trocar", T.azul) {
+            Modo.definir(!Modo.auto()); mostrar()
+        })
         col.addView(Ui.secao(this, "Permissões do Android"))
         for (p in Acesso.lista()) {
             val c = Ui.horizontal(this)
@@ -411,7 +499,8 @@ class MainActivity : Activity() {
                 val b = Ui.chip(this, "Permitir", T.azul)
                 b.isClickable = true
                 b.setOnClickListener {
-                    if (p.runtime != null) requestPermissions(arrayOf(p.runtime), 5)
+                    if (Priv.pronto()) { Thread { Priv.autoConfigurar(true); runOnUiThread { mostrar() } }.start() }
+                    else if (p.runtime != null) requestPermissions(arrayOf(p.runtime), 5)
                     else if (p.pedir != null) try { startActivity(p.pedir) } catch (e: Exception) { }
                 }
                 c.addView(b)
@@ -419,7 +508,7 @@ class MainActivity : Activity() {
             col.addView(c, Ui.linhaLp(this))
         }
 
-        col.addView(Ui.secao(this, "Modo avançado sem root (opcional)"))
+        col.addView(Ui.secao(this, "Alternativa: pelo PC (opcional)"))
         val adb = Ui.vertical(this)
         adb.setPadding(Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16))
         adb.background = Ui.forma(this, T.surface, 18, T.outline)

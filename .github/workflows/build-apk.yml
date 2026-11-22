@@ -34,9 +34,9 @@ jobs:
       - name: Guardar o APK na branch (pasta apk/)
         run: |
           mkdir -p apk
-          cp app/build/outputs/apk/debug/app-debug.apk apk/PC-Toolkit-Mobile-4.1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk apk/PC-Toolkit-Mobile-4.2.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/PC-Toolkit-Mobile-4.1.apk
+          git add apk/PC-Toolkit-Mobile-4.2.apk
           git commit -m "APK gerado [skip ci]" || echo "sem mudancas"
           git push

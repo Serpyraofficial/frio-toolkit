@@ -32,7 +32,7 @@ object Sistema {
         }
         if (op == 0) {
             con.info("Tema escuro economiza bateria em telas AMOLED.")
-            if (con.ask("Abrir Tela para ativar o tema escuro?")) con.abrirEEsperar(Intent(Settings.ACTION_DISPLAY_SETTINGS))
+            if (con.ask("Ligar o tema escuro?")) Auto.temaEscuro(con)
         }
     }
 
@@ -72,7 +72,7 @@ object Sistema {
 
     fun reiniciar(con: Console) {
         con.titulo("Reiniciar")
-        if (Sh.rootConhecido()) { if (con.ask("Reiniciar o celular agora?")) Sh.root("svc power reboot || reboot", 10); return }
+        if (Sh.privOk()) { if (con.ask("Reiniciar o celular agora?", importante = true)) Sh.root("svc power reboot || reboot", 10); return }
         con.linha("Um app comum não pode reiniciar o celular. Segure o botão de ligar (ou Ligar + Volume para cima) e toque em Reiniciar.", T.texto2)
     }
 
@@ -87,7 +87,7 @@ object Sistema {
         val base = Limpeza.raiz
         val opcoes = listOf("DCIM" to "Câmera (DCIM)", "Pictures" to "Imagens e prints", "Movies" to "Vídeos", "Documents" to "Documentos", "Download" to "Downloads", "Music" to "Músicas",
             "Android/media/com.whatsapp/WhatsApp/Media" to "Mídias do WhatsApp").filter { File(base, it.first).exists() }
-        val sel = con.varios("O que copiar?", opcoes.map { it.second + "  ·  " + fmtTam(tamanho(File(base, it.first))) }, true)
+        val sel = con.varios("O que copiar?", opcoes.map { it.second + "  ·  " + fmtTam(tamanho(File(base, it.first))) }, true, importante = true)
         if (sel.isEmpty()) return
         con.info("Escolha a pasta de destino (pendrive, cartão SD ou outra pasta).")
         val tree = con.escolherPasta() ?: run { con.linha("Cancelado."); return }
@@ -135,7 +135,7 @@ object Sistema {
         con.item("Confira se a sua conta Google está sincronizada (Configurações > Google > Backup)")
         con.item("Faça o backup do WhatsApp dentro do próprio WhatsApp")
         con.item("Anote as senhas das contas dos jogos (ou vincule ao Google/Facebook)")
-        if (!con.ask("Já fez tudo isso e quer abrir a tela de restauração do Android?", "Abrir", "Ainda não")) return
+        if (!con.ask("Já fez tudo isso e quer abrir a tela de restauração do Android?", "Abrir", "Ainda não", importante = true)) return
         con.abrirEEsperar(Intent(Settings.ACTION_PRIVACY_SETTINGS))
         con.info("Procure “Redefinir” / “Restaurar” / “Gerenciamento geral > Redefinir”, se não estiver nesta tela.")
     }
@@ -147,7 +147,7 @@ object Sistema {
         if (n == 0) { con.linha("Nada para desfazer: o app não mudou nenhuma configuração."); return }
         con.linha("$n configuração(ões) alteradas pelo PC Toolkit.")
         if (!Ajuste.pode()) { con.aviso("Para desfazer automaticamente o app precisa do Modo avançado (ADB) ou root, os mesmos usados para mudar."); return }
-        if (!con.ask("Voltar tudo ao original?")) return
+        if (!con.ask("Voltar tudo ao original?", importante = true)) return
         val r = Ajuste.desfazer { con.ok("Restaurado: $it") }
         con.linha("")
         con.ok("$r item(ns) restaurado(s)")
@@ -155,11 +155,12 @@ object Sistema {
 
     fun info(con: Console) {
         con.titulo("Sobre o PC Toolkit Mobile")
-        con.linha("Versão 4.1", T.verde)
+        con.linha("Versão 4.2", T.verde)
         con.linha("Funciona sem root. Níveis de acesso:", T.texto2)
         con.item("Padrão: permissões do Android (arquivos, uso, não perturbe, sobreposição)")
-        con.item("Avançado (ADB): um comando no PC libera os ajustes automáticos")
-        con.item("Root (opcional): medidor de FPS real, limite de CPU e quarentena de apps")
+        con.item("Automático (Shizuku): libera as permissões e faz os ajustes sozinho, sem PC")
+        con.item("Avançado (ADB): o mesmo, com um comando pelo PC")
+        con.item("Root (opcional): também libera o limite de CPU")
         con.linha("")
         con.linha("Nível atual: ${Acesso.nivel()}", T.azul)
         con.info(String.format(Locale.US, "Configurações alteradas: %d", Ajuste.quantos()))

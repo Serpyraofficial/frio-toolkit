@@ -151,7 +151,7 @@ object Rede {
     fun velocidade(con: Console) {
         con.titulo("Teste de velocidade")
         con.linha("Baixa e envia dados de teste pela Cloudflare. Usa cerca de 50 MB de internet.", T.texto2)
-        if (tipo(con.ctx) == "Dados móveis" && !con.ask("Você está nos dados móveis. Continuar mesmo assim?")) return
+        if (tipo(con.ctx) == "Dados móveis" && !con.ask("Você está nos dados móveis. Continuar mesmo assim?", importante = true)) return
         val p = medirTcp("speed.cloudflare.com", 5)
         if (p != null) con.linha(String.format(Locale.US, "Latência: %.0f ms", p.media))
         con.info("Medindo download...")

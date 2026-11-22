@@ -38,25 +38,26 @@ object ModoJogo {
         con.linha("Prepara o celular, abre o jogo, mostra um painel com temperatura e memória e, quando você terminar, devolve tudo ao normal.", T.texto2)
         if (GameService.rodando) {
             con.aviso("Já existe uma sessão em andamento: ${Store.str("sessao_nome")}")
-            if (con.ask("Encerrar a sessão agora?", "Encerrar", "Continuar")) { ctx.startService(Intent(ctx, GameService::class.java).setAction("parar")); con.ok("Encerrando...") }
+            if (con.ask("Encerrar a sessão agora?", "Encerrar", "Continuar", importante = true)) { ctx.startService(Intent(ctx, GameService::class.java).setAction("parar")); con.ok("Encerrando...") }
             return
         }
         val jogo = Jogos.escolher(con) ?: run { con.linha("Cancelado."); return }
         con.linha("Jogo: ${jogo.nome}", T.verde)
 
-        val nomes = listOf(
+        val nomes = arrayListOf(
             "Não perturbe durante o jogo",
             "Fechar apps em segundo plano antes de abrir",
             "Pausar a sincronização automática (e-mail, fotos, nuvem)",
             "Painel flutuante com temperatura, bateria e memória",
             "Alerta de calor (vibra se a bateria passar do limite)"
         )
-        val chaves = listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
+        val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
         for (i in chaves.indices) op[chaves[i]] = sel.contains(i)
-        if (op["mj_dnd"] == true && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
+        op["mj_turbo"] = Sh.privOk() && con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true)
+        if (op["mj_dnd"] == true && !Sh.privOk() && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
         if (op["mj_painel"] == true && !con.garantirNome("Sobrepor a outros apps")) op["mj_painel"] = false
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
         val detecta = Acesso.uso()
@@ -132,6 +133,8 @@ object Sessao {
             try { (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).setInterruptionFilter(f) } catch (e: Exception) { }
             Store.putInt("dnd_antes", -1)
         }
+        if (Store.bool("perf_fixo", false)) { Sh.root("cmd power set-fixed-performance-mode-enabled false", 10); Store.putBool("perf_fixo", false) }
+        if (Store.bool("dnd_cmd", false)) { Sh.root("cmd notification set_dnd off", 10); Store.putBool("dnd_cmd", false) }
         Store.putBool("sessao_ativa", false)
     }
 }
@@ -217,6 +220,15 @@ class GameService : Service() {
         if (it.getBooleanExtra("mj_dnd", false) && nm.isNotificationPolicyAccessGranted) {
             Store.putInt("dnd_antes", nm.currentInterruptionFilter)
             nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+        }
+        else if (it.getBooleanExtra("mj_dnd", false) && Sh.privOk()) {
+            if (Sh.root("cmd notification set_dnd priority", 10).ok) Store.putBool("dnd_cmd", true)
+        }
+        if (Sh.privOk()) {
+            if (Build.VERSION.SDK_INT >= 31) Sh.root("cmd game mode performance $pkg 2>/dev/null", 10)
+            Sh.root("dumpsys deviceidle whitelist +$pkg >/dev/null 2>&1", 10)
+            if (it.getBooleanExtra("mj_turbo", false) && Sh.root("cmd power set-fixed-performance-mode-enabled true 2>&1", 10).let { r -> r.ok && !r.out.contains("rror") }) Store.putBool("perf_fixo", true)
+            if (it.getBooleanExtra("mj_ram", false)) Sh.root("am kill-all", 15)
         }
         if (it.getBooleanExtra("mj_sync", false)) {
             try { if (ContentResolver.getMasterSyncAutomatically()) { ContentResolver.setMasterSyncAutomatically(false); Store.putBool("sync_pausada", true) } } catch (e: Exception) { }

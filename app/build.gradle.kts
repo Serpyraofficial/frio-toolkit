@@ -11,8 +11,8 @@ android {
         applicationId = "com.pctoolkit.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 41
-        versionName = "4.1"
+        versionCode = 42
+        versionName = "4.2"
     }
 
     buildTypes {
@@ -31,4 +31,9 @@ android {
         abortOnError = false
         checkReleaseBuilds = false
     }
+}
+
+dependencies {
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
 }

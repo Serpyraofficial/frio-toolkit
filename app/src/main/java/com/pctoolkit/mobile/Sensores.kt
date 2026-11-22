@@ -134,11 +134,11 @@ object Sensores {
 
     // ---------------- extras com root: contador de quadros (FPS) ----------------
     fun contadorQuadros(): Long? {
-        if (!Sh.rootConhecido()) return null
+        if (!Sh.privOk()) return null
         val r = Sh.root("service call SurfaceFlinger 1013 2>/dev/null", 5)
         val m = Regex("Parcel\\(\\s*([0-9a-fA-F]{8})").find(r.out) ?: return null
         return m.groupValues[1].toLong(16)
     }
 
-    fun focoAtual(): String = if (Sh.rootConhecido()) Sh.root("dumpsys window 2>/dev/null | grep -m1 mCurrentFocus", 5).out else ""
+    fun focoAtual(): String = if (Sh.privOk()) Sh.root("dumpsys window 2>/dev/null | grep -m1 mCurrentFocus", 5).out else ""
 }

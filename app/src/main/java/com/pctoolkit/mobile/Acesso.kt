@@ -40,7 +40,8 @@ object Acesso {
 
     fun nivel(): String = when {
         Sh.rootConhecido() -> "Root"
-        adb() -> "Avançado (ADB)"
+        Priv.pronto() -> "Automático"
+        adb() -> "Avançado"
         else -> "Padrão"
     }
 
@@ -113,7 +114,7 @@ object Ajuste {
     private val ctx get() = PcApp.ctx
     private const val ARQ = "undo.json"
 
-    fun pode(): Boolean = Acesso.adb() || Sh.rootConhecido()
+    fun pode(): Boolean = Acesso.adb() || Sh.privOk()
 
     fun ler(ns: String, key: String): String {
         val cr = ctx.contentResolver
@@ -139,7 +140,7 @@ object Ajuste {
                 if (ok) return true
             } catch (e: Exception) { }
         }
-        if (Sh.rootConhecido()) {
+        if (Sh.privOk()) {
             val r = if (valor == null) Sh.root("settings delete $ns $key") else Sh.root("settings put $ns $key ${Sh.q(valor)}")
             return r.ok
         }
@@ -162,7 +163,7 @@ object Ajuste {
 
     /** Comando root reversivel. */
     fun comandoRoot(chave: String, aplicar: String, reverter: String): Boolean {
-        if (!Sh.rootConhecido()) return false
+        if (!Sh.privOk()) return false
         registrar(JSONObject().put("k", "cmd:$chave").put("tipo", "cmd").put("cmd", reverter))
         return Sh.root(aplicar).ok
     }
@@ -177,7 +178,7 @@ object Ajuste {
             if (o.optString("tipo") == "set") {
                 val old = o.optString("old")
                 if (gravarCru(o.getString("ns"), o.getString("key"), if (old.isEmpty()) null else old)) { n++; log(o.getString("key")) }
-            } else if (Sh.rootConhecido()) { Sh.root(o.optString("cmd")); n++; log(o.optString("k")) }
+            } else if (Sh.privOk()) { Sh.root(o.optString("cmd")); n++; log(o.optString("k")) }
         }
         Store.apagar(ARQ)
         return n
