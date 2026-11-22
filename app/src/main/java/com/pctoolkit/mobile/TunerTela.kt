@@ -165,6 +165,7 @@ fun MainActivity.telaPerfil(pkg: String, nome: String) {
         }
     }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     col.addView(ac, Ui.linhaLp(this, 6, 10))
+    col.addView(Ui.linhaMenu(this, R.drawable.ic_jogo, T.roxo, "Jogar com teclado", "Abre o jogo com o teclado virtual por cima", "", T.roxo) { executar("Teclado no jogo") { TecladoJogo.iniciar(it, pkg) } })
     val rs = Ui.texto(this, "Resetar para o padrão do Android", 13f, T.vermelho, Ui.medio)
     rs.gravity = Gravity.CENTER
     rs.setPadding(0, Ui.dp(this, 10), 0, Ui.dp(this, 10))

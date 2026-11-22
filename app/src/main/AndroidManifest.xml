@@ -56,6 +56,14 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Monitoramento da sessao de jogo (temperatura, bateria e memoria) e restauracao das configuracoes ao terminar" />
         </service>
+        <service
+            android:name=".TecladoService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Teclado virtual flutuante usado por cima de jogos" />
+        </service>
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
