@@ -211,7 +211,8 @@ class MainActivity : Activity() {
     }
 
     fun mostrarMenu() {
-        val m = pilha.last().invoke()
+        val gerador: () -> Menu = pilha[pilha.size - 1]
+        val m: Menu = gerador()
         val sv = ScrollView(this)
         sv.setBackgroundColor(C.fundo)
         val col = LinearLayout(this)
@@ -235,12 +236,15 @@ class MainActivity : Activity() {
             e.layoutParams = LinearLayout.LayoutParams(1, dp(12))
             col.addView(e)
         }
-        for (it in m.itens) {
-            col.addView(botao(it.titulo, it.desc, it.cor) {
+        for (item in m.itens) {
+            val sub = item.sub
+            val acao = item.acao
+            val direto = item.direto
+            col.addView(botao(item.titulo, item.desc, item.cor) {
                 when {
-                    it.sub != null -> { pilha.add(it.sub); mostrarMenu() }
-                    it.acao != null -> executar(it.titulo, it.acao)
-                    it.direto != null -> it.direto.invoke(this)
+                    sub != null -> { pilha.add(sub); mostrarMenu() }
+                    acao != null -> executar(item.titulo, acao)
+                    direto != null -> direto(this)
                 }
             })
         }
