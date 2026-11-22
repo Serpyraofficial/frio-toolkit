@@ -203,7 +203,7 @@ class MainActivity : Activity() {
         if (intent?.getBooleanExtra("pro", false) == true) abrirTela { telaPro() }
         when (intent?.getStringExtra("acao")) {
             "modojogo" -> executar("Modo Jogo") { ModoJogo.executar(it) }
-            "mira" -> executar("Mira na tela") { Mira.executar(it) }
+            "mira" -> executar("Mira na tela") { MiraTela.executar(it) }
             "raiox" -> executar("Raio-X de desempenho") { RaioX.executar(it) }
             "teclado" -> executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
         }

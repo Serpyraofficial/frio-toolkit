@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel · SerpyraToolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%230E1726'/%3E%3Cpath d='M30 68a24 24 0 1 1 48 0' fill='none' stroke='%233DDC97' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M54 68 66 48' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='68' r='5' fill='%233B5BFF'/%3E%3C/svg%3E">
+<style>
+:root{--papel:#F4F5F7;--branco:#fff;--tinta:#0E1726;--t2:#4A5568;--t3:#8A94A6;--linha:#E2E5EA;--menta:#3DDC97;--menta-esc:#14A86A;--azul:#3B5BFF;--verm:#E5484D;--amar:#B88400}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--papel);color:var(--tinta);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:15.5px;line-height:1.5;font-variation-settings:"opsz" 14}
+.w{max-width:1100px;margin:0 auto;padding:0 20px}
+header{background:var(--tinta);color:#fff}
+header .w{display:flex;align-items:center;gap:12px;height:62px}
+header b{font-size:18px;font-weight:700}
+header span{color:#9AA8BA;font-size:14px}
+header .sair{margin-left:auto;background:none;border:1px solid #3A475C;color:#fff;border-radius:9px;padding:6px 12px;font:inherit;cursor:pointer}
+main{padding:28px 0 60px}
+h2{font-size:20px;font-weight:600;margin:34px 0 12px;letter-spacing:-.01em}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.nums{grid-template-columns:1fr 1fr}}
+.num{background:var(--branco);border:1px solid var(--linha);border-radius:16px;padding:16px 18px}
+.num small{color:var(--t2);font-size:14px}
+.num b{display:block;font-size:30px;font-weight:600;letter-spacing:-.02em;font-variation-settings:"opsz" 60,"wdth" 90;line-height:1.15}
+.num i{font-style:normal;color:var(--t3);font-size:13.5px}
+.caixa{background:var(--branco);border:1px solid var(--linha);border-radius:16px;padding:18px}
+.linha{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--t2)}
+input,select{font:inherit;font-size:15px;border:1px solid #CBD2DC;border-radius:10px;padding:9px 11px;min-width:0;background:#fff;color:var(--tinta)}
+input:focus,select:focus{outline:2px solid var(--azul);outline-offset:1px}
+button.b{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--tinta);color:#fff}
+button.b.v{background:var(--menta);color:var(--tinta)}
+button.b.l{background:transparent;border:1px solid #CBD2DC;color:var(--tinta);font-weight:500}
+button.b:disabled{opacity:.5;cursor:default}
+.msg{margin-top:10px;font-size:14px;color:var(--t2);word-break:break-all}
+.msg.ok{color:var(--menta-esc)}.msg.erro{color:var(--verm)}
+.chave{font-family:ui-monospace,Consolas,monospace;font-size:13px;background:#F0F2F5;border-radius:8px;padding:10px;margin-top:8px;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--t2);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--linha);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
+.rolar{overflow-x:auto}
+.tag{display:inline-block;font-size:12px;border-radius:6px;padding:1px 7px;background:#EEF0F3;color:var(--t2)}
+.tag.v{background:#DDF7EB;color:var(--menta-esc)}.tag.a{background:#FFF3C7;color:var(--amar)}
+.entrar{max-width:420px;margin:80px auto;background:var(--branco);border:1px solid var(--linha);border-radius:20px;padding:28px}
+.entrar h1{font-size:24px;font-weight:600;margin-bottom:6px}
+.entrar p{color:var(--t2);margin-bottom:18px}
+.entrar input{width:100%;margin-bottom:12px}
+.vazio{color:var(--t3);padding:14px 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="login" class="entrar" hidden>
+ <h1>Painel do SerpyraToolkit</h1>
+ <p>Cole o seu token do painel. Ele fica salvo só neste navegador.</p>
+ <input id="tok" type="password" autocomplete="off" placeholder="Token do painel">
+ <button class="b" id="btEntrar" style="width:100%">Entrar</button>
+ <div class="msg erro" id="msgLogin"></div>
+</div>
+
+<div id="app" hidden>
+<header><div class="w"><b>SerpyraToolkit</b><span id="modo">Painel de vendas</span><button class="sair" id="sair">Sair</button></div></header>
+<main class="w">
+ <div class="nums">
+  <div class="num"><small>Hoje</small><b id="n-hoje">–</b><i id="v-hoje"></i></div>
+  <div class="num"><small>Últimos 7 dias</small><b id="n-semana">–</b><i id="v-semana"></i></div>
+  <div class="num"><small>Últimos 30 dias</small><b id="n-mes">–</b><i id="v-mes"></i></div>
+  <div class="num"><small>Desde o início</small><b id="n-tudo">–</b><i id="v-tudo"></i></div>
+ </div>
+ <p class="msg" id="extra"></p>
+
+ <div class="grid2">
+  <div>
+   <h2>Gerar chave para um cliente</h2>
+   <div class="caixa">
+    <p style="color:var(--t2);font-size:14px;margin-bottom:12px">Para quem trocou de celular ou restaurou o aparelho. O código aparece no app quando a pessoa cola uma chave de outro celular.</p>
+    <div class="linha">
+     <label style="flex:1 1 150px">Código do celular<input id="kCod" placeholder="ABCD-EFGH" maxlength="9"></label>
+     <label style="width:110px">Dias<input id="kDias" type="number" min="1" value="30"></label>
+    </div>
+    <label style="flex-direction:row;align-items:center;gap:8px;margin-top:10px"><input id="kSomar" type="checkbox" checked style="width:auto">Somar aos dias que o celular já tem</label>
+    <button class="b" id="btChave" style="margin-top:12px">Gerar chave</button>
+    <div class="msg" id="msgChave"></div>
+   </div>
+  </div>
+  <div>
+   <h2>Criar ou mudar cupom</h2>
+   <div class="caixa">
+    <div class="linha">
+     <label style="flex:1 1 130px">Cupom<input id="cCod" placeholder="YOUTUBER10" maxlength="20"></label>
+     <label style="width:90px">Desconto %<input id="cPct" type="number" min="1" max="90" value="10"></label>
+     <label style="width:100px">Limite de usos<input id="cLim" type="number" min="0" value="0"></label>
+    </div>
+    <label style="margin-top:10px">De quem é (opcional)<input id="cDono" placeholder="Nome do canal ou parceiro"></label>
+    <button class="b" id="btCupom" style="margin-top:12px">Salvar cupom</button>
+    <div class="msg" id="msgCupom"></div>
+    <p style="color:var(--t3);font-size:13px;margin-top:8px">Limite 0 = sem limite. Salvar um cupom que já existe atualiza o desconto e o limite.</p>
+   </div>
+  </div>
+ </div>
+
+ <h2>Cupons</h2>
+ <div class="caixa rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
+
+ <h2>Últimas vendas</h2>
+ <div class="caixa rolar"><table><thead><tr><th>Data</th><th>Pedido</th><th>Plano</th><th>Valor</th><th>E-mail</th><th>Celular</th><th>Vale até</th></tr></thead><tbody id="tVendas"></tbody></table></div>
+</main>
+</div>
+
+<script>
+(function(){
+  var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
+  var token=''; try{token=localStorage.getItem('pct_admin')||''}catch(e){}
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function api(metodo,rota,corpo){
+    return fetch(API+rota,{method:metodo,headers:{'x-admin':token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined})
+      .then(function(r){return r.json().then(function(j){if(!r.ok) throw new Error(j.erro||('Erro '+r.status)); return j})});
+  }
+  function msg(el,t,tipo){el.textContent=t;el.className='msg'+(tipo?' '+tipo:'')}
+  function data(iso){var d=new Date(iso);return isNaN(d)?'':d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+
+  function mostrar(logado){$('login').hidden=logado;$('app').hidden=!logado}
+
+  function carregar(){
+    return api('GET','/admin/resumo').then(function(r){
+      mostrar(true);
+      [['hoje','hoje'],['semana','semana'],['mes','mes'],['tudo','tudo']].forEach(function(p){$('n-'+p[0]).textContent=r[p[1]].total;$('v-'+p[0]).textContent=r[p[1]].vendas+(r[p[1]].vendas===1?' venda':' vendas')});
+      $('modo').textContent='Painel de vendas'+(r.modo==='teste'?' (modo de teste)':'');
+      var planos=Object.keys(r.porPlano||{}).map(function(k){return r.porPlano[k]+'× '+k}).join(', ');
+      var ex=[];
+      if(planos) ex.push('Por plano: '+planos+'.');
+      if(r.pendentes) ex.push(r.pendentes+' Pix gerados e não pagos.');
+      $('extra').innerHTML=esc(ex.join(' '))+(r.emailsPendentes?' <b>'+r.emailsPendentes+' e-mail(s) não enviados</b> (o servidor tenta de novo todo dia). <button class="b l" id="btReenviar" style="padding:4px 10px;margin-left:6px">Tentar agora</button>':'');
+      var bt=$('btReenviar'); if(bt) bt.onclick=function(){bt.disabled=true;api('POST','/admin/reenviar').then(function(x){alert(x.enviados+' enviado(s).');carregar()}).catch(function(e){alert(e.message);bt.disabled=false})};
+      $('tVendas').innerHTML=r.ultimas.length?r.ultimas.map(function(v){
+        return '<tr><td>'+esc(data(v.data))+'</td><td>'+esc(v.numero)+'</td><td>'+esc(v.plano)+(v.cupom?' <span class="tag a">'+esc(v.cupom)+'</span>':'')+'</td><td>'+esc(v.valor)+'</td><td>'+esc(v.email)+(v.email_ok?'':' <span class="tag a">e-mail pendente</span>')+'</td><td>'+esc(v.codigo.slice(0,4)+'-'+v.codigo.slice(4))+'</td><td>'+esc(v.validade)+'</td></tr>'}).join('')
+        :'<tr><td colspan="7" class="vazio">Nenhuma venda ainda.</td></tr>';
+      return api('GET','/admin/cupons');
+    }).then(function(c){
+      $('tCupons').innerHTML=c.cupons.length?c.cupons.map(function(x){
+        return '<tr><td><b>'+esc(x.codigo)+'</b>'+(x.ativo?'':' <span class="tag">pausado</span>')+'</td><td>'+esc(x.pct)+'%</td><td>'+esc(x.usos||0)+(x.limite?' de '+esc(x.limite):'')+'</td><td>'+esc(x.receita)+'</td><td>'+esc(x.dono||'')+'</td><td><button class="b l" data-apagar="'+esc(x.codigo)+'" style="padding:4px 10px">Apagar</button></td></tr>'}).join('')
+        :'<tr><td colspan="6" class="vazio">Nenhum cupom criado.</td></tr>';
+      [].forEach.call(document.querySelectorAll('[data-apagar]'),function(b){b.onclick=function(){var c=b.getAttribute('data-apagar');if(!confirm('Apagar o cupom '+c+'? Quem tentar usar ele vai receber "cupom inválido".'))return;api('DELETE','/admin/cupom?c='+encodeURIComponent(c)).then(carregar).catch(function(e){alert(e.message)})}});
+    });
+  }
+
+  $('btEntrar').onclick=function(){
+    token=$('tok').value.trim(); if(!token) return;
+    carregar().then(function(){try{localStorage.setItem('pct_admin',token)}catch(e){}}).catch(function(e){mostrar(false);msg($('msgLogin'),e.message,'erro')});
+  };
+  $('tok').onkeydown=function(e){if(e.key==='Enter')$('btEntrar').click()};
+  $('sair').onclick=function(){try{localStorage.removeItem('pct_admin')}catch(e){};token='';$('tok').value='';mostrar(false)};
+
+  $('btChave').onclick=function(){
+    var b=this; b.disabled=true; msg($('msgChave'),'Gerando…');
+    api('POST','/admin/chave',{codigo:$('kCod').value,dias:$('kDias').value,somar:$('kSomar').checked}).then(function(r){
+      $('msgChave').className='msg ok';$('msgChave').innerHTML='Chave gerada, válida até '+esc(r.validade)+'. Mande para o cliente colar no app:<div class="chave">'+esc(r.chave)+'</div>';
+    }).catch(function(e){msg($('msgChave'),e.message,'erro')}).finally(function(){b.disabled=false});
+  };
+  $('btCupom').onclick=function(){
+    var b=this; b.disabled=true;
+    api('POST','/admin/cupom',{codigo:$('cCod').value,pct:$('cPct').value,limite:$('cLim').value,dono:$('cDono').value}).then(function(){msg($('msgCupom'),'Cupom salvo.','ok');carregar()})
+      .catch(function(e){msg($('msgCupom'),e.message,'erro')}).finally(function(){b.disabled=false});
+  };
+
+  if(token) carregar().catch(function(){mostrar(false)}); else mostrar(false);
+})();
+</script>
+</body>
+</html>

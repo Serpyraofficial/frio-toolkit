@@ -20,7 +20,7 @@ object Menus {
     fun categorias(): List<Item> = listOf(
         Item("Tuner de jogos", "Resolução, FPS e driver por jogo", J, T.verde, tela = { it.abrirTela { it.telaTuner() } }),
         Item("Teclado e controles", "Botões estilo MuMu por cima do jogo", J, T.roxo, acao = { TecladoJogo.iniciar(it) }),
-        Item("Mira na tela", "Mira fixa no centro para jogos de tiro", J, T.vermelho, "Novo", T.vermelho, acao = { Mira.executar(it) }),
+        Item("Mira na tela", "Mira fixa no centro para jogos de tiro", J, T.vermelho, "Novo", T.vermelho, acao = { MiraTela.executar(it) }),
         Item("Desempenho e FPS", "Raio-X, teste, otimizar, tela", F, T.verde, sub = { fps() }),
         Item("Limpeza", "Espaço, cache, duplicados", L, T.azul, sub = { limpeza() }),
         Item("Rede para jogos", "Ping, velocidade, DNS", RD, T.ciano, sub = { rede() }),
@@ -35,7 +35,7 @@ object Menus {
     fun fps() = Menu("Desempenho e FPS", "Tudo que deixa o jogo mais fluido", F, T.verde, listOf(
         Item("Tuner de jogos", "Perfil por jogo: modo, resolução, FPS e driver", J, T.verde, "Novo", T.verde, tela = { it.abrirTela { it.telaTuner() } }),
         Item("Teclado e controles no jogo", "Botões com a tecla que quiser, toque, analógico e macro", J, T.roxo, acao = { TecladoJogo.iniciar(it) }),
-        Item("Mira na tela", "Cruz, ponto ou círculo, na cor e tamanho que quiser", J, T.vermelho, "Novo", T.vermelho, acao = { Mira.executar(it) }),
+        Item("Mira na tela", "Cruz, ponto ou círculo, na cor e tamanho que quiser", J, T.vermelho, "Novo", T.vermelho, acao = { MiraTela.executar(it) }),
         Item("Raio-X de desempenho", "Nota de 0 a 100 e correção com um toque", RX, T.verde, "Recomendado", T.verde, acao = { RaioX.executar(it) }),
         Item("Modo Jogo", "Silencia, libera memória, abre o jogo e vigia o calor", J, T.verde, acao = { ModoJogo.executar(it) }),
         Item("Otimizar o celular para jogos", "Passo a passo completo", F, T.verde, acao = { Fps.otimizar(it) }),

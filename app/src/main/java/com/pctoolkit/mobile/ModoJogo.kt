@@ -55,9 +55,9 @@ object ModoJogo {
         )
         val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
         if (Pro.ativo()) { nomes.add("Modo Frio: segura a temperatura sem desligar o boost"); chaves.add("mj_frio") }
+        else con.info("Modo Frio, Turbo e abrir os seus botões junto com o jogo fazem parte do SerpyraToolkit Pro.")
         if (Pro.ativo() && PerfisControle.tem(jogo.pkg)) { nomes.add("Abrir os meus botões do teclado junto com o jogo"); chaves.add("mj_botoes") }
         nomes.add("Mostrar o ping no painel (atraso da internet)"); chaves.add("mj_ping")
-        else con.info("Modo Frio e Turbo fazem parte do SerpyraToolkit Pro (${Vendedor.PRECO_TXT}/mês).")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()

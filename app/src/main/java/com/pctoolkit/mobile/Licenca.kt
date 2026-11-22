@@ -84,7 +84,7 @@ object Compra {
     fun teste(): Pair<Boolean, String> {
         val (code, t) = try { http("POST", "/teste", org.json.JSONObject().put("codigo", Licenca.codigo()).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
-        Store.putBool("teste_usado", true)
+        if (code == 200 || code == 409) Store.putBool("teste_usado", true)
         if (code != 200) return Pair(false, o.optString("erro", "Não deu para liberar o teste agora."))
         val (ok, m) = Licenca.ativar(o.optString("chave"))
         return Pair(ok, if (ok) "Teste liberado! Pro ativo até ${o.optString("validade")}." else m)

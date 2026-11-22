@@ -18,7 +18,7 @@ import android.view.View
 import android.view.WindowManager
 
 /** Mira na tela: desenhada por cima do jogo, sem tocar em nada (os toques passam direto para o jogo). */
-object Mira {
+object MiraTela {
     val ESTILOS = listOf("cruz" to "Cruz", "ponto" to "Ponto", "cruzponto" to "Cruz com ponto", "circulo" to "Círculo com ponto", "t" to "T (sem a parte de cima)", "x" to "X")
     val CORES = listOf(0xFF3DDC97.toInt() to "Verde", 0xFFFF3B4E.toInt() to "Vermelho", 0xFF38D6E8.toInt() to "Ciano", 0xFFF5E642.toInt() to "Amarelo", 0xFFFFFFFF.toInt() to "Branco", 0xFFFF4FD8.toInt() to "Rosa")
     val TAMANHOS = listOf(14 to "Pequena", 22 to "Média", 32 to "Grande")
@@ -116,21 +116,21 @@ class MiraService : Service() {
         private val sombra = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND; color = 0x99000000.toInt() }
 
         override fun onDraw(c: Canvas) {
-            val cx = width / 2f + Mira.dx() * dens
-            val cy = height / 2f + Mira.dy() * dens
-            val r = Mira.tamanho() * dens / 2f
+            val cx = width / 2f + MiraTela.dx() * dens
+            val cy = height / 2f + MiraTela.dy() * dens
+            val r = MiraTela.tamanho() * dens / 2f
             val gap = r * 0.35f
-            val esp = (1.6f + Mira.tamanho() / 14f) * dens
-            p.color = Mira.cor()
+            val esp = (1.6f + MiraTela.tamanho() / 14f) * dens
+            p.color = MiraTela.cor()
             for ((tinta, extra) in listOf(sombra to esp + 1.6f * dens, p to esp)) {
                 tinta.strokeWidth = extra
                 tinta.style = Paint.Style.STROKE
-                when (Mira.estilo()) {
+                when (MiraTela.estilo()) {
                     "ponto" -> { tinta.style = Paint.Style.FILL; c.drawCircle(cx, cy, esp * 1.3f + (extra - esp) / 2, tinta) }
                     "cruz", "cruzponto" -> {
                         c.drawLine(cx - r, cy, cx - gap, cy, tinta); c.drawLine(cx + gap, cy, cx + r, cy, tinta)
                         c.drawLine(cx, cy - r, cx, cy - gap, tinta); c.drawLine(cx, cy + gap, cx, cy + r, tinta)
-                        if (Mira.estilo() == "cruzponto") { tinta.style = Paint.Style.FILL; c.drawCircle(cx, cy, esp * 0.9f + (extra - esp) / 2, tinta) }
+                        if (MiraTela.estilo() == "cruzponto") { tinta.style = Paint.Style.FILL; c.drawCircle(cx, cy, esp * 0.9f + (extra - esp) / 2, tinta) }
                     }
                     "circulo" -> { c.drawCircle(cx, cy, r * 0.8f, tinta); tinta.style = Paint.Style.FILL; c.drawCircle(cx, cy, esp * 0.9f + (extra - esp) / 2, tinta) }
                     "t" -> { c.drawLine(cx - r, cy, cx - gap, cy, tinta); c.drawLine(cx + gap, cy, cx + r, cy, tinta); c.drawLine(cx, cy + gap, cx, cy + r, tinta) }
