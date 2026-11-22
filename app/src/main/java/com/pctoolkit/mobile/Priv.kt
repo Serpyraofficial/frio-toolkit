@@ -64,6 +64,13 @@ object Priv {
         } catch (e: Throwable) { null }
     }
 
+    /** Processo longo com o poder do ADB (para leitura continua, ex.: getevent). */
+    fun processo(cmd: String): Process? {
+        if (!pronto()) return null
+        val m = metodo ?: return null
+        return try { val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process; p.outputStream.close(); p } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
+    }
+
     fun exec(cmd: String, timeoutS: Long = 60): Sh.R {
         if (!pronto()) return Sh.R(-1, "", "Shizuku indisponível")
         val m = metodo ?: return Sh.R(-1, "", "Shizuku sem newProcess")

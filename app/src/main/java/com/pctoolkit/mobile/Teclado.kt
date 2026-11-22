@@ -179,6 +179,7 @@ class TecladoService : Service() {
         Thread { Injetor.preparar() }.start()
         ui.post { removerTudo(); visivel = true; mostrarTudo() }
         if (!vigiando) { vigiando = true; ui.postDelayed(vigia, 1500) }
+        Mapeador.iniciar { ev -> ui.post { try { teclaFisica(ev) } catch (e: Exception) { } } }
     }
 
     private fun notif(): Notification {
@@ -319,13 +320,14 @@ class TecladoService : Service() {
     private fun fechar() {
         ui.post {
             removerTudo()
+            Mapeador.parar()
             rodando = false
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
     }
 
-    override fun onDestroy() { removerTudo(); rodando = false; instancia = null; super.onDestroy() }
+    override fun onDestroy() { removerTudo(); Mapeador.parar(); rodando = false; instancia = null; super.onDestroy() }
 
     // ---------------- botoes no modo jogar ----------------
     private fun opac(c: Controle) = (c.opac * (Store.str("tec_opac", "0.85").toFloatOrNull() ?: 0.85f) / 0.85f).coerceIn(0.15f, 1f)
@@ -840,7 +842,7 @@ class TecladoService : Service() {
                 1 -> mostrarDialogo(dialogo().setMessage("Apagar todos os botões deste jogo?").setPositiveButton("Apagar") { _, _ -> lista.clear(); depois() }.setNegativeButton("Cancelar", null).create())
                 2 -> mostrarDialogo(dialogo().setTitle("Teclado/controle físico").setMessage(
                     "Com um teclado ou controle Bluetooth/USB, cada tecla colocada num botão de TOQUE vira um toque na mira azul, e o analógico “Arrastar no jogo” anda com W A S D ou setas, igual ao MuMu Player.\n\nStatus: " +
-                        (if (Mapeador.ativo()) "ATIVO ✓" else "desligado. Ative em PC Toolkit > Teclado no jogo.")
+                        (if (Mapeador.ativo()) "ATIVO ✓ (lido pelo Shizuku, sem acessibilidade)" else "desligado. Ative em PC Toolkit > Teclado e controles.")
                 ).setPositiveButton("OK", null).create())
                 3 -> mostrarDialogo(dialogo().setTitle("Como funciona").setMessage(
                     "• Tecla: o jogo recebe a tecla como de um teclado de verdade (Roblox, Minecraft, emuladores).\n\n" +

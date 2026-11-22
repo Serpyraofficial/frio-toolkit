@@ -1,54 +1,92 @@
 package com.pctoolkit.mobile
 
-import android.accessibilityservice.AccessibilityService
 import android.app.PendingIntent
-import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.view.KeyEvent
-import android.view.accessibility.AccessibilityEvent
 
 /**
- * Teclado/controle fisico -> toques na tela (estilo MuMu Player).
- * So age quando os controles do PC Toolkit estao abertos e a tecla foi colocada num botao de toque;
- * qualquer outra tecla passa direto para o jogo.
+ * Teclado/controle fisico -> toques na tela (estilo MuMu Player), SEM servico de acessibilidade:
+ * le as teclas direto do sistema de entrada pelo Shizuku (getevent), como um cabo ADB faria.
+ * So age nas teclas colocadas em botoes de toque (ou W A S D / setas no analogico de arraste);
+ * todas as outras teclas continuam chegando normalmente ao jogo.
  */
-class Mapeador : AccessibilityService() {
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) { }
-    override fun onInterrupt() { }
+object Mapeador {
+    @Volatile private var proc: Process? = null
+    @Volatile private var thread: Thread? = null
 
-    override fun onKeyEvent(event: KeyEvent): Boolean {
-        val s = TecladoService.instancia ?: return false
-        if (!TecladoService.rodando) return false
-        return try { s.teclaFisica(event) } catch (e: Exception) { false }
+    fun ativo(): Boolean = Store.bool("fisico_on", false) && Sh.privOk()
+
+    fun ativar(con: Console): Boolean {
+        if (!Sh.privOk()) { con.aviso("Precisa do modo automático (Shizuku) para ler o teclado/controle físico."); return false }
+        Store.putBool("fisico_on", true)
+        con.ok("Teclado/controle físico ativado: as teclas dos seus botões de toque viram toques no jogo")
+        return true
     }
 
-    companion object {
-        private fun componente() = ComponentName(PcApp.ctx, Mapeador::class.java).flattenToString()
+    fun desativar() { Store.putBool("fisico_on", false); parar() }
 
-        fun ativo(): Boolean {
-            val l = Settings.Secure.getString(PcApp.ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-            return l.split(':').any { it.equals(componente(), true) }
-        }
+    private val nomes = mapOf(
+        "SPACE" to KeyEvent.KEYCODE_SPACE, "ENTER" to KeyEvent.KEYCODE_ENTER, "TAB" to KeyEvent.KEYCODE_TAB, "ESC" to KeyEvent.KEYCODE_ESCAPE,
+        "BACKSPACE" to KeyEvent.KEYCODE_DEL, "DELETE" to KeyEvent.KEYCODE_FORWARD_DEL, "CAPSLOCK" to KeyEvent.KEYCODE_CAPS_LOCK,
+        "LEFTSHIFT" to KeyEvent.KEYCODE_SHIFT_LEFT, "RIGHTSHIFT" to KeyEvent.KEYCODE_SHIFT_RIGHT, "LEFTCTRL" to KeyEvent.KEYCODE_CTRL_LEFT,
+        "RIGHTCTRL" to KeyEvent.KEYCODE_CTRL_RIGHT, "LEFTALT" to KeyEvent.KEYCODE_ALT_LEFT, "RIGHTALT" to KeyEvent.KEYCODE_ALT_RIGHT,
+        "LEFTMETA" to KeyEvent.KEYCODE_META_LEFT, "UP" to KeyEvent.KEYCODE_DPAD_UP, "DOWN" to KeyEvent.KEYCODE_DPAD_DOWN,
+        "LEFT" to KeyEvent.KEYCODE_DPAD_LEFT, "RIGHT" to KeyEvent.KEYCODE_DPAD_RIGHT, "HOME" to KeyEvent.KEYCODE_MOVE_HOME, "END" to KeyEvent.KEYCODE_MOVE_END,
+        "PAGEUP" to KeyEvent.KEYCODE_PAGE_UP, "PAGEDOWN" to KeyEvent.KEYCODE_PAGE_DOWN, "INSERT" to KeyEvent.KEYCODE_INSERT,
+        "COMMA" to KeyEvent.KEYCODE_COMMA, "DOT" to KeyEvent.KEYCODE_PERIOD, "SLASH" to KeyEvent.KEYCODE_SLASH, "SEMICOLON" to KeyEvent.KEYCODE_SEMICOLON,
+        "APOSTROPHE" to KeyEvent.KEYCODE_APOSTROPHE, "LEFTBRACE" to KeyEvent.KEYCODE_LEFT_BRACKET, "RIGHTBRACE" to KeyEvent.KEYCODE_RIGHT_BRACKET,
+        "MINUS" to KeyEvent.KEYCODE_MINUS, "EQUAL" to KeyEvent.KEYCODE_EQUALS, "GRAVE" to KeyEvent.KEYCODE_GRAVE, "BACKSLASH" to KeyEvent.KEYCODE_BACKSLASH,
+        "BTN_SOUTH" to KeyEvent.KEYCODE_BUTTON_A, "BTN_A" to KeyEvent.KEYCODE_BUTTON_A, "BTN_EAST" to KeyEvent.KEYCODE_BUTTON_B, "BTN_B" to KeyEvent.KEYCODE_BUTTON_B,
+        "BTN_NORTH" to KeyEvent.KEYCODE_BUTTON_X, "BTN_X" to KeyEvent.KEYCODE_BUTTON_X, "BTN_WEST" to KeyEvent.KEYCODE_BUTTON_Y, "BTN_Y" to KeyEvent.KEYCODE_BUTTON_Y,
+        "BTN_TL" to KeyEvent.KEYCODE_BUTTON_L1, "BTN_TR" to KeyEvent.KEYCODE_BUTTON_R1, "BTN_TL2" to KeyEvent.KEYCODE_BUTTON_L2, "BTN_TR2" to KeyEvent.KEYCODE_BUTTON_R2,
+        "BTN_START" to KeyEvent.KEYCODE_BUTTON_START, "BTN_SELECT" to KeyEvent.KEYCODE_BUTTON_SELECT
+    )
 
-        fun ativar(con: Console): Boolean {
-            if (ativo()) { con.ok("Teclado/controle físico já ativo"); return true }
-            if (Sh.privOk() || Acesso.adb()) {
-                val atual = Settings.Secure.getString(PcApp.ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-                val novo = (atual.split(':').filter { it.isNotBlank() } + componente()).joinToString(":")
-                Ajuste.gravar("secure", Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, novo)
-                Ajuste.gravar("secure", Settings.Secure.ACCESSIBILITY_ENABLED, "1")
-                con.sleep(800)
-                if (ativo()) { con.ok("Teclado/controle físico ativado (automático)"); return true }
-            }
-            con.linha("Vou abrir Acessibilidade: entre em “PC Toolkit — teclas” e ative.", T.azul)
-            if (Build.VERSION.SDK_INT >= 33) con.info("Se aparecer “Configuração restrita”: abra Informações do app do PC Toolkit > ⋮ > Permitir configurações restritas e tente de novo.")
-            con.abrirEEsperar(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            return ativo()
+    private fun codigo(nome: String): Int {
+        nomes[nome]?.let { return it }
+        if (nome.startsWith("BTN_")) return 0
+        val n = nome.removePrefix("KEY_")
+        nomes[n]?.let { return it }
+        if (Regex("F([1-9]|1[0-2])").matches(n)) return KeyEvent.KEYCODE_F1 + n.substring(1).toInt() - 1
+        if (n.length == 1) return KeyEvent.keyCodeFromString("KEYCODE_$n")
+        return 0
+    }
+
+    /** Comeca a ler as teclas fisicas (chamado pelo servico dos controles). */
+    fun iniciar(aoTeclar: (KeyEvent) -> Unit) {
+        if (!ativo() || thread?.isAlive == true) return
+        val t = Thread {
+            try {
+                val p = Priv.processo("getevent -ql") ?: return@Thread
+                proc = p
+                val rx = Regex("EV_KEY\\s+(\\S+)\\s+(DOWN|UP|REPEAT)")
+                val inicio = HashMap<Int, Long>()
+                p.inputStream.bufferedReader().forEachLine { l ->
+                    val m = rx.find(l) ?: return@forEachLine
+                    val nome = m.groupValues[1]
+                    if (nome.startsWith("BTN_TOUCH") || nome.startsWith("BTN_TOOL")) return@forEachLine
+                    val c = codigo(nome)
+                    if (c <= 0) return@forEachLine
+                    val agora = android.os.SystemClock.uptimeMillis()
+                    val acao = if (m.groupValues[2] == "UP") KeyEvent.ACTION_UP else KeyEvent.ACTION_DOWN
+                    if (m.groupValues[2] == "DOWN") inicio[c] = agora
+                    val rep = if (m.groupValues[2] == "REPEAT") 1 else 0
+                    aoTeclar(KeyEvent(inicio[c] ?: agora, agora, acao, c, rep))
+                }
+            } catch (e: Exception) { Log2.registrar("mapeador: $e") }
         }
+        t.isDaemon = true
+        thread = t
+        t.start()
+    }
+
+    fun parar() {
+        try { proc?.destroy() } catch (e: Exception) { }
+        proc = null
+        thread = null
     }
 }
 

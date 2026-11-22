@@ -355,7 +355,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 4.6  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Mobile 4.7  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
