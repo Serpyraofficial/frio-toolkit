@@ -315,7 +315,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      </div>
      <div class="tela" data-tela="1">
       <h4>Modo Jogo</h4><div class="sub">Ligado até você sair do jogo</div>
-      <div class="bloco"><b style="font-size:13px">Free Fire</b><div class="sub" style="margin:2px 0 10px">Sessão de 42 min</div>
+      <div class="bloco"><b style="font-size:13px">Seu jogo</b><div class="sub" style="margin:2px 0 10px">Sessão de 42 min</div>
        <div class="chips"><span class="sel">Notificações em silêncio</span><span class="sel">Memória liberada</span><span class="sel">Calor vigiado</span></div></div>
       <div class="bloco"><div style="display:flex;justify-content:space-between"><span>Temperatura</span><b>39 °C</b></div><div class="barra" style="margin-top:8px"><i style="width:48%"></i></div></div>
       <div class="bloco"><div style="display:flex;justify-content:space-between"><span>FPS médio</span><b>88</b></div><div class="barra" style="margin-top:8px"><i style="width:88%"></i></div></div>
@@ -483,7 +483,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   fetch('/versao',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(v){
     if(!v||!v.versionName) return;
     var mb=v.tamanho?' com '+(v.tamanho/1048576).toFixed(1).replace('.',',')+' MB':'';
-    document.getElementById('versao').textContent='Versão '+v.versionName+mb+', para Android 8 ou mais novo';
+    var e=document.getElementById("versao"); if(e) e.textContent='Versão '+v.versionName+mb+', para Android 8 ou mais novo';
   }).catch(function(){});
   var passos=document.querySelectorAll('.passo'), telas=document.querySelectorAll('.tela');
   if(!('IntersectionObserver' in window)) return;
