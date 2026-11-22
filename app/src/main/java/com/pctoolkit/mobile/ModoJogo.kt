@@ -51,9 +51,10 @@ object ModoJogo {
             "Fechar apps em segundo plano antes de abrir",
             "Pausar a sincronização automática (e-mail, fotos, nuvem)",
             "Painel flutuante com temperatura, bateria e memória",
-            "Alerta de calor (vibra se a bateria passar do limite)"
+            "Alerta de calor (vibra se a bateria passar do limite)",
+            "Modo Frio: segura a temperatura sem desligar o boost"
         )
-        val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
+        val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_frio")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
@@ -68,6 +69,18 @@ object ModoJogo {
             if (con.ask("Permitir o Acesso ao uso para o Modo Jogo encerrar sozinho?")) con.garantirNome("Acesso ao uso")
         }
         val limite = Store.int("limite_bateria", 43)
+        if (op["mj_frio"] == true && !Frio.pode()) {
+            con.aviso("O Modo Frio precisa do modo automático (Shizuku) para mexer na tela e no FPS. Sem ele, só o alerta de calor funciona.")
+            if (con.ask("Ativar o modo automático agora?")) Priv.ativar(con)
+            if (!Frio.pode()) op["mj_frio"] = false
+        }
+        if (op["mj_frio"] == true) con.info("Modo Frio: começa a agir perto de $limite °C (mude em Temperatura > Alerta de calor).")
+        if (!Sh.privOk() && Build.VERSION.SDK_INT >= 23) {
+            val pmx = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            if (!pmx.isIgnoringBatteryOptimizations(ctx.packageName) && con.ask("Para o Modo Jogo não ser desligado pelo Android no meio da partida, permitir que o app rode sem restrição de bateria?", "Permitir", "Agora não")) {
+                con.abrirEEsperar(Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:" + ctx.packageName)))
+            }
+        }
         if (Build.VERSION.SDK_INT >= 31 && Build.MANUFACTURER.equals("samsung", true).not()) con.info("Dica: se o seu Android tiver “Modo de jogo/Desempenho” nas configurações do jogo, deixe em Desempenho.")
 
         val i = Intent(ctx, GameService::class.java).putExtra("pkg", jogo.pkg).putExtra("nome", jogo.nome).putExtra("limite", limite)
@@ -98,7 +111,9 @@ object ModoJogo {
         con.linha("Memória livre mínima: ${fmtTam(o.optLong("ramMin"))}")
         val st = o.optInt("termMax", -1)
         if (st >= 0) con.linha("Estado térmico mais alto: " + Sensores.nomeStatusTermico(st), if (st >= 2) T.amarelo else T.texto)
-        if (o.has("fps")) con.linha("FPS médio: ${o.optInt("fps")}", T.verde)
+        if (o.has("fps")) con.linha("FPS médio: ${o.optInt("fps")}" + if (o.has("fps1")) " · 1% pior: ${o.optInt("fps1")}" else "", T.verde)
+        val fr = o.optInt("frio", 0)
+        if (fr > 0) con.linha("Modo Frio chegou ao nível $fr (${Frio.descricao(fr)}) para segurar a temperatura", T.ciano)
         con.linha("")
         val tMax = o.optDouble("tMax")
         when {
@@ -136,10 +151,136 @@ object Sessao {
             try { (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).setInterruptionFilter(f) } catch (e: Exception) { }
             Store.putInt("dnd_antes", -1)
         }
-        if (Store.bool("perf_fixo", false)) { Sh.root("cmd power set-fixed-performance-mode-enabled false", 10); Store.putBool("perf_fixo", false) }
+        if (Store.bool("perf_fixo", false) || Store.bool("frio_turbo", false)) { Sh.root("cmd power set-fixed-performance-mode-enabled false", 10); Store.putBool("perf_fixo", false) }
         if (Store.bool("dnd_cmd", false)) { Sh.root("cmd notification set_dnd off", 10); Store.putBool("dnd_cmd", false) }
         Tuner.restaurarResolucao()
+        Frio.restaurarTela()
+        if (Store.bool("frio_fps", false)) {
+            val pk = try { JSONObject(Store.str("sessao_cfg")).optString("pkg") } catch (e: Exception) { "" }
+            if (pk.isNotEmpty() && Build.VERSION.SDK_INT >= 33) { val p = Tuner.perfil(pk); Sh.root("cmd game set --mode 2 --downscale ${if (p.aplicado && p.escala < 0.999) String.format(Locale.US, "%.2f", p.escala) else "disable"} --fps ${if (p.aplicado && p.fps > 0) p.fps.toString() else "disable"} $pk 2>/dev/null", 10) }
+            Store.putBool("frio_fps", false)
+        }
+        Frio.nivel = 0
         Store.putBool("sessao_ativa", false)
+    }
+}
+
+/**
+ * MODO FRIO: segura a temperatura sem desligar o boost.
+ * Em vez de deixar o celular esquentar ate o sistema derrubar o FPS sozinho, baixa aos poucos
+ * a taxa da tela (que limita o FPS) e, se precisar, o limite de FPS do jogo. Quando esfria, devolve.
+ */
+object Frio {
+    @Volatile var nivel = 0
+    private var mudouEm = 0L
+    private var abaixoDesde = 0L
+
+    fun pode(): Boolean = Ajuste.pode()
+
+    private fun ler(ns: String, k: String) = Ajuste.ler(ns, k)
+
+    /** Guarda os valores originais da tela (uma vez por sessao). */
+    fun preparar() {
+        nivel = 0; mudouEm = 0L; abaixoDesde = 0L
+        if (Store.str("frio_orig").isNotEmpty()) return
+        val o = JSONObject().put("peak", ler("system", "peak_refresh_rate")).put("min", ler("system", "min_refresh_rate")).put("sam", ler("secure", "refresh_rate_mode"))
+        Store.putStr("frio_orig", o.toString())
+    }
+
+    private fun telaHz(hz: Int) {
+        val o = try { JSONObject(Store.str("frio_orig")) } catch (e: Exception) { JSONObject() }
+        Ajuste.gravar("system", "peak_refresh_rate", "$hz.0")
+        val min = o.optString("min").toFloatOrNull() ?: 0f
+        if (min > hz) Ajuste.gravar("system", "min_refresh_rate", "$hz.0")
+        if (hz <= 60 && Build.MANUFACTURER.equals("samsung", true)) Ajuste.gravar("secure", "refresh_rate_mode", "0")
+    }
+
+    /** Devolve a tela ao que era antes do Modo Frio. */
+    fun restaurarTela() {
+        val s = Store.str("frio_orig")
+        if (s.isEmpty()) return
+        try {
+            val o = JSONObject(s)
+            fun volta(ns: String, k: String, v: String) { Ajuste.gravar(ns, k, v.ifEmpty { null }) }
+            volta("system", "peak_refresh_rate", o.optString("peak"))
+            volta("system", "min_refresh_rate", o.optString("min"))
+            if (Build.MANUFACTURER.equals("samsung", true)) volta("secure", "refresh_rate_mode", o.optString("sam"))
+        } catch (e: Exception) { }
+        Store.putStr("frio_orig", "")
+    }
+
+    private fun limiteFps(pkg: String, fps: Int) {
+        if (!Sh.privOk() || Build.VERSION.SDK_INT < 33) return
+        val p = Tuner.perfil(pkg)
+        val esc = if (p.aplicado && p.escala < 0.999) String.format(Locale.US, "%.2f", p.escala) else "disable"
+        val modo = if (p.aplicado && p.modo == "bateria") 3 else 2
+        Sh.root("cmd game set --mode $modo --downscale $esc --fps ${if (fps > 0) fps.toString() else "disable"} $pkg 2>/dev/null", 10)
+    }
+
+    /** Nivel que a temperatura pede agora. */
+    fun desejado(t: Double, st: Int, folga: Float?, alvo: Int): Int = when {
+        t >= alvo + 2.0 || st >= 3 -> 3
+        t >= alvo || st >= 2 || (folga != null && folga >= 0.95f) -> 2
+        t >= alvo - 1.5 || (folga != null && folga >= 0.85f) -> 1
+        else -> 0
+    }
+
+    /**
+     * Decide e aplica. Sobe na hora (com 20 s de intervalo); so desce um nivel depois de 90 s
+     * abaixo do limite daquele nivel, para nao ficar oscilando.
+     */
+    fun ajustar(ctx: Context, pkg: String, t: Double, st: Int, folga: Float?, alvo: Int, turbo: Boolean): String? {
+        val d = desejado(t, st, folga, alvo)
+        val agora = System.currentTimeMillis()
+        var novo = nivel
+        if (d > nivel && agora - mudouEm > 20_000) { novo = nivel + 1; abaixoDesde = 0L }
+        else if (d < nivel) {
+            if (abaixoDesde == 0L) abaixoDesde = agora
+            if (agora - abaixoDesde > 90_000 && t <= alvo - 2.5) { novo = nivel - 1; abaixoDesde = 0L }
+        } else abaixoDesde = 0L
+        if (novo == nivel) return null
+        val antes = nivel
+        nivel = novo
+        mudouEm = agora
+        aplicar(ctx, pkg, turbo, true)
+        return if (novo > antes) "Modo Frio nível $novo: " + descricao(novo) else if (novo == 0) "Modo Frio: temperatura normal, desempenho total de volta" else "Modo Frio voltou ao nível $novo"
+    }
+
+    fun descricao(n: Int) = when (n) {
+        1 -> "Turbo pausado"
+        2 -> "tela em 60 Hz (FPS máx. 60)"
+        3 -> "FPS limitado a 45 até esfriar"
+        else -> "normal"
+    }
+
+    /** Aplica o estado do nivel atual (tambem usado para reafirmar periodicamente). */
+    fun aplicar(ctx: Context, pkg: String, turbo: Boolean, mudou: Boolean) {
+        val (_, max) = Sensores.tela(ctx)
+        val maxHz = max.toInt()
+        when (nivel) {
+            0 -> if (mudou) { restaurarTelaSessao(); if (Tuner.perfil(pkg).aplicado || Store.bool("frio_fps", false)) limiteFps(pkg, Tuner.perfil(pkg).let { if (it.aplicado) it.fps else 0 }); Store.putBool("frio_fps", false) }
+            1 -> { if (maxHz > 100) telaHz(90) else if (mudou) restaurarTelaSessao() }
+            2 -> { telaHz(60) }
+            3 -> { telaHz(60); if (mudou) { limiteFps(pkg, 45); Store.putBool("frio_fps", true) } }
+        }
+        if (mudou && nivel == 2 && Store.bool("frio_fps", false)) { limiteFps(pkg, Tuner.perfil(pkg).let { if (it.aplicado) it.fps else 0 }); Store.putBool("frio_fps", false) }
+        if (Sh.privOk()) {
+            val fixo = turbo && nivel == 0
+            Sh.root("cmd power set-fixed-performance-mode-enabled $fixo 2>/dev/null", 10)
+            if (fixo) Store.putBool("perf_fixo", true)
+        }
+    }
+
+    /** No nivel 0 volta a tela ao original mas mantem os originais guardados ate o fim da sessao. */
+    private fun restaurarTelaSessao() {
+        val s = Store.str("frio_orig")
+        if (s.isEmpty()) return
+        try {
+            val o = JSONObject(s)
+            Ajuste.gravar("system", "peak_refresh_rate", o.optString("peak").ifEmpty { null })
+            Ajuste.gravar("system", "min_refresh_rate", o.optString("min").ifEmpty { null })
+            if (Build.MANUFACTURER.equals("samsung", true)) Ajuste.gravar("secure", "refresh_rate_mode", o.optString("sam").ifEmpty { null })
+        } catch (e: Exception) { }
     }
 }
 
@@ -150,32 +291,65 @@ class GameService : Service() {
         private const val CANAL = "modojogo"
         private const val CANAL_ALERTA = "calor"
         private const val ID = 4040
+        /** Apps que aparecem por cima do jogo sem que voce tenha saido dele. */
+        private val transitorios = listOf("systemui", "com.google.android.gms", "com.android.vending", "com.google.android.play.games",
+            "com.google.android.inputmethod", "inputmethod", "keyboard", "com.android.permissioncontroller", "packageinstaller",
+            "com.google.android.permissioncontroller", "com.android.intentresolver", "com.android.chrome", "com.google.android.webview",
+            "com.facebook.katana", "com.android.incallui", "com.samsung.android.incallui", "com.google.android.dialer", "gamebooster", "gamespace", "gametools", "joyose", "securitycenter", "gamemode", "gameassistant")
     }
 
     @Volatile private var parar = false
     private var painel: View? = null
     private var painelTxt: TextView? = null
     private val ui = Handler(Looper.getMainLooper())
+    private var trava: android.os.PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "parar") { parar = true; if (!rodando) stopSelf(); return START_NOT_STICKY }
-        if (rodando || intent == null) return START_NOT_STICKY
+        if (rodando) return START_STICKY
+        // reinicio pelo Android depois de ter sido encerrado: retoma a sessao salva
+        val cfg = if (intent == null || intent.getStringExtra("pkg") == null) Store.str("sessao_cfg") else ""
+        val dados: JSONObject = when {
+            intent != null && intent.getStringExtra("pkg") != null -> paraJson(intent)
+            cfg.isNotEmpty() && Store.bool("sessao_ativa", false) -> try { JSONObject(cfg).put("retomada", true) } catch (e: Exception) { stopSelf(); return START_NOT_STICKY }
+            else -> { stopSelf(); return START_NOT_STICKY }
+        }
         rodando = true
         criarCanais()
-        val n = notif("Preparando...", "")
-        if (Build.VERSION.SDK_INT >= 34) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(ID, n)
+        val n = notif("Modo Jogo · " + dados.optString("nome"), "Preparando...")
+        try {
+            if (Build.VERSION.SDK_INT >= 34) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(ID, n)
+        } catch (e: Exception) { Log2.registrar("startForeground: $e"); rodando = false; stopSelf(); return START_NOT_STICKY }
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            trava = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "pctoolkit:modojogo").also { it.acquire(6 * 3600_000L) }
+        } catch (e: Exception) { }
         Thread {
-            try { sessao(intent) } catch (e: Throwable) { Log2.registrar("GameService erro: $e") } finally {
-                Sessao.restaurar(this)
+            var terminou = false
+            try { sessao(dados); terminou = true } catch (e: Throwable) { Log2.registrar("GameService erro: $e") } finally {
+                if (terminou || parar) {
+                    Sessao.restaurar(this)
+                    Store.putStr("sessao_cfg", "")
+                }
                 ui.post { tirarPainel() }
+                try { trava?.release() } catch (e: Exception) { }
                 rodando = false
                 stopForeground(STOP_FOREGROUND_DETACH)
                 stopSelf()
             }
         }.start()
-        return START_NOT_STICKY
+        return START_STICKY
+    }
+
+    private fun paraJson(it: Intent): JSONObject {
+        val o = JSONObject().put("pkg", it.getStringExtra("pkg")).put("nome", it.getStringExtra("nome") ?: it.getStringExtra("pkg"))
+            .put("limite", it.getIntExtra("limite", 43)).put("res", it.getIntExtra("res", 0))
+        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio")) o.put(k, it.getBooleanExtra(k, false))
+        val b = Sensores.bateria(this)
+        o.put("inicio", System.currentTimeMillis()).put("tIni", b.tempC).put("nIni", b.nivel)
+        return o
     }
 
     private fun criarCanais() {
@@ -200,109 +374,178 @@ class GameService : Service() {
 
     private fun atualizar(t: String, s: String) { try { getSystemService(NotificationManager::class.java).notify(ID, notif(t, s)) } catch (e: Exception) { } }
 
-    private fun primeiroPlano(desde: Long): String? {
+    private fun avisar(id: Int, t: String, s: String) { try { getSystemService(NotificationManager::class.java).notify(id, notif(t, s, CANAL_ALERTA, false)) } catch (e: Exception) { } }
+
+    /** Le os eventos novos desde [desde] e devolve o ultimo app que ficou na frente (ou null se nada mudou). */
+    private fun eventos(desde: Long): String? {
         val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val ev = usm.queryEvents(desde, System.currentTimeMillis())
+        val ev = try { usm.queryEvents(desde, System.currentTimeMillis()) } catch (e: Exception) { return null }
         val e = UsageEvents.Event()
         var ult: String? = null
+        @Suppress("DEPRECATION")
+        val tipoResumo = if (Build.VERSION.SDK_INT >= 29) UsageEvents.Event.ACTIVITY_RESUMED else UsageEvents.Event.MOVE_TO_FOREGROUND
         while (ev.hasNextEvent()) {
             ev.getNextEvent(e)
-            @Suppress("DEPRECATION")
-            val tipoResumo = if (Build.VERSION.SDK_INT >= 29) UsageEvents.Event.ACTIVITY_RESUMED else UsageEvents.Event.MOVE_TO_FOREGROUND
             if (e.eventType == tipoResumo) ult = e.packageName
         }
         return ult
     }
 
-    private fun sessao(it: Intent) {
-        val pkg = it.getStringExtra("pkg") ?: return
-        val nome = it.getStringExtra("nome") ?: pkg
-        val limite = it.getIntExtra("limite", 43)
-        Store.putBool("sessao_ativa", true)
-        Store.putStr("sessao_nome", nome)
+    private fun transitorio(p: String): Boolean = p == packageName || transitorios.any { p.contains(it) } || FerramentaFabricante.conhecidas.any { it.first == p }
+
+    private fun jogoVivo(pkg: String): Boolean? {
+        if (!Sh.privOk()) return null
+        val r = Sh.root("pidof $pkg", 5)
+        return r.out.isNotBlank()
+    }
+
+    /** Liga (ou religa) o boost. Chamado no inicio e a cada 30 s, porque o sistema pode desligar sozinho. */
+    private fun reforcar(d: JSONObject, primeira: Boolean) {
+        val pkg = d.optString("pkg")
         val nm = getSystemService(NotificationManager::class.java)
-        if (it.getBooleanExtra("mj_dnd", false) && nm.isNotificationPolicyAccessGranted) {
-            Store.putInt("dnd_antes", nm.currentInterruptionFilter)
-            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-        }
-        else if (it.getBooleanExtra("mj_dnd", false) && Sh.privOk()) {
-            if (Sh.root("cmd notification set_dnd priority", 10).ok) Store.putBool("dnd_cmd", true)
+        if (d.optBoolean("mj_dnd")) {
+            if (nm.isNotificationPolicyAccessGranted) {
+                if (primeira && Store.int("dnd_antes", -1) <= 0) Store.putInt("dnd_antes", nm.currentInterruptionFilter)
+                if (nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_PRIORITY) nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+            } else if (Sh.privOk()) { if (Sh.root("cmd notification set_dnd priority", 10).ok) Store.putBool("dnd_cmd", true) }
         }
         if (Sh.privOk()) {
-            if (Build.VERSION.SDK_INT >= 31) Sh.root("cmd game mode performance $pkg 2>/dev/null", 10)
-            Sh.root("dumpsys deviceidle whitelist +$pkg >/dev/null 2>&1", 10)
-            if (it.getBooleanExtra("mj_turbo", false) && Sh.root("cmd power set-fixed-performance-mode-enabled true 2>&1", 10).let { r -> r.ok && !r.out.contains("rror") }) Store.putBool("perf_fixo", true)
-            if (it.getBooleanExtra("mj_ram", false)) Sh.root("am kill-all", 15)
-            val res = it.getIntExtra("res", 0)
-            if (res in 40..99) Tuner.aplicarResolucao(res)
+            val self = packageName
+            Sh.root("dumpsys deviceidle whitelist +$self >/dev/null 2>&1; dumpsys deviceidle whitelist +$pkg >/dev/null 2>&1; cmd appops set $self RUN_ANY_IN_BACKGROUND allow 2>/dev/null; am set-standby-bucket $self active 2>/dev/null", 15)
+            val p = Tuner.perfil(pkg)
+            if (Build.VERSION.SDK_INT >= 31 && !(p.aplicado && p.modo == "bateria")) Sh.root("cmd game mode performance $pkg 2>/dev/null", 10)
+            val res = d.optInt("res")
+            if (res in 40..99 && !Store.bool("res_global", false)) Tuner.aplicarResolucao(res)
         }
-        if (it.getBooleanExtra("mj_sync", false)) {
-            try { if (ContentResolver.getMasterSyncAutomatically()) { ContentResolver.setMasterSyncAutomatically(false); Store.putBool("sync_pausada", true) } } catch (e: Exception) { }
-        }
-        if (it.getBooleanExtra("mj_ram", false)) {
-            val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            @Suppress("DEPRECATION")
-            for (a in packageManager.getInstalledApplications(0)) if ((a.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && a.packageName != packageName && a.packageName != pkg) try { am.killBackgroundProcesses(a.packageName) } catch (e: Exception) { }
-        }
-        val alerta = it.getBooleanExtra("mj_alerta", false)
-        if (it.getBooleanExtra("mj_painel", false) && android.provider.Settings.canDrawOverlays(this)) ui.post { porPainel() }
+        if (d.optBoolean("mj_frio") && Frio.pode()) Frio.aplicar(this, pkg, d.optBoolean("mj_turbo"), primeira)
+        else if (d.optBoolean("mj_turbo") && Sh.privOk()) { if (Sh.root("cmd power set-fixed-performance-mode-enabled true 2>&1", 10).ok) Store.putBool("perf_fixo", true) }
+    }
 
-        val abrir = packageManager.getLaunchIntentForPackage(pkg)
-        if (abrir != null) { abrir.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(abrir) }
+    private fun sessao(d: JSONObject) {
+        val pkg = d.optString("pkg")
+        val nome = d.optString("nome", pkg)
+        val limite = d.optInt("limite", 43)
+        val retomada = d.optBoolean("retomada")
+        Store.putBool("sessao_ativa", true)
+        Store.putStr("sessao_nome", nome)
+        Store.putStr("sessao_cfg", d.toString())
+        if (d.optBoolean("mj_frio")) { Frio.preparar(); Frio.nivel = Store.int("frio_nivel", 0).takeIf { retomada } ?: 0 }
 
-        val inicio = System.currentTimeMillis()
-        val b0 = Sensores.bateria(this)
-        var tMax = b0.tempC; var tSoma = 0.0; var n = 0
+        if (!retomada) {
+            if (d.optBoolean("mj_sync")) {
+                try { if (ContentResolver.getMasterSyncAutomatically()) { ContentResolver.setMasterSyncAutomatically(false); Store.putBool("sync_pausada", true) } } catch (e: Exception) { }
+            }
+            if (d.optBoolean("mj_ram")) {
+                if (Sh.privOk()) Sh.root("am kill-all", 15)
+                val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                @Suppress("DEPRECATION")
+                for (a in packageManager.getInstalledApplications(0)) if ((a.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && a.packageName != packageName && a.packageName != pkg) try { am.killBackgroundProcesses(a.packageName) } catch (e: Exception) { }
+            }
+        }
+        reforcar(d, true)
+        if (d.optBoolean("mj_painel") && android.provider.Settings.canDrawOverlays(this)) ui.post { porPainel() }
+        if (!retomada) {
+            val abrir = packageManager.getLaunchIntentForPackage(pkg)
+            if (abrir != null) { abrir.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(abrir) }
+        }
+
+        val inicio = d.optLong("inicio", System.currentTimeMillis())
+        val tIni = d.optDouble("tIni", Sensores.bateria(this).tempC)
+        val nIni = d.optInt("nIni", Sensores.bateria(this).nivel)
+        var tMax = Math.max(tIni, Store.str("sessao_tmax").toDoubleOrNull() ?: 0.0); var tSoma = 0.0; var n = 0
         var ramMin = Long.MAX_VALUE
         var termMax = -1
         var avisado = 0L
         val detectar = Acesso.uso()
         var foraDesde = 0L
-        var viuJogo = false
+        var telaDesligadaDesde = 0L
+        var viuJogo = retomada
+        var ultimoFg: String? = if (retomada) pkg else null
+        var ultimaConsulta = System.currentTimeMillis() - 10_000
+        var ultimoReforco = System.currentTimeMillis()
+        var shizukuCaiu = false
+        var nivelFrioMax = 0
         val fpsLista = ArrayList<Double>()
         var qAnt = Sensores.contadorQuadros(); var tAnt = System.nanoTime()
-        Thread.sleep(4000)
+        val pmw = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        Thread.sleep(3000)
         while (!parar) {
             Thread.sleep(2000)
+            val agora = System.currentTimeMillis()
             val b = Sensores.bateria(this)
             val mem = Sensores.memoria(this).availMem
             val st = Sensores.statusTermico(this)
+            val folga = Sensores.folgaTermica(this)
             tMax = maxOf(tMax, b.tempC); tSoma += b.tempC; n++
             ramMin = minOf(ramMin, mem); termMax = maxOf(termMax, st)
+
+            // FPS real (Shizuku/root)
             var fpsTxt = ""
-            if (qAnt != null) {
+            if (qAnt == null && Sh.privOk()) { qAnt = Sensores.contadorQuadros(); tAnt = System.nanoTime() }
+            else if (qAnt != null) {
                 val q = Sensores.contadorQuadros()
                 val ag = System.nanoTime()
                 if (q != null) { val f = (q - (qAnt ?: q)) * 1e9 / (ag - tAnt); if (f in 1.0..250.0) { fpsLista.add(f); fpsTxt = "${f.toInt()} FPS · " }; qAnt = q; tAnt = ag }
             }
-            val min = ((System.currentTimeMillis() - inicio) / 60000).toInt()
-            status = "${fpsTxt}${f1(b.tempC)} °C · ${b.nivel}% · RAM ${fmtTam(mem)} · $min min" + if (st >= 2) " · CALOR" else ""
+
+            // Modo Frio
+            if (d.optBoolean("mj_frio") && Frio.pode()) {
+                val msg = Frio.ajustar(this, pkg, b.tempC, st, folga, limite, d.optBoolean("mj_turbo"))
+                if (msg != null) { Store.putInt("frio_nivel", Frio.nivel); nivelFrioMax = maxOf(nivelFrioMax, Frio.nivel); avisar(ID + 3, msg, "Bateria a ${f1(b.tempC)} °C. O boost continua ligado; só o calor está sendo controlado.") }
+            }
+
+            // reforca o boost a cada 30 s (o sistema/fabricante pode desligar sozinho)
+            if (agora - ultimoReforco > 30_000) {
+                ultimoReforco = agora
+                val ok = !Sh.privOk() && Store.str("modo_perm") != "manual" && Priv.instalado(this)
+                if (ok && !shizukuCaiu) { shizukuCaiu = true; avisar(ID + 4, "Shizuku desligou", "O Modo Jogo continua, mas sem os ajustes automáticos. Abra o Shizuku e toque em Iniciar para voltar.") }
+                if (Sh.privOk() && shizukuCaiu) { shizukuCaiu = false; try { getSystemService(NotificationManager::class.java).cancel(ID + 4) } catch (e: Exception) { } }
+                reforcar(d, false)
+                Store.putStr("sessao_tmax", tMax.toString())
+            }
+
+            val min = ((agora - inicio) / 60000).toInt()
+            val frioTxt = if (d.optBoolean("mj_frio") && Frio.nivel > 0) " · Frio ${Frio.nivel}" else ""
+            status = "${fpsTxt}${f1(b.tempC)} °C · ${b.nivel}% · RAM ${fmtTam(mem)} · $min min$frioTxt" + if (st >= 2) " · CALOR" else ""
             atualizar("Modo Jogo · $nome", status)
             ui.post { painelTxt?.text = status; painelTxt?.setTextColor(Sensores.corBateria(b.tempC)) }
-            if (alerta && b.tempC >= limite && System.currentTimeMillis() - avisado > 180_000) {
-                avisado = System.currentTimeMillis()
+            if (d.optBoolean("mj_alerta") && b.tempC >= limite + (if (d.optBoolean("mj_frio")) 2 else 0) && agora - avisado > 180_000) {
+                avisado = agora
                 vibrar()
-                try { nm.notify(ID + 1, notif("Celular quente: ${f1(b.tempC)} °C", "Acima do seu limite de $limite °C. Faça uma pausa, tire a capinha ou baixe os gráficos.", CANAL_ALERTA, false)) } catch (e: Exception) { }
+                avisar(ID + 1, "Celular quente: ${f1(b.tempC)} °C", "Acima do seu limite de $limite °C. Faça uma pausa, tire a capinha ou baixe os gráficos.")
             }
+
+            // fim da sessao: so quando voce realmente saiu do jogo por alguns minutos
             if (detectar) {
-                val fg = primeiroPlano(System.currentTimeMillis() - 6000)
-                if (fg == pkg) { viuJogo = true; foraDesde = 0 }
-                else if (fg != null && fg != packageName && !fg.contains("systemui")) {
-                    if (viuJogo && foraDesde == 0L) foraDesde = System.currentTimeMillis()
-                }
-                if (foraDesde > 0 && System.currentTimeMillis() - foraDesde > 45_000) break
+                val fg = eventos(ultimaConsulta)
+                ultimaConsulta = agora - 3000
+                if (fg != null && !transitorio(fg)) ultimoFg = fg
+                if (fg == pkg) ultimoFg = pkg
+                if (ultimoFg == pkg) { viuJogo = true; foraDesde = 0L }
+                else if (viuJogo && ultimoFg != null && foraDesde == 0L) foraDesde = agora
+                val vivo = jogoVivo(pkg)
+                val espera = if (vivo == false) 60_000L else 240_000L
+                if (foraDesde > 0 && agora - foraDesde > espera) break
             }
-            if (System.currentTimeMillis() - inicio > 6 * 3600_000L) break
+            if (!pmw.isInteractive) { if (telaDesligadaDesde == 0L) telaDesligadaDesde = agora; if (agora - telaDesligadaDesde > 20 * 60_000L) break } else telaDesligadaDesde = 0L
+            if (agora - inicio > 8 * 3600_000L) break
         }
         val b1 = Sensores.bateria(this)
         val dur = ((System.currentTimeMillis() - inicio) / 60000).toInt()
         val o = JSONObject().put("data", agora()).put("pkg", pkg).put("nome", nome).put("dur", dur)
-            .put("tIni", b0.tempC).put("tMax", tMax).put("tMed", if (n > 0) tSoma / n else b1.tempC)
-            .put("gasto", (b0.nivel - b1.nivel).coerceAtLeast(0)).put("ramMin", if (ramMin == Long.MAX_VALUE) 0L else ramMin).put("termMax", termMax)
-        if (fpsLista.size > 5) o.put("fps", fpsLista.average().toInt())
+            .put("tIni", tIni).put("tMax", tMax).put("tMed", if (n > 0) tSoma / n else b1.tempC)
+            .put("gasto", (nIni - b1.nivel).coerceAtLeast(0)).put("ramMin", if (ramMin == Long.MAX_VALUE) 0L else ramMin).put("termMax", termMax)
+            .put("frio", nivelFrioMax)
+        if (fpsLista.size > 5) {
+            o.put("fps", fpsLista.average().toInt())
+            val ord = fpsLista.sorted()
+            o.put("fps1", ord[(ord.size / 100).coerceAtMost(ord.size - 1)].toInt())
+        }
         Store.adicionar("sessoes.json", o, 100)
+        Store.putStr("sessao_tmax", "")
+        Store.putInt("frio_nivel", 0)
         try {
-            nm.notify(ID + 2, notif("Sessão encerrada: $nome", "$dur min · bateria até ${f1(tMax)} °C · ${(b0.nivel - b1.nivel).coerceAtLeast(0)}% de carga" + if (o.has("fps")) " · ${o.optInt("fps")} FPS médio" else "", CANAL, false).also { it.flags = it.flags and Notification.FLAG_ONGOING_EVENT.inv() })
+            getSystemService(NotificationManager::class.java).notify(ID + 2, notif("Sessão encerrada: $nome", "$dur min · bateria até ${f1(tMax)} °C · ${(nIni - b1.nivel).coerceAtLeast(0)}% de carga" + if (o.has("fps")) " · ${o.optInt("fps")} FPS médio" else "", CANAL, false))
         } catch (e: Exception) { }
         status = ""
     }

@@ -66,6 +66,15 @@ object Menus {
     fun temperatura() = Menu("Temperatura", "Bateria agora: " + f1(Sensores.bateria(PcApp.ctx).tempC) + " °C", TP, T.laranja, listOf(
         Item("Diagnóstico", "Temperatura, limitação por calor e sensores", TP, T.laranja, acao = { Temperatura.diagnostico(it) }),
         Item("Monitor em tempo real", "Temperatura, bateria, RAM e CPU", TP, T.laranja, acao = { Temperatura.monitor(it) }),
+        Item("Modo Frio", "Segura a temperatura durante o jogo sem desligar o boost", TP, T.ciano, "Novo", T.ciano, acao = { con ->
+            con.titulo("Modo Frio")
+            con.linha("Funciona dentro do Modo Jogo. Conforme o celular esquenta, ele age em etapas e volta tudo quando esfria:", T.texto2)
+            con.item("Nível 1 (perto do limite): pausa o Turbo e baixa a tela de 120 para 90 Hz")
+            con.item("Nível 2 (no limite): tela em 60 Hz, o que limita o jogo a 60 FPS estáveis")
+            con.item("Nível 3 (passou do limite): limita o jogo a 45 FPS até esfriar")
+            con.info("Limite atual: " + Store.int("limite_bateria", 43) + " °C. Mude em Alerta de calor.")
+            if (con.ask("Abrir o Modo Jogo agora?")) ModoJogo.executar(con)
+        }),
         Item("Teste de calor", "Quanto esquenta e se perde força", TP, T.vermelho, acao = { Temperatura.estresse(it) }),
         Item("Alerta de calor", "Limite atual: " + Store.int("limite_bateria", 43) + " °C", TP, T.amarelo, acao = { Temperatura.limite(it) }),
         Item("Dicas para esquentar menos", "O que realmente funciona", TP, T.verde, acao = { Temperatura.dicas(it) }),

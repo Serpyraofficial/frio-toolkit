@@ -95,6 +95,8 @@ object Priv {
         c.add("appops set $p SYSTEM_ALERT_WINDOW allow")
         c.add("cmd notification allow_dnd $p")
         c.add("dumpsys deviceidle whitelist +$p")
+        c.add("cmd appops set $p RUN_ANY_IN_BACKGROUND allow")
+        c.add("am set-standby-bucket $p active")
         var n = 0
         for (k in c) if (exec(k, 20).ok) n++
         configurado = true

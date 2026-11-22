@@ -85,7 +85,7 @@ object Links {
 
 /** Ferramenta de jogo do fabricante (Game Booster, Game Turbo, Game Space...). */
 object FerramentaFabricante {
-    private val conhecidas = listOf(
+    val conhecidas = listOf(
         "com.samsung.android.game.gamehome" to "Game Launcher (Samsung)",
         "com.samsung.android.game.gametools" to "Game Booster (Samsung)",
         "com.xiaomi.joyose" to "Game Turbo (Xiaomi)",
@@ -127,6 +127,9 @@ object Ajuste {
         } catch (e: Exception) { null }
         return v ?: ""
     }
+
+    /** Grava sem registrar no Desfazer (para mudancas temporarias que o proprio app desfaz). */
+    fun gravar(ns: String, key: String, valor: String?): Boolean = gravarCru(ns, key, valor)
 
     private fun gravarCru(ns: String, key: String, valor: String?): Boolean {
         if (Acesso.adb()) {
