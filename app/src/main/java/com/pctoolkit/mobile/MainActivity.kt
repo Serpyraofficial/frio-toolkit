@@ -187,7 +187,8 @@ class MainActivity : Activity() {
     // ---------------- navegacao ----------------
     fun mostrar() {
         naTarefa = false
-        pilha.last().invoke()
+        val render: () -> Unit = pilha[pilha.size - 1]
+        render()
     }
 
     fun abrirMenu(gerador: () -> Menu) { pilha.add { telaMenu(gerador()) }; mostrar() }

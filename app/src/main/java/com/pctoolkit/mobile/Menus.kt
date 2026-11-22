@@ -2,18 +2,18 @@ package com.pctoolkit.mobile
 
 /** Estrutura de navegacao do app. */
 object Menus {
-    private const val L = R.drawable.ic_limpeza
-    private const val F = R.drawable.ic_fps
-    private const val A = R.drawable.ic_aparencia
-    private const val TP = R.drawable.ic_temperatura
-    private const val S = R.drawable.ic_seguranca
-    private const val M = R.drawable.ic_manutencao
-    private const val B = R.drawable.ic_backup
-    private const val D = R.drawable.ic_desfazer
-    private const val J = R.drawable.ic_jogo
-    private const val RD = R.drawable.ic_rede
-    private const val RX = R.drawable.ic_raiox
-    private const val CH = R.drawable.ic_chave
+    private val L = R.drawable.ic_limpeza
+    private val F = R.drawable.ic_fps
+    private val A = R.drawable.ic_aparencia
+    private val TP = R.drawable.ic_temperatura
+    private val S = R.drawable.ic_seguranca
+    private val M = R.drawable.ic_manutencao
+    private val B = R.drawable.ic_backup
+    private val D = R.drawable.ic_desfazer
+    private val J = R.drawable.ic_jogo
+    private val RD = R.drawable.ic_rede
+    private val RX = R.drawable.ic_raiox
+    private val CH = R.drawable.ic_chave
 
     private fun selo(precisa: Boolean, texto: String) = if (precisa) texto else ""
 
