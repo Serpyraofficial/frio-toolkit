@@ -1,3 +1,9 @@
-- Atualização pelo próprio app: quando sair versão nova, ele avisa e instala com a sua autorização
-- Seu Pro continua ativo depois de atualizar
-- Botão "Já comprei: recuperar meu Pro" para quem reinstalar o app
+- Teste o Pro grátis por 3 dias
+- Planos de 1, 3 e 6 meses, com desconto nos maiores
+- Cupons de desconto na hora de assinar
+- Trocou de celular? Passe o Pro pelo e-mail da compra
+- Mira na tela para jogos de tiro (Pro)
+- Ping no painel do Modo Jogo
+- O Modo Jogo pode abrir os seus botões do teclado junto com o jogo (Pro)
+- Atalhos: segure o ícone do app para abrir Modo Jogo, Botões, Mira ou Raio-X
+- Aviso 2 dias antes do Pro vencer

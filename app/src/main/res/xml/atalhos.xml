@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="modojogo" android:enabled="true" android:icon="@drawable/atalho_jogo"
+        android:shortcutShortLabel="@string/at_modojogo" android:shortcutLongLabel="@string/at_modojogo_l">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.serpyra.toolkit" android:targetClass="com.pctoolkit.mobile.MainActivity">
+            <extra android:name="acao" android:value="modojogo" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="teclado" android:enabled="true" android:icon="@drawable/atalho_teclado"
+        android:shortcutShortLabel="@string/at_teclado" android:shortcutLongLabel="@string/at_teclado_l">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.serpyra.toolkit" android:targetClass="com.pctoolkit.mobile.MainActivity">
+            <extra android:name="acao" android:value="teclado" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="mira" android:enabled="true" android:icon="@drawable/atalho_mira"
+        android:shortcutShortLabel="@string/at_mira" android:shortcutLongLabel="@string/at_mira_l">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.serpyra.toolkit" android:targetClass="com.pctoolkit.mobile.MainActivity">
+            <extra android:name="acao" android:value="mira" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="raiox" android:enabled="true" android:icon="@drawable/atalho_raiox"
+        android:shortcutShortLabel="@string/at_raiox" android:shortcutLongLabel="@string/at_raiox_l">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.serpyra.toolkit" android:targetClass="com.pctoolkit.mobile.MainActivity">
+            <extra android:name="acao" android:value="raiox" />
+        </intent>
+    </shortcut>
+</shortcuts>

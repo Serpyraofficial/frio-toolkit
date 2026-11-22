@@ -47,6 +47,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/atalhos" />
         </activity>
 
         <service
@@ -78,6 +79,17 @@
         <receiver
             android:name=".AtualizacaoReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".AvisoProReceiver"
+            android:exported="false" />
+        <service
+            android:name=".MiraService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Mira desenhada por cima de jogos, escolhida pelo usuario" />
+        </service>
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"

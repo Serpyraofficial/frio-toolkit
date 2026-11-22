@@ -55,6 +55,8 @@ object ModoJogo {
         )
         val chaves = arrayListOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta")
         if (Pro.ativo()) { nomes.add("Modo Frio: segura a temperatura sem desligar o boost"); chaves.add("mj_frio") }
+        if (Pro.ativo() && PerfisControle.tem(jogo.pkg)) { nomes.add("Abrir os meus botões do teclado junto com o jogo"); chaves.add("mj_botoes") }
+        nomes.add("Mostrar o ping no painel (atraso da internet)"); chaves.add("mj_ping")
         else con.info("Modo Frio e Turbo fazem parte do SerpyraToolkit Pro (${Vendedor.PRECO_TXT}/mês).")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
@@ -63,6 +65,11 @@ object ModoJogo {
         op["mj_turbo"] = Pro.ativo() && Sh.privOk() && (perfil.turbo || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
         if (op["mj_dnd"] == true && !Sh.privOk() && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
         if (op["mj_painel"] == true && !con.garantirNome("Sobrepor a outros apps")) op["mj_painel"] = false
+        if (op["mj_botoes"] == true) {
+            if (!Sh.privOk() && !Priv.ativar(con)) op["mj_botoes"] = false
+            else if (!con.garantirNome("Sobrepor a outros apps") || !Injetor.preparar()) op["mj_botoes"] = false
+            if (op["mj_botoes"] != true) con.aviso("Os botões não vão abrir sozinhos desta vez (precisa do modo automático e da sobreposição).")
+        }
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
         val detecta = Acesso.uso()
         if (!detecta) {
@@ -89,6 +96,10 @@ object ModoJogo {
         for ((k, v) in op) i.putExtra(k, v)
         if (perfil.aplicado && perfil.resGlobal in 40..99 && Sh.privOk()) i.putExtra("res", perfil.resGlobal)
         ctx.startForegroundService(i)
+        if (op["mj_botoes"] == true) {
+            try { ctx.startForegroundService(Intent(ctx, TecladoService::class.java).putExtra("pkg", jogo.pkg).putExtra("layout", "nenhum").putExtra("abrir", false).putExtra("editar", false)) } catch (e: Exception) { }
+            con.ok("Seus botões vão aparecer por cima de ${jogo.nome}")
+        }
         con.linha("")
         con.ok("Sessão iniciada. O jogo vai abrir em instantes.")
         con.info("Acompanhe pela notificação “Modo Jogo”. Ao terminar, o resumo aparece aqui e no Histórico.")
@@ -348,7 +359,7 @@ class GameService : Service() {
     private fun paraJson(it: Intent): JSONObject {
         val o = JSONObject().put("pkg", it.getStringExtra("pkg")).put("nome", it.getStringExtra("nome") ?: it.getStringExtra("pkg"))
             .put("limite", it.getIntExtra("limite", 43)).put("res", it.getIntExtra("res", 0))
-        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio")) o.put(k, it.getBooleanExtra(k, false))
+        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio", "mj_ping")) o.put(k, it.getBooleanExtra(k, false))
         val b = Sensores.bateria(this)
         o.put("inicio", System.currentTimeMillis()).put("tIni", b.tempC).put("nIni", b.nivel)
         return o
@@ -468,6 +479,7 @@ class GameService : Service() {
         var shizukuCaiu = false
         var nivelFrioMax = 0
         val fpsLista = ArrayList<Double>()
+        var pingTxt = ""; var voltas = 0
         var qAnt = Sensores.contadorQuadros(); var tAnt = System.nanoTime()
         val pmw = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         Thread.sleep(3000)
@@ -506,9 +518,11 @@ class GameService : Service() {
                 Store.putStr("sessao_tmax", tMax.toString())
             }
 
+            // ping a cada ~6 s (conexao TCP rapida; nao usa dados de verdade)
+            if (d.optBoolean("mj_ping") && voltas++ % 3 == 0) { val ms = medirPing(); pingTxt = if (ms >= 0) " · $ms ms" else " · sem internet" }
             val min = ((agora - inicio) / 60000).toInt()
             val frioTxt = if (d.optBoolean("mj_frio") && Frio.nivel > 0) " · Frio ${Frio.nivel}" else ""
-            status = "${fpsTxt}${f1(b.tempC)} °C · ${b.nivel}% · RAM ${fmtTam(mem)} · $min min$frioTxt" + if (st >= 2) " · CALOR" else ""
+            status = "${fpsTxt}${f1(b.tempC)} °C$pingTxt · ${b.nivel}% · RAM ${fmtTam(mem)} · $min min$frioTxt" + if (st >= 2) " · CALOR" else ""
             atualizar("Modo Jogo · $nome", status)
             ui.post { painelTxt?.text = status; painelTxt?.setTextColor(Sensores.corBateria(b.tempC)) }
             if (d.optBoolean("mj_alerta") && b.tempC >= limite + (if (d.optBoolean("mj_frio")) 2 else 0) && agora - avisado > 180_000) {
@@ -550,6 +564,17 @@ class GameService : Service() {
             getSystemService(NotificationManager::class.java).notify(ID + 2, notif("Sessão encerrada: $nome", "$dur min · bateria até ${f1(tMax)} °C · ${(nIni - b1.nivel).coerceAtLeast(0)}% de carga" + if (o.has("fps")) " · ${o.optInt("fps")} FPS médio" else "", CANAL, false))
         } catch (e: Exception) { }
         status = ""
+    }
+
+    private fun medirPing(): Int {
+        for (alvo in listOf("1.1.1.1" to 443, "8.8.8.8" to 53)) {
+            try {
+                val t0 = System.nanoTime()
+                java.net.Socket().use { it.connect(java.net.InetSocketAddress(alvo.first, alvo.second), 1500) }
+                return ((System.nanoTime() - t0) / 1_000_000).toInt()
+            } catch (e: Exception) { }
+        }
+        return -1
     }
 
     private fun vibrar() {

@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="tile_teclado">Teclado SerpyraToolkit</string>
+    <string name="at_modojogo">Modo Jogo</string>
+    <string name="at_modojogo_l">Iniciar o Modo Jogo</string>
+    <string name="at_teclado">Botões no jogo</string>
+    <string name="at_teclado_l">Teclado e controles no jogo</string>
+    <string name="at_mira">Mira</string>
+    <string name="at_mira_l">Mira na tela</string>
+    <string name="at_raiox">Raio-X</string>
+    <string name="at_raiox_l">Raio-X de desempenho</string>
 </resources>

@@ -37,13 +37,14 @@ object Vendedor {
     const val SERVIDOR = "https://serpyratoolkit.officialcarloswendrik.workers.dev"
     const val PRECO = "10.00"
     const val PRECO_TXT = "R$ 10"
+    const val TESTE_DIAS = 3
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
     fun automatico() = SERVIDOR.startsWith("https://")
 }
 
 /** Compra automatica: Pix pela PurinCash, chave por e-mail e ativacao sozinha. */
 object Compra {
-    class Pedido(val id: String, val numero: String, val brCode: String, val qr: String, val teste: Boolean)
+    class Pedido(val id: String, val numero: String, val brCode: String, val qr: String, val teste: Boolean, val valor: String = "")
     class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String)
 
     private fun http(metodo: String, caminho: String, corpo: String?): Pair<Int, String> {
@@ -56,16 +57,66 @@ object Compra {
         return Pair(code, t)
     }
 
+    class Plano(val id: String, val nome: String, val dias: Int, val centavos: Int) {
+        fun preco(c: Int = centavos) = "R$ " + String.format(Locale("pt", "BR"), "%.2f", c / 100.0).replace(".00", "").replace(",00", "")
+        fun porMes() = centavos * 30 / dias
+    }
+    val PLANOS_PADRAO = listOf(Plano("m1", "1 mês", 30, 1000), Plano("m3", "3 meses", 90, 2500), Plano("m6", "6 meses", 180, 4500))
+
+    /** Planos do servidor (com os precos atuais); sem internet usa os padroes. */
+    fun planos(): List<Plano> = try {
+        val (code, t) = http("GET", "/planos", null)
+        if (code != 200) PLANOS_PADRAO else {
+            val a = org.json.JSONObject(t).getJSONArray("planos")
+            (0 until a.length()).map { a.getJSONObject(it) }.map { Plano(it.getString("id"), it.getString("nome"), it.getInt("dias"), it.getInt("centavos")) }.ifEmpty { PLANOS_PADRAO }
+        }
+    } catch (e: Exception) { PLANOS_PADRAO }
+
+    /** Confere um cupom. Devolve o preco final em centavos, ou lanca erro com a mensagem. */
+    fun cupom(codigo: String, plano: String): Int {
+        val (code, t) = http("GET", "/cupom?c=" + Uri.encode(codigo) + "&plano=" + plano, null)
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        if (code != 200 || !o.optBoolean("ok")) throw IllegalStateException(o.optString("erro", "Cupom inválido."))
+        return o.getInt("centavos")
+    }
+
+    /** Teste gratis do Pro (uma vez por celular). Devolve a mensagem para o usuario. */
+    fun teste(): Pair<Boolean, String> {
+        val (code, t) = try { http("POST", "/teste", org.json.JSONObject().put("codigo", Licenca.codigo()).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        Store.putBool("teste_usado", true)
+        if (code != 200) return Pair(false, o.optString("erro", "Não deu para liberar o teste agora."))
+        val (ok, m) = Licenca.ativar(o.optString("chave"))
+        return Pair(ok, if (ok) "Teste liberado! Pro ativo até ${o.optString("validade")}." else m)
+    }
+
+    /** Troca de celular, passo 1: manda um codigo para o e-mail da compra. */
+    fun trocaPedir(email: String): String? {
+        val (code, t) = try { http("POST", "/troca/pedir", org.json.JSONObject().put("email", email).put("codigo", Licenca.codigo()).toString()) } catch (e: Exception) { return "Sem conexão. Tente de novo." }
+        if (code == 200) return null
+        return try { org.json.JSONObject(t).optString("erro", "Não deu certo.") } catch (e: Exception) { "Não deu certo (erro $code)." }
+    }
+
+    /** Troca de celular, passo 2: confirma o codigo e ativa o Pro neste celular. */
+    fun trocaConfirmar(email: String, otp: String): Pair<Boolean, String> {
+        val (code, t) = try { http("POST", "/troca/confirmar", org.json.JSONObject().put("email", email).put("codigo", Licenca.codigo()).put("otp", otp).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        if (code != 200) return Pair(false, o.optString("erro", "Não deu certo."))
+        val (ok, m) = Licenca.ativar(o.optString("chave"))
+        return Pair(ok, if (ok) "Pro transferido para este celular! Ativo até ${o.optString("validade")}." else m)
+    }
+
     /** Cria o Pix. Devolve o pedido ou lanca erro com a mensagem para o usuario. */
-    fun criar(email: String): Pedido {
+    fun criar(email: String, plano: String = "m1", cupom: String = ""): Pedido {
         val atual = if (Licenca.ativo()) Licenca.diaValidade() else 0
-        val corpo = org.json.JSONObject().put("codigo", Licenca.codigo()).put("email", email).put("atual", atual).toString()
+        val corpo = org.json.JSONObject().put("codigo", Licenca.codigo()).put("email", email).put("atual", atual).put("plano", plano).put("cupom", cupom).toString()
         val (code, t) = http("POST", "/pedido", corpo)
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
         if (code !in 200..299) throw IllegalStateException(o.optString("erro", "Não consegui gerar o Pix (erro $code)."))
-        val p = Pedido(o.getString("pedido"), o.optString("numero"), o.optString("brCode"), o.optString("qr"), o.optBoolean("teste"))
+        val p = Pedido(o.getString("pedido"), o.optString("numero"), o.optString("brCode"), o.optString("qr"), o.optBoolean("teste"), o.optString("valor"))
         Store.putStr("lic_pedido", p.id); Store.putStr("lic_pedido_num", p.numero); Store.putStr("lic_pedido_br", p.brCode); Store.putStr("lic_pedido_qr", p.qr)
         Store.putStr("lic_pedido_em", System.currentTimeMillis().toString())
+        Store.putStr("lic_pedido_valor", p.valor)
         Store.putStr("lic_email", email)
         return p
     }
@@ -219,6 +270,7 @@ object Licenca {
         if (atual > d && ativo()) return Pair(false, "Você já tem uma licença válida até mais tarde (${validadeTexto()}).")
         if (agoraConfiavel() >= (d + 1L) * DIA) return Pair(false, "Esta chave já venceu.")
         Store.putStr("lic_chave", chave.trim())
+        try { AvisoPro.agendar(PcApp.ctx) } catch (e: Exception) { }
         return Pair(true, "Pro ativado até ${validadeTexto()}!")
     }
 
@@ -258,7 +310,9 @@ object Pro {
     val recursos = listOf(
         "Teclado e controles no jogo (botões estilo MuMu, macros, teclado/controle físico)",
         "Tuner de jogos (resolução, limite de FPS e driver por jogo)",
-        "Modo Frio e Turbo no Modo Jogo"
+        "Modo Frio e Turbo no Modo Jogo",
+        "Mira na tela para jogos de tiro",
+        "Abrir os seus botões sozinho junto com o jogo"
     )
 
     fun ativo(): Boolean = Licenca.ativo()
@@ -267,10 +321,11 @@ object Pro {
     fun exigir(con: Console, recurso: String): Boolean {
         if (ativo()) return true
         con.aviso("$recurso é uma função do SerpyraToolkit Pro.")
-        con.info("Pro: ${Vendedor.PRECO_TXT} por mês. Libera: " + recursos.joinToString("; "))
+        con.info("Pro: a partir de ${Vendedor.PRECO_TXT} por mês. Libera: " + recursos.joinToString("; "))
+        if (!Store.bool("teste_usado", false) && Licenca.diaValidade() <= 0) con.info("Dá para testar grátis por ${Vendedor.TESTE_DIAS} dias na tela do Pro.")
         val d = Licenca.diaValidade()
         if (d > 0) con.info("Sua assinatura venceu em ${Licenca.validadeTexto()}.")
-        if (con.ask("Assinar ou ativar uma chave agora?", "Ver como assinar", "Agora não", importante = true)) {
+        if (con.ask("Assinar, testar grátis ou ativar uma chave agora?", "Ver o Pro", "Agora não", importante = true)) {
             (con.ctx as? MainActivity)?.let { a -> a.runOnUiThread { a.abrirTela { a.telaPro() } } }
         }
         return false
@@ -286,7 +341,7 @@ fun MainActivity.telaPro() {
     Thread { Licenca.sincronizarHora() }.start()
     val col = coluna()
     val ativo = Licenca.ativo()
-    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "${Vendedor.PRECO_TXT} por mês"))
+    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "Teste grátis ou a partir de ${Vendedor.PRECO_TXT} por mês"))
 
     // status
     val st = Ui.vertical(this)
@@ -358,22 +413,107 @@ fun MainActivity.telaPro() {
 
 /** Assinar com Pix automatico: e-mail -> QR -> confirma sozinho -> chave por e-mail. */
 private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
+    // teste gratis (uma vez por celular)
+    if (!ativo && Licenca.diaValidade() <= 0 && !Store.bool("teste_usado", false)) {
+        val ct = Ui.vertical(this)
+        ct.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
+        ct.background = Ui.gradiente(this, 0xFF14301F.toInt(), 0xFF121821.toInt(), 18)
+        ct.addView(Ui.texto(this, "Teste o Pro grátis por ${Vendedor.TESTE_DIAS} dias", 16f, T.texto, Ui.negrito))
+        ct.addView(Ui.texto(this, "Sem pagar nada e sem cadastro. Depois, se gostar, é só assinar.", 12.5f, T.texto2))
+        val mt = Ui.texto(this, "", 12.5f, T.texto2)
+        lateinit var bt: LinearLayout
+        bt = Ui.botao(this, "Começar o teste grátis", T.verde, true) {
+            bt.isEnabled = false; mt.text = "Liberando…"; mt.setTextColor(T.texto2)
+            Thread {
+                val (ok, m) = Compra.teste()
+                runOnUiThread { mt.text = m; mt.setTextColor(if (ok) T.verde else T.amarelo); bt.isEnabled = !ok; if (ok) mt.postDelayed({ mostrar() }, 1600) }
+            }.start()
+        }
+        ct.addView(bt, Ui.linhaLp(this, 12, 0))
+        mt.setPadding(0, Ui.dp(this, 8), 0, 0)
+        ct.addView(mt)
+        col.addView(ct, Ui.linhaLp(this, 10))
+    }
+
     col.addView(Ui.secao(this, if (ativo) "Renovar (os dias se somam)" else "Assinar com Pix"))
     val c = Ui.vertical(this)
     c.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
     c.background = Ui.forma(this, T.surface, 18, T.outline)
-    c.addView(Ui.texto(this, "Seu e-mail", 14.5f, T.texto, Ui.medio))
-    c.addView(Ui.texto(this, "Você recebe nele o pedido, a confirmação da compra e a sua chave de 30 dias.", 12f, T.texto3))
+
+    // planos
+    c.addView(Ui.texto(this, "Escolha o plano", 14.5f, T.texto, Ui.medio))
+    var planos = Compra.PLANOS_PADRAO
+    var escolhido = Store.str("lic_plano").ifEmpty { "m1" }
+    var precoCupom = -1
+    var cupomOk = ""
+    val listaPlanos = Ui.vertical(this)
+    c.addView(listaPlanos, Ui.linhaLp(this, 8, 4))
+    lateinit var botaoTxt: () -> Unit
+    fun desenharPlanos() {
+        listaPlanos.removeAllViews()
+        val base = planos.firstOrNull { it.id == "m1" }?.porMes() ?: 1000
+        for (pl in planos) {
+            val sel = pl.id == escolhido
+            val linha = Ui.horizontal(this)
+            linha.setPadding(Ui.dp(this, 14), Ui.dp(this, 12), Ui.dp(this, 14), Ui.dp(this, 12))
+            linha.background = Ui.forma(this, if (sel) Ui.alpha(T.verde, 0x22) else T.surface2, 14, if (sel) T.verde else T.outline, if (sel) 2 else 1)
+            val tx = Ui.vertical(this)
+            tx.addView(Ui.texto(this, pl.nome, 15f, T.texto, Ui.medio))
+            tx.addView(Ui.texto(this, if (pl.dias > 30) "${pl.preco(pl.porMes())} por mês" else "Renove quando quiser", 12f, T.texto3))
+            linha.addView(tx, Ui.peso())
+            val eco = if (base > 0) 100 - pl.porMes() * 100 / base else 0
+            if (eco >= 5) { linha.addView(Ui.chip(this, "−$eco%", T.verde)); linha.addView(Ui.espaco(this, 10, 1)) }
+            linha.addView(Ui.texto(this, pl.preco(), 16f, if (sel) T.verde else T.texto, Ui.negrito))
+            linha.isClickable = true
+            linha.setOnClickListener { escolhido = pl.id; Store.putStr("lic_plano", pl.id); precoCupom = -1; cupomOk = ""; desenharPlanos(); botaoTxt() }
+            listaPlanos.addView(linha, Ui.linhaLp(this, 0, 8))
+        }
+    }
+
+    c.addView(Ui.texto(this, "Seu e-mail", 14.5f, T.texto, Ui.medio), Ui.linhaLp(this, 10, 0))
+    c.addView(Ui.texto(this, "Você recebe nele o pedido, a confirmação da compra e a sua chave.", 12f, T.texto3))
     val et = EditText(this)
     et.hint = "voce@email.com"
     et.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
     et.setText(Store.str("lic_email"))
     et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
     c.addView(et)
+
+    // cupom
+    val lc = Ui.horizontal(this)
+    val ec = EditText(this)
+    ec.hint = "Cupom de desconto (opcional)"
+    ec.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+    ec.setTextColor(T.texto); ec.setHintTextColor(T.texto3)
+    lc.addView(ec, Ui.peso())
+    val msgCupom = Ui.texto(this, "", 12.5f, T.texto2)
+    lc.addView(Ui.botao(this, "Aplicar", T.verde, false) {
+        val cod = ec.text.toString().trim()
+        if (cod.isEmpty()) { msgCupom.text = "Digite o cupom."; msgCupom.setTextColor(T.amarelo); return@botao }
+        msgCupom.text = "Conferindo…"; msgCupom.setTextColor(T.texto2)
+        Thread {
+            try {
+                val v = Compra.cupom(cod, escolhido)
+                runOnUiThread { precoCupom = v; cupomOk = cod.uppercase(); msgCupom.text = "Cupom $cupomOk aplicado."; msgCupom.setTextColor(T.verde); botaoTxt() }
+            } catch (e: Exception) {
+                runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = e.message ?: "Cupom inválido."; msgCupom.setTextColor(T.vermelho); botaoTxt() }
+            }
+        }.start()
+    }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    c.addView(lc, Ui.linhaLp(this, 6, 0))
+    c.addView(msgCupom)
+
     val area = Ui.vertical(this)
     val msg = Ui.texto(this, "", 13f, T.texto2)
     msg.setPadding(0, Ui.dp(this, 8), 0, 0)
-    val botao = Ui.botao(this, "Gerar Pix de ${Vendedor.PRECO_TXT}", T.verde, true) { }
+    val botao = Ui.botao(this, "Gerar Pix", T.verde, true) { }
+    val rotulo = botao.getChildAt(botao.childCount - 1) as android.widget.TextView
+    botaoTxt = {
+        val pl = planos.firstOrNull { it.id == escolhido } ?: planos.first()
+        rotulo.text = if (precoCupom >= 0) "Gerar Pix de ${pl.preco(precoCupom)} (com cupom)" else "Gerar Pix de ${pl.preco()}"
+    }
+    desenharPlanos(); botaoTxt()
+    Thread { val l = Compra.planos(); runOnUiThread { planos = l; if (planos.none { it.id == escolhido }) escolhido = planos.first().id; desenharPlanos(); botaoTxt() } }.start()
     c.addView(botao, Ui.linhaLp(this, 12, 0))
     c.addView(msg)
     c.addView(area)
@@ -387,7 +527,8 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         iv.setBackgroundColor(0xFFFFFFFF.toInt()); iv.setPadding(Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8), Ui.dp(this, 8))
         val lpq = LinearLayout.LayoutParams(Ui.dp(this, 220), Ui.dp(this, 220)); lpq.gravity = Gravity.CENTER_HORIZONTAL; lpq.topMargin = Ui.dp(this, 12)
         area.addView(iv, lpq)
-        val n = Ui.texto(this, "Pedido $numero · ${Vendedor.PRECO_TXT}" + if (teste) " · MODO DE TESTE" else "", 12.5f, T.texto2)
+        val valor = Store.str("lic_pedido_valor").ifEmpty { Vendedor.PRECO_TXT }
+        val n = Ui.texto(this, "Pedido $numero · $valor" + if (teste) " · MODO DE TESTE" else "", 12.5f, T.texto2)
         n.gravity = Gravity.CENTER; n.setPadding(0, Ui.dp(this, 8), 0, 0)
         area.addView(n, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         if (br.isNotEmpty()) area.addView(Ui.botao(this, "Copiar Pix copia e cola", T.verde, false) { copiar("pix", br) }, Ui.linhaLp(this, 10, 0))
@@ -427,12 +568,56 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         botao.isEnabled = false
         Thread {
             try {
-                val p = Compra.criar(email)
+                val p = Compra.criar(email, escolhido, cupomOk)
                 runOnUiThread { botao.isEnabled = true; mostrarPix(p.numero, p.brCode, p.qr, p.teste); vigiar(p.id) }
             } catch (e: Exception) {
                 runOnUiThread { botao.isEnabled = true; msg.text = e.message ?: "Sem conexão. Tente de novo."; msg.setTextColor(T.vermelho) }
             }
         }.start()
+    }
+
+    // trocou de celular: passa o Pro pelo e-mail da compra (codigo de confirmacao no e-mail)
+    if (!ativo) {
+        col.addView(Ui.secao(this, "Trocou de celular?"))
+        val ctr = Ui.vertical(this)
+        ctr.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
+        ctr.background = Ui.forma(this, T.surface, 18, T.outline)
+        ctr.addView(Ui.texto(this, "Passe o seu Pro para este celular usando o e-mail da compra. Enviamos um código de confirmação para ele. Dá para trocar uma vez a cada 30 dias.", 12.5f, T.texto2))
+        val ee = EditText(this)
+        ee.hint = "E-mail da compra"
+        ee.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        ee.setText(Store.str("lic_email")); ee.setTextColor(T.texto); ee.setHintTextColor(T.texto3)
+        ctr.addView(ee)
+        val eo = EditText(this)
+        eo.hint = "Código de 6 números"
+        eo.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        eo.setTextColor(T.texto); eo.setHintTextColor(T.texto3); eo.visibility = android.view.View.GONE
+        ctr.addView(eo)
+        val mtr = Ui.texto(this, "", 12.5f, T.texto2)
+        lateinit var btr: LinearLayout
+        var etapa = 0
+        btr = Ui.botao(this, "Enviar código para o e-mail", T.verde, false) {
+            val email = ee.text.toString().trim()
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { mtr.text = "Digite o e-mail da compra."; mtr.setTextColor(T.vermelho); return@botao }
+            btr.isEnabled = false; mtr.text = if (etapa == 0) "Enviando…" else "Conferindo…"; mtr.setTextColor(T.texto2)
+            Thread {
+                if (etapa == 0) {
+                    val erro = Compra.trocaPedir(email)
+                    runOnUiThread {
+                        btr.isEnabled = true
+                        if (erro == null) { etapa = 1; eo.visibility = android.view.View.VISIBLE; (btr.getChildAt(btr.childCount - 1) as android.widget.TextView).text = "Confirmar e ativar aqui"; mtr.text = "Enviamos um código para $email. Ele vale por 15 minutos."; mtr.setTextColor(T.azul) }
+                        else { mtr.text = erro; mtr.setTextColor(T.amarelo) }
+                    }
+                } else {
+                    val (ok, m) = Compra.trocaConfirmar(email, eo.text.toString().trim())
+                    runOnUiThread { btr.isEnabled = !ok; mtr.text = m; mtr.setTextColor(if (ok) T.verde else T.amarelo); if (ok) { Store.putStr("lic_email", email); mtr.postDelayed({ mostrar() }, 1800) } }
+                }
+            }.start()
+        }
+        ctr.addView(btr, Ui.linhaLp(this, 10, 0))
+        mtr.setPadding(0, Ui.dp(this, 8), 0, 0)
+        ctr.addView(mtr)
+        col.addView(ctr, Ui.linhaLp(this))
     }
 
     // retoma um Pix ja gerado (o app foi fechado antes de pagar)

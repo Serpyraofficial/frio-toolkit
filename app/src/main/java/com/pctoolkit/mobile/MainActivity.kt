@@ -201,6 +201,13 @@ class MainActivity : Activity() {
         if (!Modo.definido()) { boasVindas(); return }
         if (intent?.getBooleanExtra("teclado", false) == true) executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
         if (intent?.getBooleanExtra("pro", false) == true) abrirTela { telaPro() }
+        when (intent?.getStringExtra("acao")) {
+            "modojogo" -> executar("Modo Jogo") { ModoJogo.executar(it) }
+            "mira" -> executar("Mira na tela") { Mira.executar(it) }
+            "raiox" -> executar("Raio-X de desempenho") { RaioX.executar(it) }
+            "teclado" -> executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
+        }
+        AvisoPro.agendar(this)
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         Atualizador.aoAbrir(this)
