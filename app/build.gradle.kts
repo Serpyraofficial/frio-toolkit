@@ -8,11 +8,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pctoolkit.mobile"
+        applicationId = "com.serpyra.toolkit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 50
-        versionName = "5.0"
+        versionCode = 51
+        versionName = "5.1"
     }
 
     buildTypes {

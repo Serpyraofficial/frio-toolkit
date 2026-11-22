@@ -204,7 +204,7 @@ object Fps {
             con.linha("Encontrei: ${f.second}", T.azul)
             con.info("Ela tem o modo Desempenho, bloqueio de notificações e o contador de FPS do próprio fabricante.")
             if (con.ask("Abrir ${f.second}?")) { if (!Links.abrirPacote(ctx, f.first)) Links.app(ctx, f.first) }
-        } else con.info("Nenhuma encontrada (use o Modo Jogo do PC Toolkit).")
+        } else con.info("Nenhuma encontrada (use o Modo Jogo do SerpyraToolkit).")
 
         con.subtitulo("8. Memória")
         if (con.ask("Encerrar apps em segundo plano agora?")) { liberarRam(con); feitos++ }

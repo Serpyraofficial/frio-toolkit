@@ -94,7 +94,7 @@ object Sistema {
         try { ctx.contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { }
         val cr = ctx.contentResolver
         val raizDoc = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-        val pasta = criar(cr, raizDoc, DocumentsContract.Document.MIME_TYPE_DIR, "Backup PC Toolkit " + agora().replace("/", "-").replace(":", "h")) ?: run { con.erro("Não consegui criar a pasta no destino."); return }
+        val pasta = criar(cr, raizDoc, DocumentsContract.Document.MIME_TYPE_DIR, "Backup SerpyraToolkit " + agora().replace("/", "-").replace(":", "h")) ?: run { con.erro("Não consegui criar a pasta no destino."); return }
         var arquivos = 0; var bytes = 0L; var falhas = 0
         fun copiar(orig: File, destPai: Uri) {
             if (con.cancelado) return
@@ -145,7 +145,7 @@ object Sistema {
         con.titulo("Desfazer alterações")
         val n = Ajuste.quantos()
         if (n == 0) { con.linha("Nada para desfazer: o app não mudou nenhuma configuração."); return }
-        con.linha("$n configuração(ões) alteradas pelo PC Toolkit.")
+        con.linha("$n configuração(ões) alteradas pelo SerpyraToolkit.")
         if (!Ajuste.pode()) { con.aviso("Para desfazer automaticamente o app precisa do Modo avançado (ADB) ou root, os mesmos usados para mudar."); return }
         if (!con.ask("Voltar tudo ao original?", importante = true)) return
         val r = Ajuste.desfazer { con.ok("Restaurado: $it") }
@@ -154,8 +154,8 @@ object Sistema {
     }
 
     fun info(con: Console) {
-        con.titulo("Sobre o PC Toolkit Mobile")
-        con.linha("Versão 5.0", T.verde)
+        con.titulo("Sobre o SerpyraToolkit")
+        con.linha("Versão 5.1", T.verde)
         con.linha("Funciona sem root. Níveis de acesso:", T.texto2)
         con.item("Padrão: permissões do Android (arquivos, uso, não perturbe, sobreposição)")
         con.item("Automático (Shizuku): libera as permissões e faz os ajustes sozinho, sem PC")

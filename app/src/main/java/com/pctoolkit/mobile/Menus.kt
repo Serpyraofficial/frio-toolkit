@@ -28,7 +28,7 @@ object Menus {
         Item("Aparência", "Fluidez e animações", A, T.roxo, acao = { Sistema.aparencia(it) }),
         Item("Manutenção", "Saúde, bateria, backup", M, T.amarelo, sub = { manutencao() }),
         Item("Acesso e permissões", "Nível: " + Acesso.nivel(), CH, T.texto2, tela = { it.abrirTela { it.telaPermissoes() } }),
-        Item("PC Toolkit Pro", if (Pro.ativo()) "Ativo até " + Licenca.validadeTexto() else Vendedor.PRECO_TXT + " por mês", CH, T.amarelo, tela = { it.abrirTela { it.telaPro() } })
+        Item("SerpyraToolkit Pro", if (Pro.ativo()) "Ativo até " + Licenca.validadeTexto() else Vendedor.PRECO_TXT + " por mês", CH, T.amarelo, tela = { it.abrirTela { it.telaPro() } })
     )
 
     fun fps() = Menu("Desempenho e FPS", "Tudo que deixa o jogo mais fluido", F, T.verde, listOf(
@@ -56,7 +56,7 @@ object Menus {
         Item("Quanto cada jogo ocupa", "Tamanho real com dados e cache", J, T.verde, acao = { Limpeza.tamanhoJogos(it) }),
         Item("Apps que mais ocupam", "Limpar dados ou desinstalar", L, T.amarelo, acao = { Limpeza.appsMaiores(it) }),
         Item("Apps esquecidos", "Sem uso há semanas", L, T.amarelo, acao = { Limpeza.esquecidos(it) }),
-        Item("Lixeira do PC Toolkit", fmtTam(Lixeira.tamanho()) + " · restaurar ou esvaziar", D, T.cinza, acao = { Limpeza.lixeiraMenu(it) })
+        Item("Lixeira do SerpyraToolkit", fmtTam(Lixeira.tamanho()) + " · restaurar ou esvaziar", D, T.cinza, acao = { Limpeza.lixeiraMenu(it) })
     ))
 
     fun rede() = Menu("Rede para jogos", "Conexão: " + Rede.tipo(PcApp.ctx), RD, T.ciano, listOf(

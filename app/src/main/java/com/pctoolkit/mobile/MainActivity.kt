@@ -228,7 +228,7 @@ class MainActivity : Activity() {
     }
 
     private fun boasVindas() {
-        executar("Bem-vindo ao PC Toolkit") { con ->
+        executar("Bem-vindo ao SerpyraToolkit") { con ->
             con.linha("Duas escolhas rápidas e o app passa a trabalhar sozinho. Dá para mudar depois em Acesso e permissões.", T.texto2)
             val p = con.escolher("Como liberar as permissões do app?", listOf(
                 "Automático (recomendado): o app libera tudo sozinho pelo Shizuku",
@@ -356,8 +356,8 @@ class MainActivity : Activity() {
         // cabecalho
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
-        tcol.addView(Ui.titulo1(this, "PC Toolkit"))
-        tcol.addView(Ui.texto(this, "Mobile 5.0  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.titulo1(this, "SerpyraToolkit"))
+        tcol.addView(Ui.texto(this, "Versão 5.1  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
@@ -419,7 +419,7 @@ class MainActivity : Activity() {
         col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
 
         // assinatura
-        if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "PC Toolkit Pro", "Teclado e controles, Tuner, Modo Frio e Turbo · ${Vendedor.PRECO_TXT}/mês", "Assinar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
+        if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "SerpyraToolkit Pro", "Teclado e controles, Tuner, Modo Frio e Turbo · ${Vendedor.PRECO_TXT}/mês", "Assinar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
         else if (Licenca.diasRestantes() <= 3) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Seu Pro vence em ${Licenca.diasRestantes()} dia(s)", "Renove para não perder as funções", "Renovar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
 
         // ferramentas

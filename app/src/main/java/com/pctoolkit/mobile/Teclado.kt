@@ -852,7 +852,7 @@ class TecladoService : Service() {
                 1 -> mostrarDialogo(dialogo().setMessage("Apagar todos os botões deste jogo?").setPositiveButton("Apagar") { _, _ -> lista.clear(); depois() }.setNegativeButton("Cancelar", null).create())
                 2 -> mostrarDialogo(dialogo().setTitle("Teclado/controle físico").setMessage(
                     "Com um teclado ou controle Bluetooth/USB, cada tecla colocada num botão de TOQUE vira um toque na mira azul, e o analógico “Arrastar no jogo” anda com W A S D ou setas, igual ao MuMu Player.\n\nStatus: " +
-                        (if (Mapeador.ativo()) "ATIVO ✓ (lido pelo Shizuku, sem acessibilidade)" else "desligado. Ative em PC Toolkit > Teclado e controles.")
+                        (if (Mapeador.ativo()) "ATIVO ✓ (lido pelo Shizuku, sem acessibilidade)" else "desligado. Ative em SerpyraToolkit > Teclado e controles.")
                 ).setPositiveButton("OK", null).create())
                 3 -> mostrarDialogo(dialogo().setTitle("Como funciona").setMessage(
                     "• Tecla: o jogo recebe a tecla como de um teclado de verdade (Roblox, Minecraft, emuladores).\n\n" +
@@ -940,7 +940,7 @@ object TecladoJogo {
         con.item("Bolinha ⌨: menu com Editar, Teclado, Esconder e Fechar (arraste para mudar de lugar)")
         con.item("Editor: + Tecla, + Toque, + Analógico, + Macro. Arraste para posicionar e toque no botão para mudar a letra")
         con.item("Botão de TOQUE funciona em qualquer jogo, mesmo nos que não aceitam teclado")
-        con.item("Com o jogo já aberto: use o atalho “Teclado PC Toolkit” nas Configurações rápidas (puxe a barra de notificações e edite os blocos)")
+        con.item("Com o jogo já aberto: use o atalho “Teclado SerpyraToolkit” nas Configurações rápidas (puxe a barra de notificações e edite os blocos)")
         con.info("Os botões ficam salvos por jogo e trocam sozinhos quando você muda de jogo.")
     }
 }

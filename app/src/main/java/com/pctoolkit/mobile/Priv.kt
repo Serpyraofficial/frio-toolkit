@@ -123,7 +123,7 @@ object Priv {
         con.subtitulo("Modo automático (Shizuku)")
         if (pronto()) { val n = autoConfigurar(true); con.ok("Shizuku ativo · $n permissões liberadas automaticamente"); return true }
         if (!instalado(ctx)) {
-            con.linha("O Shizuku é um app gratuito que dá ao PC Toolkit o poder de configurar o celular sozinho, sem root e sem PC.", T.texto2)
+            con.linha("O Shizuku é um app gratuito que dá ao SerpyraToolkit o poder de configurar o celular sozinho, sem root e sem PC.", T.texto2)
             if (!con.ask("Instalar o Shizuku pela Play Store?", "Instalar", "Agora não", importante = true)) return false
             con.abrirEEsperar(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$PKG")))
             if (!instalado(ctx)) { con.aviso("Shizuku ainda não instalado."); return false }
@@ -141,7 +141,7 @@ object Priv {
             while (!rodando() && t < 10) { con.sleep(500); t++ }
             if (!rodando()) { con.aviso("O Shizuku ainda não está ligado. Quando ligar, volte aqui (Acesso e permissões)."); return false }
         }
-        con.info("O Shizuku vai perguntar se permite o PC Toolkit: toque em “Permitir sempre”.")
+        con.info("O Shizuku vai perguntar se permite o SerpyraToolkit: toque em “Permitir sempre”.")
         if (!pedir()) { con.aviso("Permissão do Shizuku negada."); return false }
         val n = autoConfigurar(true)
         con.ok("Modo automático ativo · $n permissões liberadas sem você mexer em nada")

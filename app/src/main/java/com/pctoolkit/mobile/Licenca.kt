@@ -30,11 +30,11 @@ import java.util.TimeZone
 /** Dados de quem vende (preencher quando o vendedor enviar). Vazio = secao escondida. */
 object Vendedor {
     const val CHAVE_PIX = "8a81c986-40bd-41b0-99fd-dc6fded1e765"   // chave Pix aleatoria do vendedor
-    const val NOME = "PC Toolkit"     // nome no QR (o banco do cliente mostra o titular real da chave)
+    const val NOME = "SerpyraToolkit"     // nome no QR (o banco do cliente mostra o titular real da chave)
     const val CIDADE = "Brasil"
     const val WHATSAPP = ""           // numero com DDI e DDD, so digitos (ex.: 5511999998888)
     /** Endereco do servidor de vendas (Cloudflare Worker). Vazio = so o Pix manual. */
-    const val SERVIDOR = ""
+    const val SERVIDOR = "https://serpyratoolkit.officialcarloswendrik.workers.dev"
     const val PRECO = "10.00"
     const val PRECO_TXT = "R$ 10"
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
@@ -249,7 +249,7 @@ object Pro {
     /** Dentro de uma tarefa: true se pode usar; senao explica e oferece assinar. */
     fun exigir(con: Console, recurso: String): Boolean {
         if (ativo()) return true
-        con.aviso("$recurso é uma função do PC Toolkit Pro.")
+        con.aviso("$recurso é uma função do SerpyraToolkit Pro.")
         con.info("Pro: ${Vendedor.PRECO_TXT} por mês. Libera: " + recursos.joinToString("; "))
         val d = Licenca.diaValidade()
         if (d > 0) con.info("Sua assinatura venceu em ${Licenca.validadeTexto()}.")
@@ -269,7 +269,7 @@ fun MainActivity.telaPro() {
     Thread { Licenca.sincronizarHora() }.start()
     val col = coluna()
     val ativo = Licenca.ativo()
-    col.addView(barraTopo("PC Toolkit Pro", if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "${Vendedor.PRECO_TXT} por mês"))
+    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "${Vendedor.PRECO_TXT} por mês"))
 
     // status
     val st = Ui.vertical(this)
@@ -327,7 +327,7 @@ fun MainActivity.telaPro() {
     }
     if (Vendedor.WHATSAPP.isNotBlank()) {
         c2.addView(Ui.botao(this, "Enviar comprovante pelo WhatsApp", T.verde, false) {
-            val msg = "Olá! Paguei o PC Toolkit Pro (${Vendedor.PRECO_TXT}). Meu código do pedido: ${Licenca.codigoPedido()}"
+            val msg = "Olá! Paguei o SerpyraToolkit Pro (${Vendedor.PRECO_TXT}). Meu código do pedido: ${Licenca.codigoPedido()}"
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/${Vendedor.WHATSAPP}?text=" + Uri.encode(msg)))) } catch (e: Exception) { }
         }, Ui.linhaLp(this, 10, 0))
     }

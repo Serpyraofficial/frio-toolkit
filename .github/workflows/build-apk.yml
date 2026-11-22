@@ -28,15 +28,15 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PC-Toolkit-Mobile-APK
+          name: SerpyraToolkit-APK
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Guardar o APK na branch (pasta apk/)
         run: |
           mkdir -p apk
-          cp app/build/outputs/apk/debug/app-debug.apk apk/PC-Toolkit-Mobile-5.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk apk/SerpyraToolkit-5.1.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/PC-Toolkit-Mobile-5.0.apk
+          git add apk/SerpyraToolkit-5.1.apk
           git commit -m "APK gerado [skip ci]" || echo "sem mudancas"
           git push

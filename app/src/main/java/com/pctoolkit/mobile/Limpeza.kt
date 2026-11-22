@@ -16,7 +16,7 @@ import java.security.MessageDigest
 object Limpeza {
     @Suppress("DEPRECATION")
     val raiz: File get() = Environment.getExternalStorageDirectory()
-    private val lixeira: File get() = File(raiz, ".PCToolkit-Lixeira")
+    private val lixeira: File get() = File(raiz, ".SerpyraToolkit-Lixeira")
     private val extImg = setOf("jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp", "dng", "raw")
     private val extVid = setOf("mp4", "mkv", "mov", "3gp", "avi", "webm", "m4v", "ts")
     private val extAud = setOf("mp3", "m4a", "aac", "ogg", "opus", "wav", "flac", "amr", "wma")
@@ -142,8 +142,8 @@ object Limpeza {
             } else total += apks.tam
         }
         if (Lixeira.tamanho() > 0) {
-            con.item("Lixeira do PC Toolkit: ${fmtTam(Lixeira.tamanho())}")
-            if (!simular && con.ask("Esvaziar a Lixeira do PC Toolkit (${fmtTam(Lixeira.tamanho())})?", importante = true)) { total += Lixeira.tamanho(); Lixeira.esvaziar() }
+            con.item("Lixeira do SerpyraToolkit: ${fmtTam(Lixeira.tamanho())}")
+            if (!simular && con.ask("Esvaziar a Lixeira do SerpyraToolkit (${fmtTam(Lixeira.tamanho())})?", importante = true)) { total += Lixeira.tamanho(); Lixeira.esvaziar() }
         }
 
         // cache de todos os apps
@@ -182,7 +182,7 @@ object Limpeza {
         if (arqs.isEmpty()) { con.ok("Nada encontrado."); return }
         val fmt = java.text.SimpleDateFormat("dd/MM/yy", java.util.Locale.US)
         for (a in arqs) con.item(fmtTam(a.length()) + "  ·  " + a.absolutePath.removePrefix(raiz.absolutePath + "/") + "  ·  " + fmt.format(java.util.Date(a.lastModified())))
-        val sel = con.varios("Mover para a Lixeira do PC Toolkit (dá para restaurar)", arqs.map { it.name + "  ·  " + fmtTam(it.length()) })
+        val sel = con.varios("Mover para a Lixeira do SerpyraToolkit (dá para restaurar)", arqs.map { it.name + "  ·  " + fmtTam(it.length()) })
         if (sel.isEmpty()) { con.linha("Nada movido."); return }
         var n = 0; var t = 0L
         for (i in sel) { val f = arqs[i]; val tam = f.length(); if (Lixeira.mover(f)) { n++; t += tam } else con.aviso("Não consegui mover: ${f.name}") }
@@ -297,7 +297,7 @@ object Limpeza {
     }
 
     fun lixeiraMenu(con: Console) {
-        con.titulo("Lixeira do PC Toolkit")
+        con.titulo("Lixeira do SerpyraToolkit")
         val itens = Lixeira.itens()
         if (itens.isEmpty()) { con.linha("A Lixeira está vazia."); return }
         for (o in itens) con.item(o.optString("nome") + "  ·  " + fmtTam(o.optLong("tam")) + "  ·  " + o.optString("data"))
@@ -316,7 +316,7 @@ object Limpeza {
 /** Lixeira propria: arquivos movidos podem ser restaurados ao lugar original. */
 object Lixeira {
     private const val IDX = "lixeira.json"
-    private val dir: File get() = File(Limpeza.raiz, ".PCToolkit-Lixeira")
+    private val dir: File get() = File(Limpeza.raiz, ".SerpyraToolkit-Lixeira")
 
     fun mover(f: File): Boolean {
         dir.mkdirs()

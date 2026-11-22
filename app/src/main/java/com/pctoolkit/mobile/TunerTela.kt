@@ -79,7 +79,7 @@ fun MainActivity.telaTuner() {
     col.addView(st, Ui.linhaLp(this, 0, 6))
 
     if (!Pro.ativo()) {
-        col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Função do PC Toolkit Pro", "Monte os perfis à vontade; aplicar no jogo é liberado no Pro (${Vendedor.PRECO_TXT}/mês)", "Assinar", T.amarelo) { abrirTela { telaPro() } })
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Função do SerpyraToolkit Pro", "Monte os perfis à vontade; aplicar no jogo é liberado no Pro (${Vendedor.PRECO_TXT}/mês)", "Assinar", T.amarelo) { abrirTela { telaPro() } })
     }
     col.addView(Ui.secao(this, "Seus jogos"))
     val jogos = Jogos.instalados(this)

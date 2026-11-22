@@ -1,5 +1,5 @@
 /**
- * PC Toolkit Pro — servidor de vendas (Cloudflare Worker)
+ * SerpyraToolkit Pro — servidor de vendas (Cloudflare Worker)
  *
  * O que faz:
  *  1. POST /pedido   -> cria a cobrança Pix de R$ 10 na PurinCash para um celular + e-mail
@@ -14,7 +14,7 @@
  *  LICENCA_PRIV          (secreto)  conteúdo do arquivo chave-vendedor-PC-Toolkit.txt
  *  BREVO_KEY             (secreto)  chave da API do Brevo (xkeysib-...)
  *  REMETENTE_EMAIL       (texto)    e-mail verificado no Brevo que envia as mensagens
- *  REMETENTE_NOME        (texto)    ex.: PC Toolkit
+ *  REMETENTE_NOME        (texto)    ex.: SerpyraToolkit
  *  PRECO_CENTAVOS        (texto)    1000 = R$ 10,00
  * Binding KV com o nome PCT (Settings > Bindings > KV namespace).
  */
@@ -70,17 +70,17 @@ async function purin(env, metodo, caminho, corpo) {
 
 async function enviarEmail(env, p) {
   if (!env.BREVO_KEY || !env.REMETENTE_EMAIL) return "sem configuração de e-mail";
-  const nome = env.REMETENTE_NOME || "PC Toolkit";
+  const nome = env.REMETENTE_NOME || "SerpyraToolkit";
   const html = `<!DOCTYPE html><html><body style="margin:0;background:#0A0E14;font-family:Arial,Helvetica,sans-serif;color:#E8EEF5">
 <div style="max-width:560px;margin:0 auto;padding:28px 20px">
-  <div style="font-size:22px;font-weight:bold;margin-bottom:4px">PC Toolkit Pro ativado ✅</div>
+  <div style="font-size:22px;font-weight:bold;margin-bottom:4px">SerpyraToolkit Pro ativado ✅</div>
   <div style="color:#9AA8BA;margin-bottom:22px">Obrigado pela compra! Seu pagamento foi confirmado.</div>
   <div style="background:#121821;border:1px solid #263142;border-radius:14px;padding:18px;margin-bottom:16px">
     <div style="color:#9AA8BA;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Pedido</div>
     <table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">
       <tr><td style="color:#9AA8BA">Número</td><td align="right"><b>${esc(p.numero)}</b></td></tr>
       <tr><td style="color:#9AA8BA">Data</td><td align="right">${esc(p.dataPago)}</td></tr>
-      <tr><td style="color:#9AA8BA">Produto</td><td align="right">PC Toolkit Pro · 1 mês</td></tr>
+      <tr><td style="color:#9AA8BA">Produto</td><td align="right">SerpyraToolkit Pro · 1 mês</td></tr>
       <tr><td style="color:#9AA8BA">Valor</td><td align="right">${esc(p.valor)} (Pix)</td></tr>
       <tr><td style="color:#9AA8BA">Celular</td><td align="right">${esc(p.codigo.slice(0, 4) + "-" + p.codigo.slice(4))}</td></tr>
       <tr><td style="color:#9AA8BA">Válido até</td><td align="right"><b style="color:#3DDC97">${esc(p.validade)}</b></td></tr>
@@ -89,18 +89,18 @@ async function enviarEmail(env, p) {
   <div style="background:#121821;border:1px solid #263142;border-radius:14px;padding:18px;margin-bottom:16px">
     <div style="color:#9AA8BA;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Sua chave de ativação</div>
     <div style="font-family:Consolas,Menlo,monospace;font-size:13px;word-break:break-all;background:#0A0E14;border:1px solid #263142;border-radius:10px;padding:12px;color:#3DDC97">${esc(p.chave)}</div>
-    <div style="color:#9AA8BA;font-size:13px;margin-top:12px">Se o app estava aberto, o Pro já foi ativado sozinho. Se não, abra <b>PC Toolkit &gt; PC Toolkit Pro</b>, toque em <b>Colar</b> e depois em <b>Ativar</b>. A chave funciona só no celular deste pedido.</div>
+    <div style="color:#9AA8BA;font-size:13px;margin-top:12px">Se o app estava aberto, o Pro já foi ativado sozinho. Se não, abra <b>SerpyraToolkit &gt; SerpyraToolkit Pro</b>, toque em <b>Colar</b> e depois em <b>Ativar</b>. A chave funciona só no celular deste pedido.</div>
   </div>
   <div style="color:#66758A;font-size:12px">Para renovar, gere um novo Pix pelo app antes de vencer: os dias se somam. Guarde este e-mail como comprovante.</div>
 </div></body></html>`;
-  const texto = `PC Toolkit Pro ativado!\n\nPedido: ${p.numero}\nData: ${p.dataPago}\nProduto: PC Toolkit Pro - 1 mês\nValor: ${p.valor} (Pix)\nVálido até: ${p.validade}\n\nSua chave de ativação:\n${p.chave}\n\nNo app: PC Toolkit Pro > Colar > Ativar.`;
+  const texto = `SerpyraToolkit Pro ativado!\n\nPedido: ${p.numero}\nData: ${p.dataPago}\nProduto: SerpyraToolkit Pro - 1 mês\nValor: ${p.valor} (Pix)\nVálido até: ${p.validade}\n\nSua chave de ativação:\n${p.chave}\n\nNo app: SerpyraToolkit Pro > Colar > Ativar.`;
   const r = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": env.BREVO_KEY, "content-type": "application/json", "accept": "application/json" },
     body: JSON.stringify({
       sender: { name: nome, email: env.REMETENTE_EMAIL },
       to: [{ email: p.email }],
-      subject: `Pedido ${p.numero} confirmado: sua chave do PC Toolkit Pro`,
+      subject: `Pedido ${p.numero} confirmado: sua chave do SerpyraToolkit Pro`,
       htmlContent: html,
       textContent: texto
     })
@@ -151,7 +151,7 @@ async function criarPedido(req, env, base) {
   try {
     r = await purin(env, "POST", "/payments", {
       valueCents: valor,
-      description: "PC Toolkit Pro - 1 mês (" + numero + ")",
+      description: "SerpyraToolkit Pro - 1 mês (" + numero + ")",
       callbackUrl: base + "/webhook",
       customer: { email, externalId: codigo },
       metadata: JSON.stringify({ numero, codigo, atual, email })
@@ -217,7 +217,7 @@ export default {
       if (req.method === "POST" && url.pathname === "/simular") return await simular(url, env);
       if (url.pathname === "/") {
         const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL"].filter(k => !env[k]);
-        return json({ servico: "PC Toolkit Pro", ok: faltando.length === 0 && !!env.PCT, faltando: env.PCT ? faltando : faltando.concat(["KV PCT"]), modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", preco: reais(preco(env)) });
+        return json({ servico: "SerpyraToolkit Pro", ok: faltando.length === 0 && !!env.PCT, faltando: env.PCT ? faltando : faltando.concat(["KV PCT"]), modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", preco: reais(preco(env)) });
       }
       return json({ erro: "Não encontrado" }, 404);
     } catch (e) {

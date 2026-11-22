@@ -85,7 +85,7 @@ object Seguranca {
         val shizuku = Priv.rodando()
         if (shizuku && (g("adb_wifi_enabled") == "1" || g("adb_enabled") == "1")) r.add(Achado(0, "Depuração ligada (usada pelo Shizuku)", "Necessária para o modo automático. Não deixe ninguém parear computadores com o seu celular."))
         else if (g("adb_wifi_enabled") == "1") r.add(Achado(3, "Depuração sem fio (ADB por Wi-Fi) LIGADA", "Um computador pareado na mesma rede controla o celular. Desligue se não estiver usando.", "dev"))
-        if (!shizuku && g("adb_enabled") == "1") r.add(Achado(1, "Depuração USB ligada", "Um computador conectado pode instalar apps. Desligue quando não estiver usando" + if (Acesso.adb()) " (o Modo avançado do PC Toolkit continua funcionando)." else ".", "dev"))
+        if (!shizuku && g("adb_enabled") == "1") r.add(Achado(1, "Depuração USB ligada", "Um computador conectado pode instalar apps. Desligue quando não estiver usando" + if (Acesso.adb()) " (o Modo avançado do SerpyraToolkit continua funcionando)." else ".", "dev"))
         val proxy = g("http_proxy")
         if (proxy.isNotEmpty() && proxy != ":0") r.add(Achado(2, "Proxy global configurado: $proxy", "Todo o tráfego passa por esse servidor. Se não foi você, remova.", "set", "global:http_proxy::0"))
         val km = ctx.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
