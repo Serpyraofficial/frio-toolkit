@@ -476,7 +476,7 @@ object Ajuda {
 // Ajuda e contato
 // ============================================================
 object Suporte {
-    const val EMAIL = "officialcarloswendrik@gmail.com"
+    const val EMAIL = "serpyrasuporte@gmail.com"
     private val FAQ = listOf(
         "Os botões não apertam nada no jogo" to "Ative o modo automático (Shizuku) em Acesso e permissões e confira se o Shizuku está rodando. Depois de reiniciar o celular, o Shizuku precisa ser ligado de novo.",
         "O Modo Jogo encerrou sozinho" to "Permita “Acesso ao uso” e deixe o app sem restrição de bateria (Configurações > Apps > SerpyraToolkit > Bateria > Sem restrição).",

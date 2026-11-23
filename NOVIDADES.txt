@@ -1,2 +1,1 @@
-- Corrigido: comandos mais demorados pelo Shizuku davam “process hasn't exited” (limpar o cache e outros ajustes)
-- Corrigido: a atualização sozinha pelo Shizuku falhava pelo mesmo motivo
+- Novo e-mail de suporte: serpyrasuporte@gmail.com
