@@ -1,8 +1,8 @@
 {
- "versionCode": 54,
- "versionName": "5.4",
- "notas": "- Novos preços do Pro: R$ 15 por mês, R$ 39 por 3 meses e R$ 69 por 6 meses\n- Continua: teste grátis de 3 dias, cupons de desconto e troca de celular pelo e-mail",
- "sha256": "9379ec4e05bf8c15959e345f1c33d55523f8dbc76baafd69fdd095e63f090a89",
- "tamanho": 1135957,
- "arquivo": "SerpyraToolkit-5.4-9379ec4e05.apk"
+ "versionCode": 55,
+ "versionName": "5.5",
+ "notas": "- Teclado e controles refeito, bem mais fácil:\n- Toque em “+ Botão” e depois no lugar do jogo que ele deve apertar. Pronto!\n- Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD\n- Linha mostrando qual ponto do jogo cada botão aperta\n- Ajustes rápidos ao tocar no botão: Turbo, Liga/desliga, tamanho e tecla do controle físico\n- Pergunta antes de sair sem salvar",
+ "sha256": "84fdc0851071daa7b7e940e8cb8ae48f8ee77ded25225753d892efe9114f4296",
+ "tamanho": 1141461,
+ "arquivo": "SerpyraToolkit-5.5-84fdc08510.apk"
 }
