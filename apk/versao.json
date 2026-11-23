@@ -1,8 +1,8 @@
 {
- "versionCode": 55,
- "versionName": "5.5",
- "notas": "- Teclado e controles refeito, bem mais fácil:\n- Toque em “+ Botão” e depois no lugar do jogo que ele deve apertar. Pronto!\n- Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD\n- Linha mostrando qual ponto do jogo cada botão aperta\n- Ajustes rápidos ao tocar no botão: Turbo, Liga/desliga, tamanho e tecla do controle físico\n- Pergunta antes de sair sem salvar",
- "sha256": "84fdc0851071daa7b7e940e8cb8ae48f8ee77ded25225753d892efe9114f4296",
- "tamanho": 1141461,
- "arquivo": "SerpyraToolkit-5.5-84fdc08510.apk"
+ "versionCode": 56,
+ "versionName": "5.6",
+ "notas": "- Atualização automática: o app confere ao abrir e mostra um aviso fixo na tela inicial quando sai versão nova\n- Depois de atualizar, o app mostra o que mudou\n- Novo \"Meus jogos\" na tela inicial: toque no jogo e escolha Modo Jogo, botões, Tuner ou mira\n- Novo Teste da tela de toque: quantos dedos a tela aceita e a velocidade do toque (Hz)\n- Modo Jogo: lembrete opcional de pausa a cada 1 hora de jogo",
+ "sha256": "dbdbdf71dbb4202584182c6a29dd7a11fb787c7e665c2fb909b1ef823486d3c4",
+ "tamanho": 1149285,
+ "arquivo": "SerpyraToolkit-5.6-dbdbdf71db.apk"
 }
