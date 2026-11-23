@@ -1,8 +1,8 @@
 {
- "versionCode": 61,
- "versionName": "5.9.1",
- "notas": "- Aviso de atualização mais rápido: o app confere sempre que é aberto\n- Notificação \"Atualização disponível\" mesmo com o app fechado (confere a cada 2 horas)\n- Tudo da 5.9: botões na tela corrigidos e ajustes conferidos de verdade",
- "sha256": "6f8e970cbb1a14f3c23aa16d93265d2a2fd08cb38bff8d31d141951a46d73c15",
- "tamanho": 1186257,
- "arquivo": "SerpyraToolkit-5.9.1-6f8e970cbb.apk"
+ "versionCode": 62,
+ "versionName": "5.10",
+ "notas": "- Novo campo \"Tem um código?\" na tela do Pro: aceita chave, código de presente/cortesia e cupom, e descobre sozinho qual é\n- Se você copiou um código (do WhatsApp ou do e-mail), o app oferece usar assim que abre a tela do Pro\n- Cupom corrigido: não some mais ao trocar de plano e é conferido mesmo sem tocar em Aplicar\n- Indique e ganhe corrigido: o seu código passa a valer assim que o seu Pro estiver ativo\n- Atualização: aviso a cada abertura e notificação com o app fechado",
+ "sha256": "d9683870caaa44a24437ccbd84bd48b4b16bb9f2ce846e6d108ca50f7b653a07",
+ "tamanho": 1190617,
+ "arquivo": "SerpyraToolkit-5.10-d9683870ca.apk"
 }
