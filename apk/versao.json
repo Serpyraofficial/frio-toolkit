@@ -1,8 +1,8 @@
 {
- "versionCode": 69,
- "versionName": "5.14",
- "notas": "- Atualização sozinha mais rápida: instala segundos depois que você sai do app\n- Xiaomi/Redmi/Poco: o tutorial do Shizuku agora mostra o “Instalar via USB”, necessário para atualizar sozinho\n- Em Menu > Atualizar sozinho aparece o resultado da última tentativa",
- "sha256": "5e7cb7982b061ff5c360049eb31905ee9862ba4ee41444b1b6ff8be7b1752e2a",
- "tamanho": 1341229,
- "arquivo": "SerpyraToolkit-5.14-5e7cb7982b.apk"
+ "versionCode": 70,
+ "versionName": "5.14.1",
+ "notas": "- Foto do tutorial do Shizuku atualizada, com os 5 itens que precisam ficar ligados",
+ "sha256": "233899b10216ddac2eb2c04dda70252e9c2729d4bad4f7d8a29fdbb9e439c123",
+ "tamanho": 1329737,
+ "arquivo": "SerpyraToolkit-5.14.1-233899b102.apk"
 }
