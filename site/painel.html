@@ -238,14 +238,6 @@ tr:last-child td{border-bottom:0}
 
 <section class="aba on" id="aba-resumo">
  <div class="card">
-  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-email"/></svg></span><h2>Aviso de venda no seu e-mail</h2></div>
-  <div class="email-ok">
-   <div class="txt">A cada Pix pago chega um e-mail em <b>serpyrasuporte@gmail.com</b> com o valor, o plano, o cliente e o cupom. Se não aparecer, olhe Promoções ou Spam e marque como “não é spam”.</div>
-   <button class="b l" id="btTesteEmail"><svg class="i"><use href="#ic-email"/></svg>Mandar um e-mail de teste</button>
-  </div>
-  <div class="msg" id="msgTesteEmail"></div>
- </div>
- <div class="card">
   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-funil"/></svg></span><h2>Funil de vendas</h2></div>
   <div class="card-d">Últimos 30 dias: quantas pessoas abriram a tela do Pro, quantas geraram Pix e quantas pagaram.</div>
   <div class="funil" id="funil"><div class="vazio">Carregando…</div></div>
@@ -518,7 +510,6 @@ tr:last-child td{border-bottom:0}
   $('btPromo').onclick=function(){var b=this;if(!$('prTxt').value.trim()){msg($('msgPromo'),'Escreva o texto da promoção.','erro');return}b.disabled=true;api('POST','/admin/promo',{texto:$('prTxt').value,cupom:$('prCupom').value,horas:$('prHoras').value,cor:$('prCor').value}).then(function(){msg($('msgPromo'),'Promoção no ar. Aparece no app de todo mundo em até 5 minutos.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btPromoTirar').onclick=function(){api('POST','/admin/promo',{texto:''}).then(function(){$('prTxt').value='';previa();msg($('msgPromo'),'Promoção tirada do app.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')})};
   function promoAtual(){api('GET','/admin/promo').then(function(p){if(p&&p.texto){$('prTxt').value=p.texto;$('prCupom').value=p.cupom||'';$('prCor').value=p.cor||'verde';previa();msg($('msgPromo'),'No ar'+(p.ate?' até '+dataHora(p.ate):' até você tirar')+'.','ok')}}).catch(function(){})}
-  $('btTesteEmail').onclick=function(){var b=this;b.disabled=true;msg($('msgTesteEmail'),'Enviando…');api('POST','/admin/testar-aviso').then(function(r){msg($('msgTesteEmail'),'Enviado para '+r.para+'. Confira a caixa de entrada (e Promoções/Spam).','ok')}).catch(function(e){msg($('msgTesteEmail'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btAtualizar').onclick=function(){var b=this;b.classList.add('girando');carregar().catch(function(){}).finally(function(){setTimeout(function(){b.classList.remove('girando')},300)})};
   $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btTirar').onclick=function(){$('aTxt').value='';$('btAviso').click()};
