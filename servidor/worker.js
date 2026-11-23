@@ -37,6 +37,7 @@ function reais(c) { return "R$ " + (c / 100).toFixed(2).replace(".", ","); }
 function validadeTxt(dia) { return dia >= 99999 ? "Vitalício (não vence)" : dataBr(dia); }
 function hoje() { return Math.floor(Date.now() / DIA); }
 function dataBr(dia) { const d = new Date(dia * DIA); return String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear(); }
+function horaBr(ms) { const a = new Date(ms - 3 * 3600000); return String(a.getUTCHours()).padStart(2, "0") + ":" + String(a.getUTCMinutes()).padStart(2, "0") + " de " + String(a.getUTCDate()).padStart(2, "0") + "/" + String(a.getUTCMonth() + 1).padStart(2, "0"); }
 function agoraBr() { const a = new Date(Date.now() - 3 * 3600000); return String(a.getUTCDate()).padStart(2, "0") + "/" + String(a.getUTCMonth() + 1).padStart(2, "0") + "/" + a.getUTCFullYear() + " " + String(a.getUTCHours()).padStart(2, "0") + ":" + String(a.getUTCMinutes()).padStart(2, "0"); }
 function emailValido(e) { return typeof e === "string" && e.length <= 120 && /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]{2,}$/.test(e); }
 function codigoValido(c) { return typeof c === "string" && c.length === 8 && [...c].every(x => B32.includes(x)); }
@@ -198,7 +199,7 @@ async function criarPedido(req, env, base) {
 
 async function validadeAtual(env, codigo) {
   const c = await lerJson(env, "chave:" + codigo);
-  if (c && c.dia) return c.dia;
+  if (c && c.dia) return c.ate && Date.now() > c.ate ? 0 : c.dia;
   return parseInt((await env.PCT.get("lic:" + codigo)) || "0", 10) || 0;
 }
 
@@ -247,7 +248,7 @@ async function premiarIndicacao(env, ref, comprador, plano) {
   if (ganho <= 0) { await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, indicacoes: (c.indicacoes || 0) + 1, indMes: mes, indDias: usados })); return; }
   const dia = Math.max(hoje(), c.dia) + ganho;
   const chave = await assinarChave(env, ref, dia);
-  await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, chave, dia, indicacoes: (c.indicacoes || 0) + 1, indMes: mes, indDias: usados + ganho }));
+  await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, ate: undefined, chave, dia, indicacoes: (c.indicacoes || 0) + 1, indMes: mes, indDias: usados + ganho }));
   if (c.email) {
     const html = moldura("Você ganhou " + ganho + " dias de Pro 🎉", "Um amigo comprou o SerpyraToolkit Pro com o seu código de indicação.",
       `<div style="${CAIXA}"><div style="${ROT}">Seu Pro agora vale até</div><div style="font-size:22px;font-weight:bold;color:#3DDC97">${dataBr(dia)}</div><div style="color:#9AA8BA;font-size:13px;margin-top:12px">Os dias entram sozinhos ao abrir o app (tela do Pro &gt; Já comprei, se precisar). Se quiser colar à mão:</div><div style="${CHV};margin-top:10px">${esc(chave)}</div></div>`);
@@ -286,15 +287,16 @@ async function resgatarPresente(req, env) {
   if (!g) return json({ erro: "Código de presente não encontrado. Confira as letras." }, 404);
   if (g.usado && g.usado !== codigo) return json({ erro: "Esse presente já foi usado em outro celular." }, 409);
   if (!g.usado && !g.vitalicio) { const atual = await validadeAtual(env, codigo); if (atual >= hoje()) return json({ erro: "Você já tem o Pro ativo até " + validadeTxt(atual) + ". Use este código quando ele acabar: ele continua guardado para você." }, 409); }
-  const dia = g.vitalicio ? DIA_VITALICIO : (g.usado ? g.dia : Math.max(hoje(), await validadeAtual(env, codigo)) + (g.dias || 30));
+  const ate = g.usado ? (g.ate || 0) : (g.horas && !g.vitalicio ? Date.now() + g.horas * 3600000 : 0);
+  const dia = g.vitalicio ? DIA_VITALICIO : (g.usado ? g.dia : ate ? Math.floor(ate / DIA) : Math.max(hoje(), await validadeAtual(env, codigo)) + (g.dias || 30));
   const chave = await assinarChave(env, codigo, dia);
   if (!g.usado) {
-    g.usado = codigo; g.dia = dia; g.em = new Date().toISOString();
+    g.usado = codigo; g.dia = dia; g.em = new Date().toISOString(); if (ate) g.ate = ate;
     await env.PCT.put("presente:" + v, JSON.stringify(g));
-    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, email: emailValido(g.para) ? g.para : "", origem: g.de === "cortesia" ? "cortesia" : "presente" }));
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, ate: ate || undefined, email: emailValido(g.para) ? g.para : "", origem: g.de === "cortesia" ? "cortesia" : "presente" }));
     if (emailValido(g.para)) await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
   }
-  return json({ ok: true, chave, validade: validadeTxt(dia) });
+  return json({ ok: true, chave, validade: ate ? "até " + horaBr(ate) : validadeTxt(dia), ate: ate || undefined });
 }
 
 /* ---------------- erros do app, funil e promocao ---------------- */
@@ -314,6 +316,10 @@ async function registrarErro(req, env) {
     const sig = (tipo + "|" + onde + "|" + msg.replace(/\d+/g, "#")).slice(0, 180);
     const x = m[sig] || { tipo, onde, msg, n: 0, celulares: [], modelos: {}, versoes: {}, primeiro: Date.now(), pilha: String(e.pilha || "").slice(0, 1500) };
     x.n++; x.ultimo = Date.now();
+    const d = diaAtual(); x.dias = x.dias || {}; x.dias[d] = (x.dias[d] || 0) + 1;
+    const ds = Object.keys(x.dias).sort(); if (ds.length > 35) ds.slice(0, ds.length - 35).forEach(k => delete x.dias[k]);
+    const and = String(b.android || "?").slice(0, 6); x.androids = x.androids || {}; x.androids[and] = (x.androids[and] || 0) + 1;
+    if (x.resolvido) { x.reaberto = Date.now(); delete x.resolvido; }
     if (!x.celulares.includes(codigo) && x.celulares.length < 50) x.celulares.push(codigo);
     const mod = String(b.modelo || "?").slice(0, 40), ver = String(b.versao || "?").slice(0, 12);
     x.modelos[mod] = (x.modelos[mod] || 0) + 1; x.versoes[ver] = (x.versoes[ver] || 0) + 1;
@@ -367,7 +373,7 @@ async function registrar(req, env) {
   if (c && c.revogada) return json({ status: "revogada" }, 410);
   if (c && c.dia >= k.dia) return json({ ok: true });
   // a chave vitalicia do dono nao fica guardada em texto no servidor
-  await env.PCT.put("chave:" + k.codigo, JSON.stringify({ ...(c || {}), chave: k.dia >= DIA_VITALICIO ? "" : String(b.chave).trim(), dia: k.dia, email: (c && c.email) || "", origem: (c && c.origem) || "registrada" }));
+  await env.PCT.put("chave:" + k.codigo, JSON.stringify({ ...(c || {}), ate: undefined, chave: k.dia >= DIA_VITALICIO ? "" : String(b.chave).trim(), dia: k.dia, email: (c && c.email) || "", origem: (c && c.origem) || "registrada" }));
   return json({ ok: true });
 }
 
@@ -448,8 +454,8 @@ async function licenca(url, env) {
   const o = await lerJson(env, "chave:" + codigo);
   if (!o) return json({ status: "nenhuma" }, 404);
   if (o.revogada) return json({ status: "revogada" }, 410);
-  if (o.dia < hoje()) return json({ status: "vencida", validade: validadeTxt(o.dia) }, 404);
-  return json({ status: "ativa", chave: o.chave, validade: validadeTxt(o.dia) });
+  if (o.dia < hoje() || (o.ate && Date.now() > o.ate)) return json({ status: "vencida", validade: o.ate ? horaBr(o.ate) : validadeTxt(o.dia) }, 404);
+  return json({ status: "ativa", chave: o.chave, validade: o.ate ? "até " + horaBr(o.ate) : validadeTxt(o.dia), ate: o.ate || undefined });
 }
 
 async function trocaPedir(req, env) {
@@ -560,23 +566,25 @@ async function admin(req, url, env) {
   if (rota === "cortesia" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
     const vital = !!b.vitalicio;
-    const dias = parseInt(b.dias, 10);
-    if (!vital && !(dias >= 1 && dias <= 3650)) return json({ erro: "Escolha de 1 a 3650 dias (ou vitalício)." }, 400);
+    const horas = parseInt(b.horas, 10) || 0;
+    const dias = horas ? 0 : parseInt(b.dias, 10);
+    if (horas && !(horas >= 1 && horas <= 720)) return json({ erro: "Escolha de 1 a 720 horas." }, 400);
+    if (!vital && !horas && !(dias >= 1 && dias <= 3650)) return json({ erro: "Escolha de 1 a 3650 dias (ou vitalício)." }, 400);
     const qtd = Math.min(20, Math.max(1, parseInt(b.qtd, 10) || 1));
     const nota = String(b.nota || "").trim().slice(0, 60);
     const codigos = [];
     for (let i = 0; i < qtd; i++) {
       const v = novoVoucher();
-      await env.PCT.put("presente:" + v, JSON.stringify({ plano: "cortesia", dias: vital ? 0 : dias, vitalicio: vital, de: "cortesia", para: nota, usado: "", criado: new Date().toISOString() }));
+      await env.PCT.put("presente:" + v, JSON.stringify({ plano: "cortesia", dias: vital ? 0 : dias, horas: vital ? 0 : horas, vitalicio: vital, de: "cortesia", para: nota, usado: "", criado: new Date().toISOString() }));
       codigos.push(v);
     }
-    return json({ codigos, duracao: vital ? "vitalício" : dias + " dia(s)" });
+    return json({ codigos, duracao: vital ? "vitalício" : horas ? horas + " hora(s)" : dias + " dia(s)" });
   }
   if (rota === "cortesias" && req.method === "GET") {
     const nomes = await listar(env, "presente:", 1000);
     const l = (await Promise.all(nomes.map(async n => ({ codigo: n.slice(9), ...(await lerJson(env, n)) })))).filter(x => x && x.plano);
     l.sort((a, b) => String(b.criado || b.em || "").localeCompare(String(a.criado || a.em || "")));
-    return json({ cortesias: l.slice(0, 300).map(x => ({ codigo: x.codigo, tipo: x.de === "cortesia" ? "cortesia" : "presente pago", duracao: x.vitalicio ? "vitalício" : (x.dias || 30) + " dias", para: x.para || "", usado: x.usado || "", em: x.em || "", validade: x.dia ? validadeTxt(x.dia) : "", criado: x.criado || "" })) });
+    return json({ cortesias: l.slice(0, 300).map(x => ({ codigo: x.codigo, tipo: x.de === "cortesia" ? "cortesia" : "presente pago", duracao: x.vitalicio ? "vitalício" : x.horas ? x.horas + " hora(s)" : (x.dias || 30) + " dias", para: x.para || "", usado: x.usado || "", em: x.em || "", validade: x.dia ? validadeTxt(x.dia) : "", criado: x.criado || "" })) });
   }
   if (rota === "cortesia" && req.method === "DELETE") {
     const v = limpaCupom(url.searchParams.get("c"));
@@ -615,7 +623,7 @@ async function admin(req, url, env) {
     }
     const chave = await assinarChave(env, codigo, dia);
     delete c.revogada;
-    await env.PCT.put("chave:" + codigo, JSON.stringify({ ...c, chave, dia }));
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ ...c, ate: undefined, chave, dia }));
     return json({ ok: true, chave, validade: validadeTxt(dia), msg: "Pronto. O celular recebe sozinho ao abrir o app (ou cole a chave)." });
   }
   if (rota === "reenviar-chave" && req.method === "POST") {
@@ -631,11 +639,26 @@ async function admin(req, url, env) {
   if (rota === "erros" && req.method === "GET") {
     const mes = /^\d{4}-\d{2}$/.test(url.searchParams.get("mes") || "") ? url.searchParams.get("mes") : mesAtual();
     const m = (await lerJson(env, "erros:" + mes)) || {};
-    const l = Object.values(m).sort((a, b) => b.celulares.length - a.celulares.length || b.n - a.n);
+    const hojeD = diaAtual(), semana = []; for (let k = 0; k < 7; k++) semana.push(new Date(Date.now() - 3 * 3600000 - k * DIA).toISOString().slice(0, 10));
+    const nDias = (x, ds) => ds.reduce((t, d) => t + ((x.dias || {})[d] || 0), 0);
+    const todos = Object.entries(m).map(([sig, x]) => ({ sig, ...x }));
+    const abertos = todos.filter(x => !x.resolvido);
+    const l = todos.sort((a, b) => (!!a.resolvido - !!b.resolvido) || b.celulares.length - a.celulares.length || b.n - a.n);
     const meses = (await listar(env, "erros:", 50)).map(n => n.slice(6)).sort().reverse();
     return json({ mes, meses: meses.length ? meses : [mes], total: l.reduce((t, x) => t + x.n, 0), celulares: new Set(l.flatMap(x => x.celulares)).size, crashes: l.filter(x => x.tipo === "crash").reduce((t, x) => t + x.n, 0),
-      erros: l.slice(0, 100).map(x => ({ tipo: x.tipo, onde: x.onde, msg: x.msg, n: x.n, celulares: x.celulares.length, modelos: x.modelos, versoes: x.versoes, primeiro: x.primeiro, ultimo: x.ultimo, pilha: x.pilha })) });
+      hoje: abertos.reduce((t, x) => t + nDias(x, [hojeD]), 0), semana: abertos.reduce((t, x) => t + nDias(x, semana), 0), abertos: abertos.length, novosHoje: abertos.filter(x => x.primeiro > Date.now() - DIA).length,
+      erros: l.slice(0, 150).map(x => ({ sig: x.sig, tipo: x.tipo, onde: x.onde, msg: x.msg, n: x.n, celulares: x.celulares.length, modelos: x.modelos, versoes: x.versoes, androids: x.androids || {}, dias: x.dias || {}, primeiro: x.primeiro, ultimo: x.ultimo, pilha: x.pilha, resolvido: x.resolvido || 0, reaberto: x.reaberto || 0 })) });
   }
+  if (rota === "erros" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const mes = /^\d{4}-\d{2}$/.test(b.mes || "") ? b.mes : mesAtual();
+    const k = "erros:" + mes, m = (await lerJson(env, k)) || {};
+    if (b.acao === "limpar") { for (const s2 of Object.keys(m)) if (m[s2].resolvido) delete m[s2]; }
+    else { const x = m[String(b.sig || "")]; if (!x) return json({ erro: "Erro não encontrado." }, 404); if (b.acao === "reabrir") delete x.resolvido; else { x.resolvido = Date.now(); delete x.reaberto; } }
+    await env.PCT.put(k, JSON.stringify(m), { expirationTtl: 60 * 60 * 24 * 400 });
+    return json({ ok: true });
+  }
+
   if (rota === "funil" && req.method === "GET") {
     const nomes = await listar(env, "pedido:", 3000);
     const pedidos = (await Promise.all(nomes.map(n => lerJson(env, n)))).filter(Boolean);
@@ -664,7 +687,9 @@ async function admin(req, url, env) {
   if (rota === "novas" && req.method === "GET") {
     const desde = parseInt(url.searchParams.get("desde") || "0", 10) || 0;
     const l = (await lerJson(env, "vendas:recentes")) || [];
-    return json({ agora: Date.now(), vendas: l.filter(v => v.em > desde) });
+    const em = (await lerJson(env, "erros:" + mesAtual())) || {};
+    const errosNovos = desde ? Object.values(em).filter(x => !x.resolvido && (x.primeiro > desde || (x.reaberto || 0) > desde)).slice(0, 5).map(x => ({ onde: x.onde, msg: x.msg, tipo: x.tipo, celulares: x.celulares.length })) : [];
+    return json({ agora: Date.now(), vendas: l.filter(v => v.em > desde), erros: errosNovos });
   }
   if (rota === "testar-aviso" && req.method === "POST") {
     const para = env.AVISO_EMAIL || env.REMETENTE_EMAIL;

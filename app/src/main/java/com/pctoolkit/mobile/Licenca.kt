@@ -100,7 +100,7 @@ object Compra {
         if (code != 200) return Pair(false, o.optString("erro", "Não deu para liberar o teste agora."))
         val ate = o.optLong("ate", 0L)
         val chave = o.optString("chave")
-        if (ate > 0) { Store.putStr("lic_teste_chave", chave.trim()); Store.putStr("lic_teste_ate", ate.toString()) }
+        if (ate > 0) { Store.putStr("lic_teste_chave", chave.trim()); Store.putStr("lic_teste_ate", ate.toString()); Store.putStr("lic_ate_tipo", "teste") }
         val (ok, m) = Licenca.ativar(chave)
         return Pair(ok, if (ok) "Teste liberado! Pro ativo até ${Licenca.validadeTexto()}." else m)
     }
@@ -171,7 +171,8 @@ object Compra {
             val (code, t) = http("GET", "/licenca?codigo=" + Licenca.codigo(), null)
             if (code == 410 && t.contains("revogada")) { Store.putStr("lic_chave", ""); Store.putStr("lic_registrada", ""); return true }
             if (code != 200) return false
-            val ch = org.json.JSONObject(t).optString("chave")
+            val oj = org.json.JSONObject(t); val ch = oj.optString("chave"); val ate = oj.optLong("ate", 0L)
+            if (ate > 0 && ch.isNotEmpty()) { Store.putStr("lic_teste_chave", ch.trim()); Store.putStr("lic_teste_ate", ate.toString()); Store.putStr("lic_ate_tipo", "cortesia") }
             // ja ativo: so troca se a chave do servidor vale ate mais tarde (dias ganhos por indicacao, presente...)
             if (ch.isEmpty() || (Licenca.ativo() && Licenca.conferir(ch) <= Licenca.diaValidade())) return false
             val ok = Licenca.ativar(ch).first
@@ -208,9 +209,11 @@ object Compra {
         val (code, t) = try { http("POST", "/presente", org.json.JSONObject().put("codigo", Licenca.codigo()).put("voucher", voucher).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
         if (code != 200) return Pair(false, o.optString("erro", "Não deu certo."))
-        val (ok, m) = Licenca.ativar(o.optString("chave"))
+        val chave = o.optString("chave"); val ate = o.optLong("ate", 0L)
+        if (ate > 0) { Store.putStr("lic_teste_chave", chave.trim()); Store.putStr("lic_teste_ate", ate.toString()); Store.putStr("lic_ate_tipo", "cortesia") }
+        val (ok, m) = Licenca.ativar(chave)
         if (ok) Store.putBool("lic_comprou", true)
-        return Pair(ok, if (ok) "Presente ativado! Pro válido até ${o.optString("validade")}." else m)
+        return Pair(ok, if (ok) "Código ativado! Pro válido ${if (ate > 0) "" else "até "}${o.optString("validade")}." else m)
     }
 
     /** Pesquisa rapida quando o Pro vence sem renovar. */
@@ -349,7 +352,7 @@ object Licenca {
         val d = diaValidade(); if (d <= 0) return ""
         if (d >= 20000) return "sempre (vitalício)"
         val ft = fimTeste()
-        if (ft > 0) { val h = SimpleDateFormat("HH:mm", Locale.US); return "às " + h.format(Date(ft)) + " (teste grátis)" }
+        if (ft > 0) { val h = SimpleDateFormat("HH:mm", Locale.US); return "às " + h.format(Date(ft)) + (if (Store.str("lic_ate_tipo") == "cortesia") "" else " (teste grátis)") }
         val f = SimpleDateFormat("dd/MM/yyyy", Locale.US); f.timeZone = TimeZone.getTimeZone("UTC")
         return f.format(Date(d * DIA))
     }

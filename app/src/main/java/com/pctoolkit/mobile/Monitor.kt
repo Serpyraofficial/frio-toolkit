@@ -221,6 +221,12 @@ object Dono {
                 val ti = (if (v.optBoolean("presente")) "🎁 Presente vendido: " else "💰 Nova venda: ") + v.optString("valor")
                 notificar(ctx, 7700 + (v.optLong("em") % 1000).toInt(), ti, v.optString("plano") + (if (v.optString("cupom").isNotEmpty()) " · cupom " + v.optString("cupom") else "") + " · pedido " + v.optString("numero"), "https://serpyratoolkit.pages.dev/painel")
             }
+            val er = o.optJSONArray("erros") ?: JSONArray()
+            for (i in 0 until er.length()) {
+                val e = er.getJSONObject(i)
+                notificar(ctx, 7500 + i, (if (e.optString("tipo") == "crash") "⚠️ O app travou: " else "⚠️ Erro novo: ") + e.optString("onde"),
+                    e.optString("msg").take(120) + " · " + e.optInt("celulares") + " celular(es)", "https://serpyratoolkit.pages.dev/painel#erros")
+            }
             l.length()
         } catch (e: Exception) { 0 }
     }

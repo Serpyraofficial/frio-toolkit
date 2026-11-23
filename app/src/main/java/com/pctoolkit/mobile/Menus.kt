@@ -112,7 +112,7 @@ object Menus {
         Item("Restaurar backup das configurações", "Traz tudo de volta neste ou em outro celular", B, T.verde, acao = { Backup.importar(it) }),
         Item("Cuidados automáticos", listOfNotNull(if (Automatico.limpezaLigada()) "limpeza semanal" else null, if (Automatico.calorLigado()) "alerta de calor" else null, if (Automatico.pesadoLigado()) "app pesado" else null).joinToString(", ").ifEmpty { "Limpeza semanal e alertas de calor e app pesado" }, M, T.verde, "Novo", T.verde, acao = { Automatico.executar(it) }),
         Item("Tamanho da letra", "Deixe o texto do app maior", M, T.cinza, acao = { Letra.executar(it) }),
-        Item("Avisos de venda no meu celular", if (Dono.ligado()) "Ligado: notificação a cada Pix pago" else "Só para o dono do app", M, T.verde, acao = { Dono.executar(it) }),
+        Item("Avisos de venda no meu celular", if (Dono.ligado()) "Ligado: vendas e erros novos do app" else "Só para o dono do app", M, T.verde, acao = { Dono.executar(it) }),
         Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Atualizar sozinho", "Liga ou desliga a atualização automática do app", M, T.verde, acao = { Atualizador.configurar(it) }),

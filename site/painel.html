@@ -130,6 +130,18 @@ tr:last-child td{border-bottom:0}
 .er small{color:var(--t3);font-size:12.5px;display:block;margin-top:6px}
 .er details{margin-top:6px;font-size:12.5px;color:var(--t2)}
 .er pre{white-space:pre-wrap;font-size:12px;margin-top:6px}
+.bdg{position:absolute;top:2px;right:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--verm);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+.aba-b{position:relative}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--t2);margin-top:12px;flex-direction:row}
+.chk input{width:18px;height:18px}
+.spark{display:flex;align-items:flex-end;gap:2px;height:26px;margin-top:8px}
+.spark i{flex:1;max-width:10px;background:#F3A9AC;border-radius:2px 2px 0 0;min-height:2px}
+.spark i.z{background:#EEF0F3}
+.er.res{opacity:.55}
+.er .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.er .acoes .b{padding:5px 12px;font-size:13px}
+.top-er{border-top:1px solid var(--linha);padding:10px 0;font-size:14px}
+.top-er:first-child{border-top:0}
 /* entrar */
 .entrar{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 70% at 50% 0,#17463A 0,var(--noite) 62%)}
 .entrar .cx{width:100%;max-width:400px;background:var(--noite2);border:1px solid #223047;border-radius:24px;padding:30px;color:#E8EEF5}
@@ -223,7 +235,7 @@ tr:last-child td{border-bottom:0}
  <button class="aba-b" data-ir="clientes"><svg class="i"><use href="#ic-pessoa"/></svg><span class="rot">Clientes</span></button>
  <button class="aba-b" data-ir="cupons"><svg class="i"><use href="#ic-cupom"/></svg><span class="rot">Cupons</span></button>
  <button class="aba-b" data-ir="avisos"><svg class="i"><use href="#ic-aviso"/></svg><span class="rot">Promoção</span></button>
- <button class="aba-b" data-ir="erros"><svg class="i"><use href="#ic-erro"/></svg><span class="rot">Erros</span></button>
+ <button class="aba-b" data-ir="erros"><svg class="i"><use href="#ic-erro"/></svg><span class="rot">Erros</span><span class="bdg" id="erBadge" hidden></span></button>
 </div></nav>
 <div class="hero"><div class="w">
  <div class="hero-g">
@@ -237,6 +249,12 @@ tr:last-child td{border-bottom:0}
  <p class="msg" id="extra"></p>
 
 <section class="aba on" id="aba-resumo">
+ <div class="card" id="erResumoCard">
+  <div class="card-t"><span class="ic vm"><svg class="i"><use href="#ic-erro"/></svg></span><h2>Saúde do app</h2></div>
+  <div class="er-nums" id="erResumo"><div class="vazio">Carregando…</div></div>
+  <div id="erTop"></div>
+  <div class="acao-l"><button class="b l" id="btVerErros">Ver todos os erros</button></div>
+ </div>
  <div class="card">
   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-funil"/></svg></span><h2>Funil de vendas</h2></div>
   <div class="card-d">Últimos 30 dias: quantas pessoas abriram a tela do Pro, quantas geraram Pix e quantas pagaram.</div>
@@ -274,8 +292,8 @@ tr:last-child td{border-bottom:0}
   <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-presente"/></svg></span><h2>Dar o Pro sem pagar</h2></div>
   <div class="card-d">Gera um código para um amigo, parceiro ou exceção. A pessoa instala o app pelo link e ele acha o código sozinho (ou ela cola em “Tem um código?”). Cada código vale para um celular.</div>
   <div class="linha">
-   <label style="flex:1 1 170px">Quanto tempo<select id="zDur"><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="90">3 meses</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="vida">Vitalício</option><option value="outro">Outro número de dias…</option></select></label>
-   <label class="meia" style="width:120px" id="zOutroL" hidden>Dias<input id="zOutro" type="number" min="1" max="3650" value="45" inputmode="numeric"></label>
+   <label style="flex:1 1 170px">Quanto tempo<select id="zDur"><option value="h1">1 hora</option><option value="h3">3 horas</option><option value="h6">6 horas</option><option value="h12">12 horas</option><option value="1">1 dia</option><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="90">3 meses</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="vida">Vitalício</option><option value="outroh">Outro número de horas…</option><option value="outro">Outro número de dias…</option></select></label>
+   <label class="meia" style="width:120px" id="zOutroL" hidden><span id="zOutroT">Dias</span><input id="zOutro" type="number" min="1" max="3650" value="45" inputmode="numeric"></label>
    <label class="meia" style="width:110px">Quantos códigos<input id="zQtd" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
    <label style="flex:1 1 200px">Para quem (só para você lembrar)<input id="zNota" maxlength="60" placeholder="Ex.: primo João"></label>
   </div>
@@ -355,8 +373,14 @@ tr:last-child td{border-bottom:0}
 <section class="aba" id="aba-erros">
  <div class="card">
   <div class="card-t"><span class="ic vm"><svg class="i"><use href="#ic-erro"/></svg></span><h2>Relatório de erros</h2></div>
-  <div class="card-d">O app avisa sozinho quando algo falha no celular de um cliente. Erros iguais ficam juntos; os que atingiram mais celulares aparecem primeiro.</div>
-  <div class="linha"><label style="flex:1 1 180px">Mês<select id="erMes"></select></label></div>
+  <div class="card-d">O app avisa sozinho quando algo falha no celular de um cliente. Erros iguais ficam juntos; os que atingiram mais celulares aparecem primeiro. Corrigiu? Marque como resolvido: se voltar a acontecer, ele reaparece com o selo “Voltou”. Com os avisos de venda ligados no app, erros novos também chegam como notificação no seu celular.</div>
+  <div class="linha">
+   <label style="flex:1 1 130px">Mês<select id="erMes"></select></label>
+   <label style="flex:1 1 150px">Período<select id="erPer"><option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="mes" selected>Mês inteiro</option></select></label>
+   <label style="flex:1 1 130px">Versão do app<select id="erVer"><option value="">Todas</option></select></label>
+   <label style="flex:2 1 200px">Buscar<input id="erBusca" placeholder="Tela, mensagem ou modelo de celular"></label>
+  </div>
+  <label class="chk"><input type="checkbox" id="erResolv"> Mostrar também os que já marquei como resolvidos</label>
   <div class="er-nums" id="erNums"></div>
   <div id="erLista"><div class="vazio">Carregando…</div></div>
  </div>
@@ -434,10 +458,10 @@ tr:last-child td{border-bottom:0}
 
   function zap(t){return 'https://wa.me/?text='+encodeURIComponent(t)}
   function textoCortesia(c,dur){return 'Você ganhou o SerpyraToolkit Pro ('+dur+')!\n\n1. Baixe: https://serpyratoolkit.pages.dev/?codigo='+c+'\n2. Abra o app e toque em SerpyraToolkit Pro\n3. O app acha o código sozinho (ou cole em "Tem um código?"): '+c}
-  $('zDur').onchange=function(){$('zOutroL').hidden=this.value!=='outro'};
+  $('zDur').onchange=function(){var o=this.value==='outro'||this.value==='outroh';$('zOutroL').hidden=!o;$('zOutroT').textContent=this.value==='outroh'?'Horas':'Dias';if(this.value==='outroh')$('zOutro').value=2;if(this.value==='outro')$('zOutro').value=45};
   $('btCortesia').onclick=function(){
     var b=this,v=$('zDur').value,corpo={qtd:$('zQtd').value,nota:$('zNota').value};
-    if(v==='vida') corpo.vitalicio=true; else corpo.dias=v==='outro'?$('zOutro').value:v;
+    if(v==='vida') corpo.vitalicio=true; else if(v==='outroh') corpo.horas=$('zOutro').value; else if(v.charAt(0)==='h') corpo.horas=v.slice(1); else corpo.dias=v==='outro'?$('zOutro').value:v;
     b.disabled=true; msg($('msgCortesia'),'Gerando…');
     api('POST','/admin/cortesia',corpo).then(function(r){
       $('msgCortesia').className='msg ok';
@@ -491,19 +515,56 @@ tr:last-child td{border-bottom:0}
     }).catch(function(){$('funil').innerHTML='<div class="vazio">Não deu para carregar o funil.</div>'});
   }
   function dataHora(ms){var d=new Date(ms);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+  var ER=null;
+  function diasAtras(n){var o=[];for(var k=0;k<n;k++){var d=new Date(Date.now()-3*3600000-k*86400000);o.push(d.toISOString().slice(0,10))}return o}
+  function contaPer(e,per){if(per==='mes')return e.n;var ds=diasAtras(per==='hoje'?1:7);return ds.reduce(function(t,d){return t+((e.dias||{})[d]||0)},0)}
+  function textoErro(e){return 'Erro no SerpyraToolkit\nOnde: '+e.onde+'\nTipo: '+(e.tipo==='crash'?'travou o app':'falha')+'\nMensagem: '+(e.msg||'')+'\nVezes: '+e.n+' · celulares: '+e.celulares+'\nVersões: '+Object.keys(e.versoes).join(', ')+'\nAndroid: '+Object.keys(e.androids||{}).join(', ')+'\nCelulares: '+Object.keys(e.modelos).join(', ')+(e.pilha?'\n\n'+e.pilha:'')}
+  function desenharErros(){
+    if(!ER) return;
+    var per=$('erPer').value,ver=$('erVer').value,q=$('erBusca').value.trim().toLowerCase(),res=$('erResolv').checked;
+    var l=ER.erros.filter(function(e){
+      if(!res&&e.resolvido) return false;
+      if(ver&&!e.versoes[ver]) return false;
+      if(q&&(e.onde+' '+e.msg+' '+Object.keys(e.modelos).join(' ')).toLowerCase().indexOf(q)<0) return false;
+      return contaPer(e,per)>0||e.resolvido;
+    });
+    var ab=l.filter(function(e){return !e.resolvido});
+    $('erNums').innerHTML='<div><b>'+ab.reduce(function(t,e){return t+contaPer(e,per)},0)+'</b>ocorrências</div><div><b>'+ab.length+'</b>tipos de erro abertos</div><div><b>'+ab.filter(function(e){return e.tipo==='crash'}).length+'</b>travamentos</div><div><b>'+ER.celulares+'</b>celulares no mês</div>';
+    var d14=diasAtras(14).reverse();
+    $('erLista').innerHTML=l.length?l.map(function(e,ix){
+      var mx=Math.max.apply(null,d14.map(function(d){return (e.dias||{})[d]||0}).concat([1]));
+      var mods=Object.keys(e.modelos).sort(function(a,b){return e.modelos[b]-e.modelos[a]}).slice(0,4).join(', ');
+      var vers=Object.keys(e.versoes).sort().reverse().join(', ');
+      var ands=Object.keys(e.androids||{}).sort().reverse().map(function(a){return 'Android SDK '+a}).join(', ');
+      var novo=e.primeiro>Date.now()-86400000&&!e.resolvido, voltou=e.reaberto&&!e.resolvido;
+      return '<div class="er'+(e.resolvido?' res':'')+'"><div class="top"><span class="tag"'+(e.tipo==='crash'?' style="background:#FDE7E8;color:var(--verm)"':' class="tag a"')+'>'+(e.tipo==='crash'?'travou o app':'falha')+'</span>'+(novo?'<span class="tag" style="background:#E8ECFF;color:var(--azul)">Novo</span>':'')+(voltou?'<span class="tag a">Voltou</span>':'')+(e.resolvido?'<span class="tag v">Resolvido</span>':'')+'<b>'+esc(e.onde)+'</b><span class="tag">'+contaPer(e,per)+'x · '+e.celulares+' celular(es)</span></div>'+
+        '<div class="msg2">'+esc(e.msg||'(sem mensagem)')+'</div>'+
+        '<div class="spark" title="Últimos 14 dias">'+d14.map(function(d){var n=(e.dias||{})[d]||0;return '<i class="'+(n?'':'z')+'" style="height:'+Math.max(8,Math.round(n*100/mx))+'%" title="'+d.slice(8,10)+'/'+d.slice(5,7)+': '+n+'"></i>'}).join('')+'</div>'+
+        '<small>Versões: '+esc(vers)+(ands?' · '+esc(ands):'')+' · Celulares: '+esc(mods)+'<br>Primeira vez: '+esc(dataHora(e.primeiro))+' · Última vez: '+esc(dataHora(e.ultimo))+'</small>'+
+        '<div class="acoes"><button class="b l" data-er="'+ix+'" data-ac="'+(e.resolvido?'reabrir':'resolver')+'">'+(e.resolvido?'Reabrir':'Marcar como resolvido')+'</button><button class="b l" data-cp="'+ix+'">Copiar detalhes</button></div>'+
+        (e.pilha?'<details><summary>Detalhes técnicos</summary><pre>'+esc(e.pilha)+'</pre></details>':'')+'</div>'}).join('')
+      :'<div class="vazio">'+(ER.erros.length?'Nenhum erro com esses filtros.':'Nenhum erro registrado neste mês. 🎉')+'</div>';
+    [].forEach.call(document.querySelectorAll('[data-er]'),function(b){b.onclick=function(){var e=l[+b.getAttribute('data-er')];b.disabled=true;api('POST','/admin/erros',{mes:ER.mes,sig:e.sig,acao:b.getAttribute('data-ac')}).then(function(){erros(ER.mes)}).catch(function(x){alert(x.message);b.disabled=false})}});
+    [].forEach.call(document.querySelectorAll('[data-cp]'),function(b){b.onclick=function(){navigator.clipboard.writeText(textoErro(l[+b.getAttribute('data-cp')])).then(function(){b.textContent='Copiado ✓'})}});
+  }
   function erros(mes){
     api('GET','/admin/erros'+(mes?'?mes='+mes:'')).then(function(r){
+      ER=r;
       var sel=$('erMes'); if(!sel.options.length||mes===undefined){sel.innerHTML=r.meses.map(function(m){return '<option value="'+esc(m)+'"'+(m===r.mes?' selected':'')+'>'+esc(m.slice(5,7)+'/'+m.slice(0,4))+'</option>'}).join('')}
-      $('erNums').innerHTML='<div><b>'+r.total+'</b>ocorrências</div><div><b>'+r.celulares+'</b>celulares afetados</div><div><b>'+r.crashes+'</b>travamentos</div>';
-      $('erLista').innerHTML=r.erros.length?r.erros.map(function(e){
-        var mods=Object.keys(e.modelos).sort(function(a,b){return e.modelos[b]-e.modelos[a]}).slice(0,3).join(', ');
-        var vers=Object.keys(e.versoes).sort().reverse().join(', ');
-        return '<div class="er"><div class="top"><span class="tag '+(e.tipo==='crash'?'':'a')+'"'+(e.tipo==='crash'?' style="background:#FDE7E8;color:var(--verm)"':'')+'>'+(e.tipo==='crash'?'travou o app':'falha')+'</span><b>'+esc(e.onde)+'</b><span class="tag">'+e.n+'x · '+e.celulares+' celular(es)</span></div>'+
-          '<div class="msg2">'+esc(e.msg||'(sem mensagem)')+'</div><small>Versões: '+esc(vers)+' · Celulares: '+esc(mods)+' · Última vez: '+esc(dataHora(e.ultimo))+'</small>'+
-          (e.pilha?'<details><summary>Detalhes técnicos</summary><pre>'+esc(e.pilha)+'</pre></details>':'')+'</div>'}).join('')
-        :'<div class="vazio">Nenhum erro registrado neste mês. 🎉</div>';
-    }).catch(function(e){$('erLista').innerHTML='<div class="vazio">'+esc(e.message)+'</div>'});
+      var vs={};r.erros.forEach(function(e){Object.keys(e.versoes).forEach(function(v){vs[v]=1})});
+      var vAtual=$('erVer').value;$('erVer').innerHTML='<option value="">Todas</option>'+Object.keys(vs).sort().reverse().map(function(v){return '<option'+(v===vAtual?' selected':'')+'>'+esc(v)+'</option>'}).join('');
+      desenharErros();
+      if(!mes||mes===r.meses[0]){
+        $('erResumo').innerHTML='<div><b>'+r.hoje+'</b>erros hoje</div><div><b>'+r.semana+'</b>nos últimos 7 dias</div><div><b>'+r.abertos+'</b>tipos abertos</div><div><b'+(r.novosHoje?' style="color:var(--verm)"':'')+'>'+r.novosHoje+'</b>novos hoje</div>';
+        var top=r.erros.filter(function(e){return !e.resolvido&&contaPer(e,'7')>0}).slice(0,3);
+        $('erTop').innerHTML=top.length?top.map(function(e){return '<div class="top-er"><b>'+esc(e.onde)+'</b> · '+esc((e.msg||'').slice(0,90))+' <span class="tag">'+contaPer(e,'7')+'x em 7 dias</span></div>'}).join(''):'<div class="vazio">Nenhum erro aberto nos últimos 7 dias. 🎉</div>';
+        var bd=$('erBadge'); if(r.novosHoje){bd.textContent=r.novosHoje;bd.hidden=false}else bd.hidden=true;
+      }
+    }).catch(function(e){$('erLista').innerHTML='<div class="vazio">'+esc(e.message)+'</div>';$('erResumo').innerHTML='<div class="vazio">'+esc(e.message)+'</div>'});
   }
+  ['erPer','erVer','erResolv'].forEach(function(i){$(i).onchange=desenharErros});
+  $('erBusca').oninput=desenharErros;
+  $('btVerErros').onclick=function(){irAba('erros')};
   $('erMes').onchange=function(){erros(this.value)};
   function previa(){var t=$('prTxt').value.trim()||'Sua promoção aparece assim, correndo na tela',c=$('prCupom').value.trim().toUpperCase();$('prPreviaTxt').textContent='🔥  '+t+(c?'  ·  cupom '+c:'');var cores={verde:['#E3F8EE','#9ADDBE'],amarelo:['#FFF3D1','#F2D27A'],vermelho:['#FDE7E8','#F3A9AC'],azul:['#E8ECFF','#AEBBFF']}[$('prCor').value];$('prPrevia').style.background=cores[0];$('prPrevia').style.borderColor=cores[1]}
   ['prTxt','prCupom','prCor'].forEach(function(i){$(i).addEventListener('input',previa);$(i).addEventListener('change',previa)});
@@ -522,7 +583,7 @@ tr:last-child td{border-bottom:0}
     window.scrollTo(0,0);
   }
   [].forEach.call(document.querySelectorAll('.aba-b'),function(b){b.onclick=function(){irAba(b.getAttribute('data-ir'))}});
-  try{var ab=localStorage.getItem('pct_aba');if(ab&&document.getElementById('aba-'+ab))irAba(ab)}catch(e){}
+  try{var ab=(location.hash||'').slice(1)||localStorage.getItem('pct_aba');if(ab&&document.getElementById('aba-'+ab))irAba(ab)}catch(e){}
   // no celular as tabelas viram cartoes: cada celula ganha o nome da coluna
   function rotular(tb){
     var t=tb.closest('table'); if(!t) return;
