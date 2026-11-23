@@ -596,7 +596,10 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     val msgCupom = Ui.texto(this, "", 12.5f, T.texto2)
     val pendente = Store.str("cupom_pendente")
     if (pendente.isNotEmpty()) { ec.setText(pendente); msgCupom.text = "Código $pendente pronto: toque em Aplicar (ou direto em Gerar Pix)."; msgCupom.setTextColor(T.azul) }
-    else if (ativo && !sempre && Licenca.diasRestantes() <= 7) { ec.setText("RENOVA10"); msgCupom.text = "Seu Pro vence em ${Licenca.diasRestantes()} dia(s): toque em Aplicar para ganhar 10% renovando agora."; msgCupom.setTextColor(T.amarelo) }
+    else if (ativo && !sempre && Licenca.diasRestantes() <= 7 && Store.bool("lic_comprou", false)) {
+        // so mostra o desconto de renovacao se o servidor confirmar que vale para este celular
+        Thread { try { Compra.cupom("RENOVA10", escolhido); runOnUiThread { if (ec.text.isEmpty()) { ec.setText("RENOVA10"); msgCupom.text = "Seu Pro vence em ${Licenca.diasRestantes()} dia(s): renovando agora você ganha 10% (já está no campo)."; msgCupom.setTextColor(T.amarelo) } } } catch (e: Exception) { } }.start()
+    }
     aplicarCupom = { codigo ->
         val cod = codigo.trim().uppercase()
         msgCupom.text = "Conferindo o cupom $cod…"; msgCupom.setTextColor(T.texto2)
@@ -606,6 +609,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
                 val pl = planos.firstOrNull { it.id == escolhido }
                 runOnUiThread { precoCupom = v; cupomOk = cod; Store.putStr("cupom_pendente", ""); msgCupom.text = "Cupom $cod aplicado: " + (pl?.let { "${it.preco()} → ${it.preco(v)}" } ?: ""); msgCupom.setTextColor(T.verde); botaoTxt() }
             } catch (e: Exception) {
+                Store.putStr("cupom_pendente", "")
                 runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = (e.message ?: "Cupom inválido.") + if (cod.startsWith("IND")) " (o código de indicação só vale se quem indicou já tiver o Pro comprado, e não vale o seu próprio)" else ""; msgCupom.setTextColor(T.vermelho); botaoTxt() }
             }
         }.start()
@@ -713,7 +717,16 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             msg.text = "Conferindo o cupom antes de gerar o Pix…"; msg.setTextColor(T.texto2)
             Thread {
                 try { val v = Compra.cupom(digitado, escolhido); runOnUiThread { precoCupom = v; cupomOk = digitado; botaoTxt(); botao.performClick() } }
-                catch (e: Exception) { runOnUiThread { msg.text = "O cupom $digitado não vale: ${e.message}. Apague o cupom para pagar sem desconto."; msg.setTextColor(T.vermelho) } }
+                catch (e: Exception) {
+                    Store.putStr("cupom_pendente", "")
+                    runOnUiThread {
+                        msg.text = ""
+                        AlertDialog.Builder(this).setTitle("O cupom $digitado não vale")
+                            .setMessage((e.message ?: "Cupom inválido.") + "\n\nQuer pagar o preço normal agora?")
+                            .setPositiveButton("Pagar sem cupom") { _, _ -> ec.setText(""); cupomOk = ""; precoCupom = -1; msgCupom.text = ""; botaoTxt(); botao.performClick() }
+                            .setNegativeButton("Corrigir o cupom", null).show()
+                    }
+                }
             }.start()
             return@setOnClickListener
         }
@@ -727,7 +740,16 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
                 val p = Compra.criar(email, escolhido, cupomOk, presente)
                 runOnUiThread { botao.isEnabled = true; mostrarPix(p.numero, p.brCode, p.qr, p.teste); vigiar(p.id) }
             } catch (e: Exception) {
-                runOnUiThread { botao.isEnabled = true; msg.text = e.message ?: "Sem conexão. Tente de novo."; msg.setTextColor(T.vermelho) }
+                runOnUiThread {
+                    botao.isEnabled = true
+                    if (cupomOk.isNotEmpty() && (e.message ?: "").contains("upom")) {
+                        val c = cupomOk
+                        msg.text = ""
+                        AlertDialog.Builder(this).setTitle("O cupom $c não vale mais").setMessage((e.message ?: "") + "\n\nQuer pagar o preço normal agora?")
+                            .setPositiveButton("Pagar sem cupom") { _, _ -> ec.setText(""); cupomOk = ""; precoCupom = -1; msgCupom.text = ""; botaoTxt(); botao.performClick() }
+                            .setNegativeButton("Agora não", null).show()
+                    } else { msg.text = e.message ?: "Sem conexão. Tente de novo."; msg.setTextColor(T.vermelho) }
+                }
             }
         }.start()
     }
