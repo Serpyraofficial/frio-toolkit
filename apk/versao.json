@@ -1,8 +1,8 @@
 {
- "versionCode": 72,
- "versionName": "5.14.3",
- "notas": "- Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou\n- Código copiado (chave ou presente): ao tocar em Usar, a tela do Pro agora atualiza e mostra o resultado\n- Faixa de promoção mostra a frase inteira; botões de um amigo podem ser colados à mão",
- "sha256": "50351b13e5ad0ae22a23cf6fc7c2c9e58e9566aa94a1184217a9d0d07f95a32b",
- "tamanho": 1330945,
- "arquivo": "SerpyraToolkit-5.14.3-50351b13e5.apk"
+ "versionCode": 73,
+ "versionName": "5.14.4",
+ "notas": "- Corrigido: comandos mais demorados pelo Shizuku davam “process hasn't exited” (limpar o cache e outros ajustes)\n- Corrigido: a atualização sozinha pelo Shizuku falhava pelo mesmo motivo",
+ "sha256": "67ace847b99217cacbe58d555d2fbeb585a4bbf2ede74a92d2e4c580b53e8e16",
+ "tamanho": 1331057,
+ "arquivo": "SerpyraToolkit-5.14.4-67ace847b9.apk"
 }
