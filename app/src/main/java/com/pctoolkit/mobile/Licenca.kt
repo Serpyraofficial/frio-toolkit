@@ -535,7 +535,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         ci.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
         ci.background = Ui.gradiente(this, 0xFF2A2210.toInt(), 0xFF121821.toInt(), 18)
         ci.addView(Ui.texto(this, "Indique e ganhe", 16f, T.texto, Ui.negrito))
-        ci.addView(Ui.texto(this, "Seu amigo ganha 10% de desconto com o seu código e você ganha 15 dias de Pro a cada compra dele" + (if (Licenca.vitalicio()) " (você já é vitalício, mas seu amigo ainda ganha o desconto)." else "."), 12.5f, T.texto2))
+        ci.addView(Ui.texto(this, "Seu amigo ganha 10% de desconto com o seu código. Você ganha dias de Pro a cada compra dele: 5 dias (plano de 1 mês), 10 (3 meses), 15 (6 meses) ou 30 (vitalício), até 15 dias por mês" + (if (Licenca.vitalicio()) " (você já é vitalício, mas seu amigo ainda ganha o desconto)." else "."), 12.5f, T.texto2))
         val codInd = "IND" + Licenca.codigo()
         val ct = Ui.texto(this, codInd, 22f, T.amarelo, Typeface.MONOSPACE)
         ct.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 4)); ct.setTextIsSelectable(true)

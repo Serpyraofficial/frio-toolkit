@@ -28,7 +28,7 @@ const PLANOS = {
 };
 const DIA_VITALICIO = 99999;
 const LICENCA_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEe1+AJ9msQvTj5AdyZO0SzXl0SNyekG3tBq3nUeQHdWSvy3u7i8k6qTJsZ8iU890vHizszVAKeAxs4fjOVXVnFQ==";
-const IND_PCT = 10, IND_DIAS = 15, RENOVA_PCT = 10;
+const IND_PCT = 10, IND_DIAS = 5, RENOVA_PCT = 10, IND_MAX_MES = 15, IND_PREMIO = { m1: 5, m3: 10, m6: 15, vida: 30 };
 const MOTIVOS = ["Caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro"];
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
 
@@ -229,7 +229,7 @@ async function liberar(env, id, valorPago) {
   await env.PCT.put("chave:" + p.codigo, JSON.stringify({ chave: p.chave, dia, email: p.email }));
   const em = (await lerJson(env, "email:" + p.email)) || {};
   await env.PCT.put("email:" + p.email, JSON.stringify({ codigo: p.codigo, dia, troca: em.troca || 0, otp: "" }));
-  if (/^IND/.test(p.cupom || "")) await premiarIndicacao(env, p.cupom.slice(3), p.codigo);
+  if (/^IND/.test(p.cupom || "")) await premiarIndicacao(env, p.cupom.slice(3), p.codigo, p.plano);
   else if (p.cupom && p.cupom !== "RENOVA10") {
     const c = await lerJson(env, "cupom:" + p.cupom);
     if (c) { c.usos = (c.usos || 0) + 1; c.receita = (c.receita || 0) + p.valor; await env.PCT.put("cupom:" + p.cupom, JSON.stringify(c)); }
@@ -238,17 +238,20 @@ async function liberar(env, id, valorPago) {
 }
 
 /* ---------------- indicação e presente ---------------- */
-async function premiarIndicacao(env, ref, comprador) {
+async function premiarIndicacao(env, ref, comprador, plano) {
   if (!codigoValido(ref) || ref === comprador) return;
   const c = await lerJson(env, "chave:" + ref);
   if (!c || c.dia >= DIA_VITALICIO) return;
-  const dia = Math.max(hoje(), c.dia) + IND_DIAS;
+  const mes = mesAtual(), usados = c.indMes === mes ? (c.indDias || 0) : 0;
+  const ganho = Math.min(IND_PREMIO[plano] || IND_DIAS, Math.max(0, IND_MAX_MES - usados));
+  if (ganho <= 0) { await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, indicacoes: (c.indicacoes || 0) + 1, indMes: mes, indDias: usados })); return; }
+  const dia = Math.max(hoje(), c.dia) + ganho;
   const chave = await assinarChave(env, ref, dia);
-  await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, chave, dia, indicacoes: (c.indicacoes || 0) + 1 }));
+  await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, chave, dia, indicacoes: (c.indicacoes || 0) + 1, indMes: mes, indDias: usados + ganho }));
   if (c.email) {
-    const html = moldura("Você ganhou " + IND_DIAS + " dias de Pro 🎉", "Um amigo comprou o SerpyraToolkit Pro com o seu código de indicação.",
+    const html = moldura("Você ganhou " + ganho + " dias de Pro 🎉", "Um amigo comprou o SerpyraToolkit Pro com o seu código de indicação.",
       `<div style="${CAIXA}"><div style="${ROT}">Seu Pro agora vale até</div><div style="font-size:22px;font-weight:bold;color:#3DDC97">${dataBr(dia)}</div><div style="color:#9AA8BA;font-size:13px;margin-top:12px">Os dias entram sozinhos ao abrir o app (tela do Pro &gt; Já comprei, se precisar). Se quiser colar à mão:</div><div style="${CHV};margin-top:10px">${esc(chave)}</div></div>`);
-    await mandarEmail(env, c.email, "Você ganhou " + IND_DIAS + " dias de SerpyraToolkit Pro", html, "Um amigo comprou com o seu código. Seu Pro agora vale até " + dataBr(dia) + ".\nChave: " + chave);
+    await mandarEmail(env, c.email, "Você ganhou " + ganho + " dias de SerpyraToolkit Pro", html, "Um amigo comprou com o seu código. Seu Pro agora vale até " + dataBr(dia) + ".\nChave: " + chave);
   }
 }
 
