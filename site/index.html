@@ -153,6 +153,18 @@ h2{font-weight:500;font-size:clamp(34px,4.4vw,56px);line-height:1.04;letter-spac
 .plano .preco small{font-size:19px;letter-spacing:0;font-weight:400}
 .plano .desc{color:var(--tinta2)}
 .plano.pro .desc{color:#B7C0CF}
+.opcoes{display:grid;gap:8px;margin-top:20px}
+.opcoes div{display:flex;align-items:center;gap:10px;border:1px solid #2A3850;border-radius:14px;padding:11px 14px}
+.opcoes b{font-weight:600;flex:1}
+.opcoes span{color:#9FB0C5;font-size:14px}
+.opcoes strong{font-weight:650;font-size:18px;white-space:nowrap}
+.opcoes .eco{background:rgba(61,220,151,.16);color:#7DEBB9;font-size:12px;font-weight:650;border-radius:999px;padding:2px 8px}
+.opcoes .vida{border-color:#3DDC97;background:rgba(61,220,151,.07)}
+.extras-pro{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.extras-pro div{background:var(--branco);border:1px solid var(--linha);border-radius:18px;padding:16px 18px}
+.extras-pro b{display:block;font-weight:600;margin-bottom:4px}
+.extras-pro p{color:var(--tinta2);font-size:14.5px}
+@media(max-width:900px){.extras-pro{grid-template-columns:1fr}.plano{padding:24px}.plano .preco{font-size:52px}}
 .plano ul{list-style:none;margin:26px 0 30px;display:grid;gap:12px;flex:1}
 .plano li{display:flex;gap:12px}
 .plano li svg{width:22px;height:22px;flex:none;color:var(--menta-esc)}
@@ -503,17 +515,18 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
    <p>Cada ferramenta mostra o que vai fazer antes, e dá para desfazer tudo quando quiser.</p>
   </div>
   <div class="grade">
-   <div class="card"><div class="ic c-v"><svg><use href="#i-raio"/></svg></div><h3>Raio-X</h3><p>Nota de 0 a 100 para o seu celular e correção com um toque.</p></div>
-   <div class="card"><div class="ic c-v"><svg><use href="#i-jogo"/></svg></div><h3>Modo Jogo</h3><p>Silencia, libera memória, abre o jogo e vigia o calor até você sair.</p></div>
-   <div class="card"><div class="ic c-m"><svg><use href="#i-fps"/></svg></div><h3>Tuner de jogos <span class="tag-pro">Pro</span></h3><p>Resolução, limite de FPS e modo de desempenho para cada jogo.</p></div>
-   <div class="card"><div class="ic c-r"><svg><use href="#i-teclado"/></svg></div><h3>Teclado e controles <span class="tag-pro">Pro</span></h3><p>Botões de emulador por cima do jogo, com toque, analógico e macro.</p></div>
-   <div class="card"><div class="ic c-c"><svg><use href="#i-temp"/></svg></div><h3>Temperatura</h3><p>Monitor em tempo real, teste de calor e alerta quando passar do limite.</p></div>
-   <div class="card"><div class="ic c-a"><svg><use href="#i-rede"/></svg></div><h3>Rede para jogos</h3><p>Ping, jitter e perda, teste de velocidade e o DNS mais rápido.</p></div>
-   <div class="card"><div class="ic c-l"><svg><use href="#i-mira"/></svg></div><h3>Mira na tela <span class="tag-pro">Pro</span></h3><p>Cruz, ponto ou círculo no centro da tela, na cor e no tamanho que você quiser.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-raio"/></svg></div><h3>Raio-X</h3><p>Nota de 0 a 100 para o seu celular e correção com um toque, conferida depois.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-jogo"/></svg></div><h3>Modo Jogo</h3><p>Silencia, libera memória, abre o jogo, mostra FPS, calor e ping, e lembra de fazer pausa.</p></div>
    <div class="card"><div class="ic c-a"><svg><use href="#i-jogo"/></svg></div><h3>Modo campeonato</h3><p>Bloqueia chamadas e notificações, trava o brilho e avisa se a internet oscilar.</p></div>
    <div class="card"><div class="ic c-m"><svg><use href="#i-raio"/></svg></div><h3>Relatório da partida</h3><p>FPS, temperatura, bateria e ping de cada partida, comparados com a anterior.</p></div>
+   <div class="card"><div class="ic c-r"><svg><use href="#i-teclado"/></svg></div><h3>Botões na tela <span class="tag-pro">Pro</span></h3><p>Modelos prontos para Free Fire, PUBG, COD, Roblox e MOBA, com turbo, macro e controle físico.</p></div>
+   <div class="card"><div class="ic c-m"><svg><use href="#i-fps"/></svg></div><h3>Tuner de jogos <span class="tag-pro">Pro</span></h3><p>Resolução, limite de FPS e modo de desempenho para cada jogo.</p></div>
+   <div class="card"><div class="ic c-l"><svg><use href="#i-mira"/></svg></div><h3>Mira na tela <span class="tag-pro">Pro</span></h3><p>Cruz, ponto, círculo ou uma imagem sua, na cor e no tamanho que você quiser.</p></div>
+   <div class="card"><div class="ic c-a"><svg><use href="#i-rede"/></svg></div><h3>Internet para jogos</h3><p>Descobre se o lag vem do Wi-Fi ou da internet e troca para o DNS mais rápido.</p></div>
+   <div class="card"><div class="ic c-c"><svg><use href="#i-temp"/></svg></div><h3>Calor e bateria</h3><p>Monitor de temperatura, teste de calor e Modo bateria para jogar longe da tomada.</p></div>
    <div class="card"><div class="ic c-c"><svg><use href="#i-temp"/></svg></div><h3>Cuidados automáticos</h3><p>Limpeza semanal e aviso quando o celular esquenta ou um app pesa demais.</p></div>
-   <div class="card"><div class="ic c-v"><svg><use href="#i-escudo"/></svg></div><h3>Segurança</h3><p>Procura apps espiões e golpes, e verifica APKs com cerca de 70 antivírus.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-jogo"/></svg></div><h3>Meus jogos</h3><p>Seus jogos na tela inicial com tudo num toque, teste da tela de toque e gravação da partida.</p></div>
+   <div class="card"><div class="ic c-v"><svg><use href="#i-escudo"/></svg></div><h3>Segurança e backup</h3><p>Procura apps espiões e golpes, e guarda seus botões e perfis para outro celular.</p></div>
   </div>
 
   <div class="dest">
@@ -528,8 +541,8 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     <div class="teclas" aria-hidden="true"><i>W</i><i>E</i><i>R</i><i>A</i><i>S</i><i>D</i></div>
     <span class="big-tit" style="color:#B57BFF">Teclado e controles</span>
     <h3>Controles de emulador por cima de qualquer jogo</h3>
-    <p>Monte seu layout de botões como nos emuladores de PC e use teclado ou controle físico no celular.</p>
-    <ul><li>Botão, analógico e macro</li><li>Teclado e controle físico</li><li>Um layout salvo para cada jogo</li></ul>
+    <p>Comece com um modelo pronto do seu jogo e ajuste com o dedo. Funciona com teclado e controle físico.</p>
+    <ul><li>Modelos para Free Fire, PUBG, COD, Roblox e MOBA</li><li>Turbo, liga/desliga e macro</li><li>Um layout salvo para cada jogo</li></ul>
    </div>
   </div>
  </div>
@@ -547,8 +560,10 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     <p class="desc">Para deixar o celular pronto para jogar.</p>
     <ul>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Raio-X e otimização para jogos</li>
-     <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo Jogo com FPS, temperatura e ping na tela</li>
-     <li><svg aria-hidden="true"><use href="#certo"/></svg>Temperatura, rede, limpeza e segurança</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo Jogo e Modo campeonato, com FPS, calor e ping na tela</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Relatório de cada partida e histórico por jogo</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Internet para jogos, Modo bateria e cuidados automáticos</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Limpeza, segurança e backup das configurações</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Atualizações pelo próprio app</li>
     </ul>
     <a class="b b-linha b-grande" href="/apk">Baixar grátis</a>
@@ -556,19 +571,30 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
    <div class="plano pro">
     <h3>Pro</h3>
     <div class="preco">R$ 15<small> por mês</small></div>
-    <p class="desc">Ou R$ 39 por 3 meses, R$ 69 por 6 meses, ou R$ 149 vitalício (paga uma vez e não vence). Teste grátis por 3 dias.</p>
+    <p class="desc">Teste grátis por 3 dias, sem cadastro. Depois escolha:</p>
+    <div class="opcoes">
+     <div><b>1 mês</b><strong>R$ 15</strong></div>
+     <div><b>3 meses</b><span>R$ 13/mês</span><span class="eco">−13%</span><strong>R$ 39</strong></div>
+     <div><b>6 meses</b><span>R$ 11,50/mês</span><span class="eco">−23%</span><strong>R$ 69</strong></div>
+     <div class="vida"><b>Vitalício</b><span>paga uma vez</span><strong>R$ 149</strong></div>
+    </div>
     <ul>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Tudo do plano grátis</li>
-     <li><svg aria-hidden="true"><use href="#certo"/></svg>Botões de emulador por cima do jogo, com macros, teclado e controle físico</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Botões na tela com modelos prontos para Free Fire, PUBG, COD, Roblox e MOBA</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Turbo, macro, teclado e controle físico</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Tuner: resolução, limite de FPS e modo para cada jogo</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo Frio e Turbo no Modo Jogo</li>
-     <li><svg aria-hidden="true"><use href="#certo"/></svg>Mira na tela para jogos de tiro</li>
-     <li><svg aria-hidden="true"><use href="#certo"/></svg>Modelos prontos de botões para Free Fire, PUBG, COD, Roblox e MOBA</li>
+     <li><svg aria-hidden="true"><use href="#certo"/></svg>Mira na tela, inclusive com uma imagem sua</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Seus botões abrem sozinhos junto com o jogo</li>
     </ul>
     <a class="b b-menta b-grande" href="/apk">Baixar e testar grátis</a>
-    <p class="nota">Sem cobrança automática: cada Pix libera os dias do plano. Renovando antes de vencer, os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra. Dá para dar o Pro de presente, e quem já tem ganha 15 dias a cada amigo indicado.</p>
+    <p class="nota">Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
    </div>
+  </div>
+  <div class="extras-pro">
+   <div><b>Dê de presente</b><p>Na tela do Pro, marque “é um presente”. A pessoa recebe um código por e-mail e ativa no celular dela.</p></div>
+   <div><b>Indique e ganhe</b><p>Seu amigo ganha 10% de desconto com o seu código, e você ganha 15 dias de Pro a cada compra dele.</p></div>
+   <div><b>Tem um código?</b><p>Chave, presente, cortesia ou cupom: cole em “Tem um código?” na tela do Pro. O app reconhece sozinho.</p></div>
   </div>
  </div>
 </section>
