@@ -63,7 +63,7 @@ object Atualizador {
 
     /** Pede uma tentativa daqui a ~1 minuto (ex.: a pessoa acabou de sair do app e ha versao nova). */
     fun agendarLogo(ctx: Context) {
-        if (!automatica() || pendente() == null) return
+        if (!automatica()) return
         try {
             val js = ctx.getSystemService(android.app.job.JobScheduler::class.java)
             js.schedule(android.app.job.JobInfo.Builder(JOB_LOGO, android.content.ComponentName(ctx, AtualizacaoJob::class.java))
@@ -124,14 +124,18 @@ object Atualizador {
             // o APK vai pela entrada do comando: o shell do Shizuku/root nao enxerga a pasta privada do app
             for (cmd in listOf("pm install -r -i $pkg -S $tam$depois", "pm install -r -S $tam$depois")) {
                 val r = comEntrada(cmd, arq)
-                if (r.ok && r.out.contains("Success")) return true
-                Log2.registrar("pm install: ${r.code} ${r.out.take(120)} ${r.err.take(120)}")
+                if (r.ok && r.out.contains("Success")) { registrar("instalada pelo Shizuku"); return true }
+                val txt = (r.out + " " + r.err).trim()
+                Log2.registrar("pm install: ${r.code} $txt")
+                if (txt.contains("USER_RESTRICTED")) Store.putBool("upd_falta_usb", true)
+                registrar("Shizuku não conseguiu instalar: " + txt.take(140), true)
+                if (txt.contains("USER_RESTRICTED")) break
             }
         }
         if (Build.VERSION.SDK_INT >= 31 && ctx.packageManager.canRequestPackageInstalls()) {
             // por aqui o Android nao reabre o app: se a pessoa pediu com o app aberto, avisa com notificacao no fim
             Store.putBool("upd_silenciosa", !reabrir)
-            return try { sessao(ctx, arq, silencioso = true); true } catch (e: Exception) { Log2.registrar("sessao silenciosa: $e"); false }
+            return try { sessao(ctx, arq, silencioso = true); registrar("enviada ao Android para instalar"); true } catch (e: Exception) { registrar("o Android recusou: ${e.message}", true); false }
         }
         Store.putBool("upd_silenciosa", false)
         return false
@@ -154,12 +158,42 @@ object Atualizador {
         } catch (x: Throwable) { Sh.R(-1, "", x.message ?: "erro") }
     }
 
+    fun xiaomi(): Boolean = Build.MANUFACTURER.lowercase().let { it.contains("xiaomi") || it.contains("redmi") || it.contains("poco") }
+
+    /** Guarda o resultado da ultima tentativa (aparece em Menu > Atualizar sozinho) e manda falhas ao relatorio. */
+    fun registrar(res: String, falhou: Boolean = false) {
+        val h = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale("pt", "BR")).format(java.util.Date())
+        Store.putStr("upd_log", "$h · $res")
+        if (falhou) try { Relatorio.falha("Atualizar sozinho", res.take(180)) } catch (e: Throwable) { }
+    }
+
+    /**
+     * A pessoa saiu do app: confere se ha versao nova e, se houver, instala ja (em segundos),
+     * para que na proxima vez que abrir ja esteja atualizado. O job fica de reserva.
+     */
+    fun aoSair(ctx: Context) {
+        if (!automatica()) return
+        agendarLogo(ctx)
+        Thread {
+            try {
+                Thread.sleep(3500)
+                if (visivel) return@Thread
+                val ultima = Store.str("upd_ultima").toLongOrNull() ?: 0L
+                val i = pendente() ?: (if (System.currentTimeMillis() - ultima > 30_000L) verificar() else null) ?: return@Thread
+                if (!podeSilencioso(ctx)) { registrar("este celular ainda não deixa atualizar sozinho"); return@Thread }
+                val arq = baixarSilencioso(ctx, i) ?: run { registrar("não consegui baixar a versão ${i.nome}", true); return@Thread }
+                if (visivel || emUso(ctx)) { registrar("versão ${i.nome} pronta; espera você parar de usar"); return@Thread }
+                instalarSilencioso(ctx, arq)
+            } catch (e: Throwable) { registrar("erro: ${e.message}", true) }
+        }.start()
+    }
+
     /** Tentativa em segundo plano: chamada pelo job. So instala se a pessoa nao estiver usando o app. */
     fun tentarSozinho(ctx: Context) {
         val i = verificar() ?: pendente() ?: return
         if (!automatica() || !podeSilencioso(ctx)) { notificar(ctx, i); return }
-        val arq = baixarSilencioso(ctx, i) ?: return
-        if (emUso(ctx)) return   // usando agora (botoes no jogo ou app aberto): tenta quando sair / na proxima conferencia
+        val arq = baixarSilencioso(ctx, i) ?: run { registrar("não consegui baixar a versão ${i.nome}", true); return }
+        if (emUso(ctx)) { registrar("versão ${i.nome} pronta; espera você parar de usar"); return }
         if (!instalarSilencioso(ctx, arq)) notificar(ctx, i)
     }
 
@@ -266,6 +300,13 @@ object Atualizador {
             }
             else -> con.aviso("No Android ${Build.VERSION.RELEASE}, atualizar sozinho precisa do modo automático (Shizuku) ligado. Sem ele, você recebe um aviso quando sair versão nova.")
         }
+        val log = Store.str("upd_log")
+        if (log.isNotBlank()) con.info("Última tentativa: $log")
+        if (xiaomi()) {
+            con.linha("")
+            con.aviso("Na Xiaomi/Redmi/Poco: ligue também “Instalar via USB” em Opções do desenvolvedor. Sem ela, a Xiaomi bloqueia a atualização sozinha.")
+            if (con.ask("Abrir as Opções do desenvolvedor agora?", "Abrir", "Depois")) con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+        }
         con.linha("")
         val ligado = automatica()
         val novo = con.ask("Atualização automática está ${if (ligado) "LIGADA" else "DESLIGADA"}. O que prefere?", "Ligada", "Desligada")
@@ -366,6 +407,7 @@ class AtualizacaoReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 if (i.getBooleanExtra("silencioso", false)) {
                     // o Android quis confirmacao: nao abre nada por cima do que a pessoa esta fazendo; avisa
+                    Atualizador.registrar("o Android pediu confirmação (avisei por notificação)", true)
                     Store.putBool("upd_silenciosa", false)
                     Atualizador.pendente()?.let { Store.putStr("upd_notificada", ""); Atualizador.notificar(c, it) }
                     return
@@ -379,7 +421,7 @@ class AtualizacaoReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> { }
             PackageInstaller.STATUS_FAILURE_ABORTED -> Toast.makeText(c, "Atualização cancelada.", Toast.LENGTH_SHORT).show()
-            else -> if (!i.getBooleanExtra("silencioso", false)) Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
+            else -> if (i.getBooleanExtra("silencioso", false)) Atualizador.registrar("o Android não instalou: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), true) else Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
         }
     }
 }

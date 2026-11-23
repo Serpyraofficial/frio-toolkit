@@ -302,7 +302,7 @@ class MainActivity : Activity() {
     override fun onStop() {
         super.onStop()
         // saiu do app com versao nova esperando: atualiza sozinho daqui a pouco, sem atrapalhar
-        if (!isChangingConfigurations) Atualizador.agendarLogo(this)
+        if (!isChangingConfigurations) Atualizador.aoSair(applicationContext)
     }
 
     override fun onResume() {

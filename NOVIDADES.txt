@@ -1,1 +1,3 @@
-- Aba SHIZUKU agora abre ao tocar: vídeo tutorial, foto do que ativar e passo a passo
+- Atualização sozinha mais rápida: instala segundos depois que você sai do app
+- Xiaomi/Redmi/Poco: o tutorial do Shizuku agora mostra o “Instalar via USB”, necessário para atualizar sozinho
+- Em Menu > Atualizar sozinho aparece o resultado da última tentativa

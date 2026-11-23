@@ -114,7 +114,7 @@ object TutorialShizuku {
 
         // foto
         col.addView(Ui.secao(act, "O que ativar"))
-        val fd = Ui.texto(act, "Em Opções do desenvolvedor, deixe assim. Os números verdes batem com o passo a passo abaixo.", 12.5f, T.texto2)
+        val fd = Ui.texto(act, "Em Opções do desenvolvedor, ligue tudo que está marcado em verde. Atenção: o 3 (Instalar via USB) aparece desligado nesta foto, mas precisa ficar LIGADO.", 12.5f, T.texto2)
         fd.setPadding(0, 0, 0, Ui.dp(act, 10))
         col.addView(fd)
         val foto = ImageView(act)
@@ -123,13 +123,13 @@ object TutorialShizuku {
         foto.scaleType = ImageView.ScaleType.FIT_CENTER
         arredondar(foto, 16)
         col.addView(foto, Ui.linhaLp(act, 0, 6))
-        col.addView(Ui.texto(act, "1 Depuração USB · 2 Depuração por Wi-Fi · 3 Depuração USB (Config. de segurança, só Xiaomi/Redmi/Poco) · 4 Desativar o tempo limite da autorização adb", 12f, T.texto3))
+        col.addView(Ui.texto(act, "1 Depuração USB · 2 Depuração por Wi-Fi · 3 Instalar via USB · 4 Depuração USB (Config. de segurança) · 5 Desativar o tempo limite da autorização adb. Os itens 3 e 4 só existem na Xiaomi/Redmi/Poco.", 12f, T.texto3))
 
         // passo a passo
         col.addView(Ui.secao(act, "Passo a passo"))
         val passos = listOf(
             "Liberar as Opções do desenvolvedor" to "Configurações > Sobre o telefone > toque 7 vezes em “Número da versão” (na Xiaomi: “Versão do SO”/“Versão MIUI”).",
-            "Ligar os itens 1, 3 e 4 da foto" to "Em Opções do desenvolvedor (na Xiaomi fica em Configurações adicionais). O item 3 só existe na Xiaomi e pode pedir a conta Xiaomi e o chip no celular.",
+            "Ligar os itens 1, 3, 4 e 5 da foto" to "Em Opções do desenvolvedor (na Xiaomi fica em Configurações adicionais). Os itens 3 e 4 só existem na Xiaomi e podem pedir a conta Xiaomi e o chip no celular. O item 3 é o que deixa o app se atualizar sozinho.",
             "Ligar o item 2: Depuração por Wi-Fi" to "Conectado a um Wi-Fi (não precisa ter internet). Toque no nome para entrar e ligue a chave lá dentro.",
             "Parear o Shizuku" to "Abra o Shizuku e toque em “Parear”. Em Depuração por Wi-Fi, toque em “Parear dispositivo com código de pareamento” e digite o código na notificação do Shizuku.",
             "Iniciar" to "Volte ao Shizuku e toque em “Iniciar”. Aparece “Shizuku está em execução”.",
