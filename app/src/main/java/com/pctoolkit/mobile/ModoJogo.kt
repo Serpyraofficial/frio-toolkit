@@ -105,9 +105,9 @@ object ModoJogo {
             if (r.isEmpty()) { Store.putBool("eco_sessao", true); con.ok("Modo bateria ligado durante a partida") } else con.aviso("Modo bateria: $r")
         }
         if (campeonato && Ajuste.pode() && Store.str("camp_brilho").isEmpty()) {
-            Store.putStr("camp_brilho", Ajuste.ler("system", "screen_brightness_mode").ifEmpty { "-" })
-            Ajuste.gravar("system", "screen_brightness_mode", "0")
-            con.ok("Brilho travado (o automático não vai escurecer a tela no meio da partida)")
+            val antes = Ajuste.ler("system", "screen_brightness_mode").ifEmpty { "-" }
+            if (Ajuste.gravar("system", "screen_brightness_mode", "0")) { Store.putStr("camp_brilho", antes); con.ok("Brilho travado (o automático não vai escurecer a tela no meio da partida)") }
+            else con.aviso("O Android não deixou travar o brilho: desligue o brilho automático na barra de cima.")
         }
         val i = Intent(ctx, GameService::class.java).putExtra("pkg", jogo.pkg).putExtra("nome", jogo.nome).putExtra("limite", limite)
         for ((k, v) in op) i.putExtra(k, v)
@@ -228,7 +228,13 @@ object Frio {
     private var mudouEm = 0L
     private var abaixoDesde = 0L
 
-    fun pode(): Boolean = Ajuste.pode()
+    @Volatile private var podeEm = 0L
+    @Volatile private var podeCache = false
+    /** Consegue mesmo mexer na taxa da tela? (testado de verdade, guardado por 10 min) */
+    fun pode(): Boolean {
+        if (System.currentTimeMillis() - podeEm > 600_000L) { podeCache = Ajuste.podeSystem(); podeEm = System.currentTimeMillis() }
+        return podeCache
+    }
 
     private fun ler(ns: String, k: String) = Ajuste.ler(ns, k)
 
@@ -489,12 +495,7 @@ class GameService : Service() {
             if (d.optBoolean("mj_sync")) {
                 try { if (ContentResolver.getMasterSyncAutomatically()) { ContentResolver.setMasterSyncAutomatically(false); Store.putBool("sync_pausada", true) } } catch (e: Exception) { }
             }
-            if (d.optBoolean("mj_ram")) {
-                if (Sh.privOk()) Sh.root("am kill-all", 15)
-                val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                @Suppress("DEPRECATION")
-                for (a in packageManager.getInstalledApplications(0)) if ((a.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && a.packageName != packageName && a.packageName != pkg) try { am.killBackgroundProcesses(a.packageName) } catch (e: Exception) { }
-            }
+            if (d.optBoolean("mj_ram")) Fps.encerrarSegundoPlano(this, pkg)
         }
         reforcar(d, true)
         if (d.optBoolean("mj_painel") && android.provider.Settings.canDrawOverlays(this)) ui.post { porPainel() }

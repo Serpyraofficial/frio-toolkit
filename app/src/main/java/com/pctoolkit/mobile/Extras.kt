@@ -78,8 +78,8 @@ object Modelos {
         PerfisControle.salvar(jogo.pkg, criar(m))
         Conquistas.marcar("modelo")
         con.ok("Modelo ${m.nome} salvo com ${m.botoes.size + if (m.analogico != null) 1 else 0} botões")
-        con.info("Cada jogo coloca os botões num lugar um pouco diferente: o editor vai abrir para você arrastar o que ficar fora do lugar.")
-        con.info("Teclas do teclado físico já ligadas: Espaço pula, J atira, K mira, R recarrega, C agacha.")
+        con.info("Cada jogo coloca os botões num lugar um pouco diferente: o editor vai abrir para você conferir a mira ⊕ de cada botão em cima do botão do jogo.")
+        con.info("Com teclado ou controle físico: Espaço pula, J atira, K mira, R recarrega, C agacha. Na tela, toque direto no jogo; para Turbo num botão, toque nele no editor e escolha Turbo (o app afasta o círculo da mira sozinho).")
         return true
     }
 }
@@ -156,22 +156,25 @@ object Backup {
 // Modo bateria: jogar longe da tomada
 // ============================================================
 object Economia {
+    var ultimo = ""
     fun ativo() = Store.str("eco_orig").isNotEmpty()
 
     /** Baixa o brilho, trava a tela em 60 Hz e (se der) poe o jogo no modo bateria do Android. */
     fun ligar(ctx: Context, pkg: String?): String {
-        if (!Ajuste.pode()) return "precisa do modo automático (Shizuku)"
+        if (!Ajuste.podeSystem()) return "este celular não deixou mudar o brilho e a taxa da tela por comando (ative o modo automático/Shizuku)"
         if (!ativo()) {
             val o = JSONObject().put("modo", Ajuste.ler("system", "screen_brightness_mode")).put("brilho", Ajuste.ler("system", "screen_brightness"))
                 .put("peak", Ajuste.ler("system", "peak_refresh_rate")).put("min", Ajuste.ler("system", "min_refresh_rate")).put("pkg", pkg ?: "")
             Store.putStr("eco_orig", o.toString())
         }
-        Ajuste.gravar("system", "screen_brightness_mode", "0")
+        val okModo = Ajuste.gravar("system", "screen_brightness_mode", "0")
         val b = Ajuste.ler("system", "screen_brightness").toIntOrNull() ?: 128
-        Ajuste.gravar("system", "screen_brightness", (b * 6 / 10).coerceIn(25, 255).toString())
-        Ajuste.gravar("system", "peak_refresh_rate", "60.0")
+        val okBrilho = okModo && Ajuste.gravar("system", "screen_brightness", (b * 6 / 10).coerceIn(25, 255).toString())
+        val okHz = Ajuste.gravar("system", "peak_refresh_rate", "60.0")
         Ajuste.gravar("system", "min_refresh_rate", "60.0")
         if (pkg != null && Build.VERSION.SDK_INT >= 33 && Sh.privOk()) Sh.root("cmd game mode battery $pkg 2>/dev/null", 10)
+        if (!okBrilho && !okHz) { desligar(); return "o Android não aceitou mudar o brilho nem a taxa da tela" }
+        ultimo = listOfNotNull(if (okBrilho) "brilho 40% menor" else null, if (okHz) "tela em 60 Hz" else null).joinToString(" e ")
         return ""
     }
 
@@ -198,7 +201,7 @@ object Economia {
         val jogo = if (con.ask("Também deixar um jogo no modo economia do Android?", "Escolher jogo", "Só o celular")) Jogos.escolher(con) else null
         val r = ligar(con.ctx, jogo?.pkg)
         if (r.isNotEmpty()) { con.erro("Não deu: $r"); return }
-        con.ok("Modo bateria ligado" + if (jogo != null) " (${jogo.nome} em economia)" else "")
+        con.ok("Modo bateria ligado: $ultimo" + if (jogo != null) " (${jogo.nome} em economia)" else "")
         con.info("Para desligar, abra esta opção de novo.")
     }
 }

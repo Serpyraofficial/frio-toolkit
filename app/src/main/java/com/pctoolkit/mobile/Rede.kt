@@ -261,11 +261,17 @@ object Rede {
         val host = melhor.first.host ?: return
         if (Build.VERSION.SDK_INT < 28) { con.info("Trocar o DNS pelo sistema exige Android 9+. Configure no roteador: ${melhor.first.ip}"); return }
         if (!con.ask("Usar ${melhor.first.nome} como DNS Privado (criptografado, vale no Wi-Fi e nos dados móveis)?")) return
-        if (Ajuste.pode()) {
-            Ajuste.mudar("global", "private_dns_mode", "hostname")
-            Ajuste.mudar("global", "private_dns_specifier", host)
-            con.ok("DNS Privado: $host (dá para voltar em Desfazer)")
+        if (Ajuste.pode() && Ajuste.mudar("global", "private_dns_specifier", host) && Ajuste.mudar("global", "private_dns_mode", "hostname")) {
+            con.info("Testando se a internet continua funcionando com o DNS novo...")
+            con.sleep(4000)
+            val ok = listOf("www.wikipedia.org", "www.cloudflare.com", "www.google.com.br").any { try { java.net.InetAddress.getByName(it); true } catch (e: Exception) { con.sleep(1500); false } }
+            if (ok) con.ok("DNS Privado ativo e testado: $host (dá para voltar em Desfazer)")
+            else {
+                Ajuste.gravar("global", "private_dns_mode", "opportunistic")
+                con.erro("Esta rede bloqueia o DNS Privado (porta 853). Voltei ao automático para você não ficar sem internet.")
+            }
         } else {
+            if (Ajuste.pode()) con.aviso("O Android não aceitou mudar o DNS por comando. Faça pela tela:")
             con.ctx.let { (it.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("dns", host)) }
             con.linha("Copiei \"$host\". Vou abrir as configurações de rede:", T.azul)
             con.item("Toque em “DNS privado” (às vezes em Mais conexões / Rede e internet).")

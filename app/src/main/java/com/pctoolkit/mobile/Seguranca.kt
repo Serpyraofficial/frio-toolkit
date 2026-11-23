@@ -149,15 +149,17 @@ object Seguranca {
                 when (op) {
                     0 -> Auto.desinstalar(con, a.alvo, a.titulo.removePrefix("App suspeito: "))
                     1 -> con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.alvo)))
-                    2 -> if (Sh.privOk()) { Ajuste.comandoRoot("q:${a.alvo}", "pm disable-user --user 0 ${a.alvo}", "pm enable ${a.alvo}"); con.ok("Desativado (reative em Desfazer)") }
+                    2 -> if (Sh.privOk()) { Ajuste.comandoRoot("q:${a.alvo}", "pm disable-user --user 0 ${a.alvo}", "pm enable ${a.alvo}")
+                        val des = try { !con.ctx.packageManager.getApplicationInfo(a.alvo, 0).enabled } catch (e: Exception) { true }
+                        if (des) con.ok("Desativado (reative em Desfazer)") else con.erro("O Android não deixou desativar este app. Desinstale ou abra as informações dele.") }
                 }
                 if (!Links.instalado(ctx, a.alvo)) con.ok("Removido")
             }
-            "playprotect" -> if (Ajuste.pode()) { Ajuste.mudar("global", "package_verifier_enable", "1"); con.ok("Play Protect ligado (automático)") } else { con.linha("Abrindo a Play Store: toque na foto do perfil > Play Protect > Configurações > ligue “Verificar apps”.", T.azul); if (!Links.abrirPacote(ctx, "com.android.vending")) con.abrirConfig(Settings.ACTION_SECURITY_SETTINGS); con.sleep(1500) }
+            "playprotect" -> if (Ajuste.pode() && Ajuste.mudar("global", "package_verifier_enable", "1")) con.ok("Play Protect ligado (confirmado)") else { con.linha("Abrindo a Play Store: toque na foto do perfil > Play Protect > Configurações > ligue “Verificar apps”.", T.azul); if (!Links.abrirPacote(ctx, "com.android.vending")) con.abrirConfig(Settings.ACTION_SECURITY_SETTINGS); con.sleep(1500) }
             "dev" -> con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
             "set" -> {
                 val p = a.alvo.split(':', limit = 3)
-                if (p.size == 3 && Ajuste.pode()) { Ajuste.mudar(p[0], p[1], p[2]); con.ok("Corrigido (reversível em Desfazer)") }
+                if (p.size == 3 && Ajuste.pode() && Ajuste.mudar(p[0], p[1], p[2])) con.ok("Corrigido e conferido (reversível em Desfazer)")
                 else con.abrirEEsperar(Intent(Settings.ACTION_WIFI_SETTINGS))
             }
             "arquivo" -> {

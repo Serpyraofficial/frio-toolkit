@@ -15,7 +15,9 @@ object RaioX {
         r.add(Item("Economia de energia", !eco, if (eco) "Ligada: limita CPU e tela" else "Desligada", 15) { c -> Auto.desligarEconomia(c) })
 
         val (hz, max) = Sensores.tela(ctx)
-        val telaOk = max <= 61 || hz + 1 >= max
+        // telas adaptativas ficam em 60 Hz com a imagem parada: o que importa e o limite configurado
+        val pico = Ajuste.ler("system", "peak_refresh_rate").toFloatOrNull()
+        val telaOk = max <= 61 || hz + 1 >= max || (pico != null && pico + 1 >= max)
         r.add(Item("Taxa da tela", telaOk, String.format(Locale.US, "%.0f Hz de %.0f Hz", hz, max), 12) { c -> Fps.tela(c) })
 
         val b = Sensores.bateria(ctx)
@@ -47,8 +49,14 @@ object RaioX {
             if (f != null) r.add(Item("Faixa do Wi-Fi", f > 4900, if (f > 4900) "5 GHz" else "2,4 GHz (mais interferência)", 3, null))
         }
         val ws = Ajuste.ler("global", "wifi_scan_always_enabled") != "1"
-        r.add(Item("Varredura de Wi-Fi em segundo plano", ws, if (ws) "Desligada" else "Ligada (picos de ping)", 3) { c -> Fps.otimizar(c) })
-        if (Rede.economiaDados(ctx)) r.add(Item("Economia de dados", false, "Ligada", 2) { c -> c.abrirEEsperar(Intent(Settings.ACTION_DATA_ROAMING_SETTINGS)) })
+        r.add(Item("Varredura de Wi-Fi em segundo plano", ws, if (ws) "Desligada" else "Ligada (picos de ping)", 3) { c ->
+            if (Ajuste.pode() && Ajuste.mudar("global", "wifi_scan_always_enabled", "0")) { Ajuste.mudar("global", "ble_scan_always_enabled", "0"); c.ok("Varredura desligada (confirmado)") }
+            else { c.linha("Desligue em Localização > Serviços de localização > Busca por Wi-Fi e Bluetooth.", T.azul); c.abrirEEsperar(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
+        })
+        if (Rede.economiaDados(ctx)) r.add(Item("Economia de dados", false, "Ligada (atrasa o jogo em segundo plano)", 2) { c ->
+            c.linha("Desligue “Economia de dados” na tela que vai abrir.", T.azul)
+            c.abrirEEsperar(Intent(if (android.os.Build.VERSION.SDK_INT >= 28) Settings.ACTION_DATA_USAGE_SETTINGS else Settings.ACTION_WIRELESS_SETTINGS))
+        })
         return r
     }
 

@@ -135,19 +135,35 @@ object Ajuste {
         if (Acesso.adb()) {
             try {
                 val cr = ctx.contentResolver
-                val ok = when (ns) {
+                when (ns) {
                     "global" -> Settings.Global.putString(cr, key, valor)
                     "secure" -> Settings.Secure.putString(cr, key, valor)
                     else -> Settings.System.putString(cr, key, valor)
                 }
-                if (ok) return true
             } catch (e: Exception) { }
+            if (confere(ns, key, valor)) return true
         }
         if (Sh.privOk()) {
-            val r = if (valor == null) Sh.root("settings delete $ns $key") else Sh.root("settings put $ns $key ${Sh.q(valor)}")
-            return r.ok
+            if (valor == null) Sh.root("settings delete $ns $key") else Sh.root("settings put $ns $key ${Sh.q(valor)}")
+            return confere(ns, key, valor)
         }
         return false
+    }
+
+    /** Le de volta e confere se o Android realmente guardou o valor (numeros: 60 == 60.0). */
+    fun confere(ns: String, key: String, valor: String?): Boolean {
+        val lido = ler(ns, key)
+        if (valor == null) return lido.isEmpty() || lido == "null"
+        if (lido == valor) return true
+        val a = lido.toDoubleOrNull(); val b = valor.toDoubleOrNull()
+        return a != null && b != null && Math.abs(a - b) < 0.01
+    }
+
+    /** Consegue mudar configuracoes "system" (brilho, taxa da tela)? Testa regravando o valor atual. */
+    fun podeSystem(): Boolean {
+        if (!pode()) return false
+        val atual = ler("system", "screen_brightness_mode").ifEmpty { "1" }
+        return gravarCru("system", "screen_brightness_mode", atual)
     }
 
     @Synchronized
@@ -176,14 +192,16 @@ object Ajuste {
     fun desfazer(log: (String) -> Unit): Int {
         val a = Store.lerArr(ARQ)
         var n = 0
+        val falhou = org.json.JSONArray()
         for (i in a.length() - 1 downTo 0) {
             val o = a.getJSONObject(i)
             if (o.optString("tipo") == "set") {
                 val old = o.optString("old")
-                if (gravarCru(o.getString("ns"), o.getString("key"), if (old.isEmpty()) null else old)) { n++; log(o.getString("key")) }
-            } else if (Sh.privOk()) { Sh.root(o.optString("cmd")); n++; log(o.optString("k")) }
+                if (gravarCru(o.getString("ns"), o.getString("key"), if (old.isEmpty()) null else old)) { n++; log(o.getString("key")) } else falhou.put(o)
+            } else if (Sh.privOk() && Sh.root(o.optString("cmd")).ok) { n++; log(o.optString("k")) } else falhou.put(o)
         }
-        Store.apagar(ARQ)
+        // o que nao deu para desfazer continua na lista para tentar de novo
+        if (falhou.length() == 0) Store.apagar(ARQ) else Store.salvarArr(ARQ, falhou)
         return n
     }
 }

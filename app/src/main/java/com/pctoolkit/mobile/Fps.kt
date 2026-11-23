@@ -15,23 +15,46 @@ import java.util.concurrent.atomic.AtomicLong
 object Fps {
 
     // ---------------- memoria ----------------
-    fun liberarRam(con: Console) {
+    /** Encerra o que esta em segundo plano. Devolve true se liberou memoria de verdade. */
+    fun liberarRam(con: Console): Boolean {
         con.titulo("Liberar memória")
         val ctx = con.ctx
-        val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val antes = Sensores.memoria(ctx).availMem
         con.linha("Livre agora: ${fmtTam(antes)} de ${fmtTam(Sensores.memoria(ctx).totalMem)}")
-        val pm = ctx.packageManager
-        @Suppress("DEPRECATION")
-        val apps = pm.getInstalledApplications(0).filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && it.packageName != ctx.packageName }
-        var n = 0
-        for (a in apps) { try { am.killBackgroundProcesses(a.packageName); n++ } catch (e: Exception) { } }
-        if (Sh.privOk()) Sh.root("am kill-all; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null", 20)
+        // Android 14+: um app comum so consegue encerrar os proprios processos. Com Shizuku/root funciona em todos.
+        if (!Sh.privOk() && android.os.Build.VERSION.SDK_INT >= 34) {
+            con.aviso("No Android 14 ou mais novo, só dá para encerrar os outros apps com o modo automático (Shizuku).")
+            if (!con.ask("Ativar o modo automático agora?") || !Priv.ativar(con)) { con.info("Sem ele, feche os apps pela tela de recentes (botão quadrado) antes de jogar."); return false }
+        }
+        val n = encerrarSegundoPlano(ctx, null)
         con.sleep(1500)
         val depois = Sensores.memoria(ctx).availMem
-        con.ok("Processos em segundo plano encerrados ($n apps verificados)")
-        con.linha("Livre depois: ${fmtTam(depois)}  (+${fmtTam((depois - antes).coerceAtLeast(0))})", T.verde)
+        val ganho = depois - antes
+        if (ganho > 20L shl 20) {
+            con.ok("$n apps encerrados em segundo plano")
+            con.linha("Livre depois: ${fmtTam(depois)}  (+${fmtTam(ganho)})", T.verde)
+        } else {
+            con.ok("Encerrados $n apps em segundo plano. A memória livre quase não mudou (${fmtTam(depois)}): o Android já estava com a memória arrumada.")
+        }
         con.info("O Android reabre alguns apps sozinho (mensageiros, redes sociais). Para eles não voltarem durante o jogo, use o Modo Jogo.")
+        return ganho > 20L shl 20
+    }
+
+    /** Encerra os apps em segundo plano (menos [exceto]). Devolve quantos. */
+    fun encerrarSegundoPlano(ctx: Context, exceto: String?): Int {
+        val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        @Suppress("DEPRECATION")
+        val apps = ctx.packageManager.getInstalledApplications(0).filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 && it.packageName != ctx.packageName && it.packageName != exceto }
+        if (Sh.privOk()) {
+            // processos que estao rodando agora (so os de apps instalados pelo usuario)
+            val vivos = Sh.root("ps -A -o NAME 2>/dev/null", 10).out.lines().map { it.trim().substringBefore(':') }.toSet()
+            val alvo = apps.map { it.packageName }.filter { it in vivos }
+            if (alvo.isNotEmpty()) Sh.root(alvo.joinToString("; ") { "am kill $it" } + "; am kill-all", 30)
+            return alvo.size
+        }
+        var n = 0
+        for (a in apps) { try { am.killBackgroundProcesses(a.packageName); n++ } catch (e: Exception) { } }
+        return n
     }
 
     // ---------------- teste de desempenho ----------------
@@ -129,12 +152,17 @@ object Fps {
         if (max <= 61) { con.info("A tela deste celular é de 60 Hz: o jogo vai até 60 FPS."); return }
         con.info("Muitos celulares baixam para 60 Hz para economizar bateria, e os jogos ficam presos em 60 FPS.")
         if (atual + 1 >= max && !con.ask("A tela já está no máximo agora. Quer fixar no máximo mesmo assim (evita cair durante o jogo)?")) return
-        if (Ajuste.pode()) {
-            Ajuste.mudar("system", "peak_refresh_rate", f0(max.toDouble()))
-            if (con.ask("Também travar o MÍNIMO em ${f0(max.toDouble())} Hz? (mais fluido, gasta mais bateria)", importante = true)) Ajuste.mudar("system", "min_refresh_rate", f0(max.toDouble()))
+        if (Ajuste.pode() && Ajuste.mudar("system", "peak_refresh_rate", f0(max.toDouble()))) {
+            var minOk = true
+            if (con.ask("Também travar o MÍNIMO em ${f0(max.toDouble())} Hz? (mais fluido, gasta mais bateria)", importante = true)) minOk = Ajuste.mudar("system", "min_refresh_rate", f0(max.toDouble()))
             if (android.os.Build.MANUFACTURER.equals("samsung", true)) Ajuste.mudar("secure", "refresh_rate_mode", "1")
-            con.ok("Tela no máximo (desfaça em Desfazer)")
+            con.sleep(1000)
+            val (a2, _) = Sensores.tela(ctx)
+            con.ok(String.format(Locale.US, "Tela liberada até %.0f Hz (desfaça em Desfazer). Agora: %.0f Hz", max, a2))
+            if (!minOk) con.aviso("O Android não aceitou travar o mínimo: a tela ainda pode baixar sozinha em telas paradas.")
+            if (a2 + 1 < max) con.info("Algumas telas só sobem os Hz quando há movimento (rolar a tela ou dentro do jogo). Isso é normal.")
         } else {
+            if (Ajuste.pode()) con.aviso("Este celular não deixou mudar a taxa da tela por comando. Vou abrir a tela certa para você escolher.")
             con.linha("Vou abrir Tela: escolha a opção de taxa mais alta (Alta / Suave / 120 Hz / Adaptável).", T.azul)
             con.abrirEEsperar(Intent(Settings.ACTION_DISPLAY_SETTINGS))
             val (a2, _) = Sensores.tela(ctx)
@@ -150,8 +178,9 @@ object Fps {
         val op = con.escolher("Velocidade das animações", listOf("0.5x (recomendado: tudo mais rápido)", "Desligadas (máxima rapidez)", "1x (padrão)"))
         if (op < 0) return
         val v = when (op) { 0 -> "0.5"; 1 -> "0"; else -> "1" }
-        if (Ajuste.pode()) { for (k in ks) Ajuste.mudar("global", k, v); con.ok("Animações em ${v}x") }
+        if (Ajuste.pode() && ks.all { Ajuste.mudar("global", it, v) }) con.ok("Animações em ${v}x (confirmado)")
         else {
+            if (Ajuste.pode()) con.aviso("O Android não aceitou a mudança automática.")
             con.linha("Vou abrir as Opções do desenvolvedor. Procure “Escala de animação” (três itens) e escolha ${v}x.", T.azul)
             con.info("Se não abrir: Configurações > Sobre o telefone > toque 7 vezes em “Número da versão”.")
             con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
@@ -174,11 +203,11 @@ object Fps {
 
         con.subtitulo("2. Tela")
         val (a, m) = Sensores.tela(ctx)
-        if (m > 61 && a + 1 < m) { con.aviso(String.format(Locale.US, "Tela em %.0f Hz de %.0f Hz possíveis", a, m)); if (con.ask("Corrigir?")) { tela(con); feitos++ } } else con.ok(String.format(Locale.US, "%.0f Hz", a))
+        if (m > 61 && a + 1 < m) { con.aviso(String.format(Locale.US, "Tela em %.0f Hz de %.0f Hz possíveis", a, m)); if (con.ask("Corrigir?")) { tela(con); if (Ajuste.ler("system", "peak_refresh_rate").toFloatOrNull()?.let { it + 1 >= m } == true || Sensores.tela(ctx).first + 1 >= m) feitos++ } } else con.ok(String.format(Locale.US, "%.0f Hz", a))
 
         con.subtitulo("3. Animações")
         val an = Ajuste.ler("global", "animator_duration_scale").ifEmpty { "1" }
-        if ((an.toFloatOrNull() ?: 1f) > 0.5f) { con.info("Animações em ${an}x"); if (con.ask("Deixar o sistema mais rápido (0.5x)?")) { if (Ajuste.pode()) { listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale").forEach { Ajuste.mudar("global", it, "0.5") }; con.ok("0.5x") } else animacoes(con); feitos++ } } else con.ok("${an}x")
+        if ((an.toFloatOrNull() ?: 1f) > 0.5f) { con.info("Animações em ${an}x"); if (con.ask("Deixar o sistema mais rápido (0.5x)?")) { if (Ajuste.pode() && listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale").all { Ajuste.mudar("global", it, "0.5") }) { con.ok("0.5x (confirmado)"); feitos++ } else { animacoes(con); if ((Ajuste.ler("global", "animator_duration_scale").toFloatOrNull() ?: 1f) <= 0.5f) feitos++ } } } else con.ok("${an}x")
 
         con.subtitulo("4. Antisserrilhado forçado (MSAA 4x)")
         if (Sh.getprop("debug.egl.force_msaa") == "true" || Ajuste.ler("global", "force_msaa") == "1") {
@@ -190,7 +219,7 @@ object Fps {
         val ws = Ajuste.ler("global", "wifi_scan_always_enabled")
         if (ws == "1") {
             con.info("O celular procura redes o tempo todo (causa picos de ping a cada minuto).")
-            if (Ajuste.pode()) { if (con.ask("Desligar a varredura em segundo plano?")) { Ajuste.mudar("global", "wifi_scan_always_enabled", "0"); Ajuste.mudar("global", "ble_scan_always_enabled", "0"); con.ok("Desligada"); feitos++ } }
+            if (Ajuste.pode()) { if (con.ask("Desligar a varredura em segundo plano?")) { if (Ajuste.mudar("global", "wifi_scan_always_enabled", "0")) { Ajuste.mudar("global", "ble_scan_always_enabled", "0"); con.ok("Desligada (confirmado)"); feitos++ } else con.aviso("O Android não aceitou. Desligue em Localização > Busca por Wi-Fi e Bluetooth.") } }
             else { con.info("Desligue em Configurações > Localização > Serviços de localização > Busca por Wi-Fi e Bluetooth."); if (con.ask("Abrir Localização?")) con.abrirEEsperar(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
         } else con.ok("Desligada")
 
@@ -207,7 +236,7 @@ object Fps {
         } else con.info("Nenhuma encontrada (use o Modo Jogo do SerpyraToolkit).")
 
         con.subtitulo("8. Memória")
-        if (con.ask("Encerrar apps em segundo plano agora?")) { liberarRam(con); feitos++ }
+        if (con.ask("Encerrar apps em segundo plano agora?")) { if (liberarRam(con)) feitos++ }
 
         con.linha("")
         con.ok("Pronto: $feitos melhoria(s) aplicada(s). Rode o Raio-X para ver a nova nota.")
@@ -257,7 +286,7 @@ object Fps {
     fun medidor(con: Console) {
         con.titulo("Medidor de FPS")
         if (!Sh.privOk() || Sensores.contadorQuadros() == null) {
-            con.linha("Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo automático (Shizuku) ou root, o medidor funciona.", T.texto2)
+            con.linha(if (Sh.privOk()) "Este Android não libera o contador de quadros nem para o modo automático (alguns fabricantes bloqueiam). Dá para ver o FPS pelos jeitos abaixo." else "Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo automático (Shizuku) ou root, o medidor funciona.", T.texto2)
             con.subtitulo("Como ver o FPS sem root")
             val f = FerramentaFabricante.encontrar(con.ctx)
             if (f != null) con.item("${f.second}: tem contador de FPS no painel durante o jogo", T.verde)

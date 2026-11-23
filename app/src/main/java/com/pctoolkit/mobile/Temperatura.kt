@@ -150,6 +150,13 @@ object Temperatura {
             val cur = Sh.root("cat $p/scaling_max_freq", 5).out.trim()
             Ajuste.comandoRoot("cpu:$p", "echo ${max * pct / 100} > $p/scaling_max_freq", "echo $cur > $p/scaling_max_freq")
         }
-        con.ok("CPU limitada a $pct% (volta ao reiniciar ou em Desfazer)")
+        val p0 = pols.firstOrNull()
+        val conferido = p0 == null || run {
+            val max = Sh.root("cat $p0/cpuinfo_max_freq", 5).out.trim().toLongOrNull() ?: 0L
+            val agora = Sh.root("cat $p0/scaling_max_freq", 5).out.trim().toLongOrNull() ?: 0L
+            max == 0L || Math.abs(agora - max * pct / 100) <= max / 20
+        }
+        if (conferido) con.ok("CPU limitada a $pct% (confirmado; volta ao reiniciar ou em Desfazer)")
+        else con.erro("O sistema deste celular não aceitou o limite (alguns fabricantes travam a frequência).")
     }
 }

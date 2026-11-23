@@ -21,11 +21,11 @@ object Sistema {
         val op = con.escolher("Estilo", listOf("Máximo desempenho (sem animações e sem desfoque)", "Equilibrado (animações 0.5x)", "Visual completo (padrão do Android)"))
         if (op < 0) return
         val v = listOf("0", "0.5", "1")[op]
-        if (Ajuste.pode()) {
-            for (k in listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")) Ajuste.mudar("global", k, v)
+        if (Ajuste.pode() && listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale").all { Ajuste.mudar("global", it, v) }) {
             if (Build.VERSION.SDK_INT >= 31) Ajuste.mudar("global", "disable_window_blurs", if (op == 0) "1" else "0")
-            con.ok("Estilo aplicado (reversível em Desfazer)")
+            con.ok("Estilo aplicado e conferido (reversível em Desfazer)")
         } else {
+            if (Ajuste.pode()) con.aviso("O Android não aceitou a mudança automática.")
             con.linha("Vou abrir as Opções do desenvolvedor. Ajuste as três “Escala de animação” para ${v}x" + if (op == 0 && Build.VERSION.SDK_INT >= 31) " e ligue “Desativar desfoque de janelas”." else ".", T.azul)
             con.info("Se não abrir: Configurações > Sobre o telefone > toque 7 vezes em “Número da versão”.")
             con.abrirEEsperar(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
@@ -72,7 +72,13 @@ object Sistema {
 
     fun reiniciar(con: Console) {
         con.titulo("Reiniciar")
-        if (Sh.privOk()) { if (con.ask("Reiniciar o celular agora?", importante = true)) Sh.root("svc power reboot || reboot", 10); return }
+        if (Sh.privOk()) {
+            if (!con.ask("Reiniciar o celular agora?", importante = true)) return
+            val r = Sh.root("svc power reboot || reboot", 10)
+            con.sleep(3000)
+            con.erro("O Android não deixou reiniciar por comando (${r.err.ifEmpty { "sem resposta" }.take(80)}). Segure o botão de ligar e toque em Reiniciar.")
+            return
+        }
         con.linha("Um app comum não pode reiniciar o celular. Segure o botão de ligar (ou Ligar + Volume para cima) e toque em Reiniciar.", T.texto2)
     }
 

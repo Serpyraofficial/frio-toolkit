@@ -1,6 +1,8 @@
-- Pro vitalício: paga uma vez e não vence mais
-- Dê o Pro de presente: a pessoa recebe um código por e-mail
-- Indique e ganhe: seu amigo ganha 10% e você ganha 15 dias de Pro a cada compra dele
-- 10% de desconto para renovar quando o Pro está perto de vencer
-- Avisos e promoções aparecem na tela inicial
-- Tudo da 5.7: modelos prontos de botões, Modo campeonato, relatório da partida, backup e mais
+- Botões na tela corrigidos: quando o círculo fica em cima do botão do jogo, o toque agora chega ao jogo (antes o próprio círculo "engolia" o toque)
+- Turbo e Liga/desliga afastam o círculo do ponto do jogo sozinhos, e o editor avisa quando um botão esconde o ponto de outro
+- Toda mudança de configuração agora é conferida: o app só diz "pronto" se o Android realmente aceitou
+- Liberar memória funciona no Android 14+ (com o modo automático) e mostra quanto liberou de verdade
+- Limpeza conta só o que foi realmente apagado e mostra o espaço liberado do cache
+- DNS mais rápido testa a internet depois de trocar e volta sozinho se a rede bloquear
+- Raio-X: taxa da tela avaliada pelo limite configurado (telas adaptativas não aparecem mais como erro)
+- Desfazer guarda o que não conseguiu voltar para tentar de novo

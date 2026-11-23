@@ -126,19 +126,20 @@ object Limpeza {
         for (g in listOf(mini, tmp, status)) {
             if (g.arquivos.isEmpty()) continue
             val t = g.tam
-            con.item("${g.nome}: ${g.arquivos.size} arquivos, ${fmtTam(t)}", T.texto)
-            if (!simular) { g.arquivos.forEach { it.delete() } }
-            total += t
+            if (simular) { con.item("${g.nome}: ${g.arquivos.size} arquivos, ${fmtTam(t)}", T.texto); total += t; continue }
+            var apagados = 0; var bytes = 0L
+            for (f in g.arquivos) { val tam = f.length(); if (f.delete()) { apagados++; bytes += tam } }
+            con.item("${g.nome}: $apagados de ${g.arquivos.size} apagados, ${fmtTam(bytes)}", if (apagados == g.arquivos.size) T.texto else T.amarelo)
+            total += bytes
         }
         if (vazias.isNotEmpty()) {
-            con.item("Pastas vazias: ${vazias.size}")
-            if (!simular) vazias.forEach { it.delete() }
+            con.item("Pastas vazias: " + if (simular) "${vazias.size}" else "${vazias.count { it.delete() }} de ${vazias.size} apagadas")
         }
         if (apks.arquivos.isNotEmpty()) {
             con.item("Instaladores .apk: ${apks.arquivos.size}, ${fmtTam(apks.tam)}", T.amarelo)
             if (!simular) {
                 val sel = con.varios("Apagar quais instaladores? (o app instalado continua)", apks.arquivos.map { it.name + "  ·  " + fmtTam(it.length()) }, true, importante = true)
-                for (i in sel) { total += apks.arquivos[i].length(); apks.arquivos[i].delete() }
+                for (i in sel) { val f = apks.arquivos[i]; val tam = f.length(); if (f.delete()) total += tam else con.aviso("Não consegui apagar ${f.name}") }
             } else total += apks.tam
         }
         if (Lixeira.tamanho() > 0) {
@@ -161,7 +162,12 @@ object Limpeza {
         }
         con.info("O cache dos jogos guarda shaders: apagar não aumenta o FPS e as primeiras partidas podem engasgar um pouco.")
         if (Sh.privOk()) {
-            if (con.ask("Limpar o cache de todos os apps agora?")) { Sh.root("pm trim-caches 999999999999", 120); con.ok("Cache dos apps liberado (automático)") }
+            if (con.ask("Limpar o cache de todos os apps agora?")) {
+                val a0 = Sensores.armazenamento().first
+                val r = Sh.root("pm trim-caches 999999999999", 120)
+                val lib = Sensores.armazenamento().first - a0
+                if (r.ok) con.ok("Cache dos apps limpo: ${fmtTam(lib.coerceAtLeast(0))} liberados") else con.erro("O Android recusou limpar o cache: ${r.err.take(80)}")
+            }
         } else if (Build.VERSION.SDK_INT >= 30) {
             if (con.ask("Limpar o cache de TODOS os apps? O Android vai pedir confirmação.")) {
                 val r = (con.ctx as MainActivity).pedirResultado(Intent(StorageManager.ACTION_CLEAR_APP_CACHE))

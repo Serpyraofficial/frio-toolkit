@@ -269,7 +269,12 @@ class TecladoService : Service() {
         for (c in controles) {
             val v = viewJogo(c, w, h)
             val tamPx = Ui.dp(this, if (c.tipo == "analogico") c.tam * 2 else c.tam)
-            if (add(v, lp((c.x * w).toInt() - tamPx / 2, (c.y * h).toInt() - tamPx / 2, tamPx, tamPx))) janelas.add(v)
+            val p = lp((c.x * w).toInt() - tamPx / 2, (c.y * h).toInt() - tamPx / 2, tamPx, tamPx)
+            // O toque que o app envia vai para a janela que estiver no ponto. Se o nosso circulo estiver em cima do
+            // proprio ponto do jogo, ele "engoliria" o toque: nesse caso ele vira so uma marca (os dedos passam direto
+            // para o jogo e as teclas fisicas continuam funcionando). Alpha 0.8 e o maximo que o Android 12+ deixa passar.
+            if (Controles.cobreAlvo(c, w, h, tamPx)) { p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE; p.alpha = 0.8f; v.alpha = v.alpha.coerceAtMost(0.7f) }
+            if (add(v, p)) janelas.add(v)
         }
         when (layout) {
             "completo" -> painelTeclado("completo", Layouts.completo(), true)
@@ -703,7 +708,7 @@ class TecladoService : Service() {
                 bt("+ Botão", T.verde, true) { novoBotao(w, h) }
                 bt("+ Analógico", T.laranja) { novoAnalogico(w, h) }
                 bt("Mais", T.texto2) { maisOpcoes(edLista) { edRedesenhar() } }
-                bt("Salvar", T.verde) { controles = edLista; PerfisControle.salvar(pkg, edLista); fecharEditor() }
+                bt("Salvar", T.verde) { controles = edLista; PerfisControle.salvar(pkg, edLista); Controles.conflitos(edLista, w, h) { Ui.dp(this, it) }?.let { toast(it) }; fecharEditor() }
                 bt("Sair", T.texto3) {
                     val mudou = edLista.map { it.json().toString() } != controles.map { it.json().toString() }
                     if (!mudou) fecharEditor()
@@ -799,7 +804,14 @@ class TecladoService : Service() {
             "toque" -> {
                 rot("Ao apertar")
                 val ms = listOf("segurar", "alternar", "turbo")
-                chips(listOf("Normal", "Liga/desliga", "Turbo (repete rápido)"), ms.indexOf(c.modo).coerceAtLeast(0)) { c.modo = ms[it] }
+                chips(listOf("Normal", "Liga/desliga", "Turbo (repete rápido)"), ms.indexOf(c.modo).coerceAtLeast(0)) {
+                    c.modo = ms[it]
+                    if (it > 0 && Controles.cobreAlvo(c, w, h, Ui.dp(this, c.tam))) {
+                        val dx = Ui.dp(this, c.tam + 24).toFloat() / w
+                        c.x = if (c.tx > 0.5f) (c.tx - dx).coerceAtLeast(0.04f) else (c.tx + dx).coerceAtMost(0.96f)
+                        edAviso = "Movi o botão para o lado: Turbo e Liga/desliga na tela precisam do círculo fora do ponto do jogo (a linha mostra o ponto). Arraste para onde preferir."
+                    }
+                }
                 if (c.modo == "turbo") {
                     val vs = listOf(200, 120, 70, 40)
                     rot("Velocidade do turbo")
@@ -929,6 +941,7 @@ class TecladoService : Service() {
                 0 -> mostrarDialogo(dialogo().setTitle("Como funciona").setMessage(
                     "1. Toque em “+ Botão”.\n2. Toque no lugar do jogo que esse botão deve apertar (por exemplo, o botão de atirar do jogo). Aparece a mira ⊕ ali.\n3. Arraste o círculo para onde for mais confortável para o seu dedo.\n4. Toque no círculo para escolher Turbo, Liga/desliga, tamanho ou uma tecla do teclado/controle físico.\n5. Toque em Salvar.\n\n" +
                         "Quando você aperta o círculo durante o jogo, o app toca na mira para você. Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD.\n\n" +
+                        "Importante: se o círculo ficar em cima da própria mira, ele vira só uma marca (você toca direto no jogo e a tecla física continua funcionando). Para Turbo, Liga/desliga ou para mudar um botão de lugar, deixe o círculo fora da mira.\n\n" +
                         "Analógico: toque no centro do analógico do jogo. Ao arrastar o nosso, o app move o do jogo.\n\n" +
                         "Os botões ficam salvos para cada jogo."
                 ).setPositiveButton("Entendi", null).create())

@@ -230,6 +230,33 @@ class Controle(
     }
 }
 
+/** Regras de onde o toque enviado pelo app pode chegar. */
+object Controles {
+    /** O circulo deste controle fica em cima do proprio ponto do jogo? */
+    fun cobreAlvo(c: Controle, w: Int, h: Int, tamPx: Int): Boolean {
+        if (c.tipo != "toque" && !(c.tipo == "analogico" && c.analog == "toque")) return false
+        val meio = tamPx / 2f + 4
+        val dx = Math.abs(c.x * w - c.tx * w); val dy = Math.abs(c.y * h - c.ty * h)
+        val alcance = if (c.tipo == "analogico") c.raio * w else 0f
+        return dx < meio + alcance && dy < meio + alcance
+    }
+
+    /** Ponto do jogo de um botao escondido embaixo de OUTRO botao (o toque nao chegaria ao jogo). */
+    fun conflitos(l: List<Controle>, w: Int, h: Int, dp: (Int) -> Int): String? {
+        val r = ArrayList<String>()
+        for (a in l) {
+            if (a.tipo != "toque" && !(a.tipo == "analogico" && a.analog == "toque")) continue
+            for (b in l) {
+                if (a === b) continue
+                val tam = dp(if (b.tipo == "analogico") b.tam * 2 else b.tam)
+                if (cobreAlvo(b, w, h, tam)) continue   // b vira marca, nao bloqueia
+                if (Math.abs(b.x * w - a.tx * w) < tam / 2f && Math.abs(b.y * h - a.ty * h) < tam / 2f) r.add("o ponto de “${a.texto()}” está embaixo de “${b.texto()}”")
+            }
+        }
+        return if (r.isEmpty()) null else "Atenção: " + r.distinct().take(3).joinToString("; ") + ". Arraste um deles, senão o toque não chega ao jogo."
+    }
+}
+
 /** Perfis de controles por jogo. */
 object PerfisControle {
     private fun chave(pkg: String) = "ctl_$pkg"
