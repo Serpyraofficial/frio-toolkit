@@ -196,7 +196,7 @@ object Compra {
     fun tipoCodigo(t: String): String {
         val c = t.trim().uppercase().replace(" ", "")
         return when {
-            c.startsWith("PCT-") || Regex("^[A-Z2-9]{4}-?[A-Z2-9]{4}\\.\\d+\\.").containsMatchIn(c) -> "chave"
+            Licenca.normalizar(t) != null || c.startsWith("PCT-") || Regex("^[A-Z2-9]{4}-?[A-Z2-9]{4}\\.\\d+\\.").containsMatchIn(c) -> "chave"
             Regex("^PRE[A-Z2-9]{9}$").matches(c) -> "presente"
             Regex("^[A-Z0-9]{3,20}$").matches(c) -> "cupom"
             else -> ""
@@ -290,10 +290,22 @@ object Licenca {
         return byteArrayOf(0x30, (r.size + s.size).toByte()) + r + s
     }
 
+    private val FORMATO = Regex("(?i:PCT-?)?([A-Za-z2-9]{4}-?[A-Za-z2-9]{4})\\.(\\d{1,6})\\.([A-Za-z0-9_-]{86})")
+
+    /**
+     * Acha a chave dentro do texto colado, mesmo com sujeira: espacos invisiveis que apps de e-mail colocam,
+     * quebras de linha, aspas ou palavras copiadas junto. Devolve "PCT-CODIGO.dia.assinatura" ou null.
+     */
+    fun normalizar(texto: String): String? {
+        val limpo = texto.filter { (it.code < 128 && it.isLetterOrDigit()) || it == '.' || it == '-' || it == '_' }
+        val m = FORMATO.find(limpo) ?: return null
+        return "PCT-" + m.groupValues[1].uppercase().replace("-", "") + "." + m.groupValues[2] + "." + m.groupValues[3]
+    }
+
     /** Confere uma chave. Devolve o dia de validade (dias desde 1970) ou -1 se invalida para este aparelho. */
     fun conferir(chave: String): Int {
         return try {
-            val t = chave.trim().replace("\\s".toRegex(), "").removePrefix("PCT-").removePrefix("pct-")
+            val t = (normalizar(chave) ?: chave.trim().replace("\\s".toRegex(), "")).removePrefix("PCT-").removePrefix("pct-")
             val partes = t.split('.')
             if (partes.size != 3) return -1
             val dev = partes[0].uppercase().replace("-", "")
@@ -350,7 +362,7 @@ object Licenca {
         val atual = diaValidade()
         if (atual > d && ativo()) return Pair(false, "Você já tem uma licença válida até mais tarde (${validadeTexto()}).")
         if (agoraConfiavel() >= (d + 1L) * DIA) return Pair(false, "Esta chave já venceu.")
-        Store.putStr("lic_chave", chave.trim())
+        Store.putStr("lic_chave", normalizar(chave) ?: chave.trim())
         try { AvisoPro.agendar(PcApp.ctx) } catch (e: Exception) { }
         return Pair(true, if (vitalicio()) "Pro vitalício ativado!" else "Pro ativado até ${validadeTexto()}!")
     }
