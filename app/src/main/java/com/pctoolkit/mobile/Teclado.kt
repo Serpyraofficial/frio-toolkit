@@ -196,7 +196,7 @@ class TecladoService : Service() {
         val edt = PendingIntent.getService(this, 13, Intent(this, TecladoService::class.java).setAction("editar"), PendingIntent.FLAG_IMMUTABLE)
         val fec = PendingIntent.getService(this, 12, Intent(this, TecladoService::class.java).setAction("fechar"), PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CANAL).setSmallIcon(R.drawable.ic_jogo).setContentTitle("Controles no jogo ativos")
-            .setContentText("Toque na bolinha ⌨ para o menu").setColor(T.verde).setOngoing(true)
+            .setContentText("Toque na bolinha ⌨ para editar, esconder ou fechar").setColor(T.verde).setOngoing(true)
             .addAction(Notification.Action.Builder(null, "Mostrar/Esconder", alt).build())
             .addAction(Notification.Action.Builder(null, "Editar", edt).build())
             .addAction(Notification.Action.Builder(null, "Fechar", fec).build()).build()
@@ -309,8 +309,8 @@ class TecladoService : Service() {
             col.addView(v)
         }
         item(if (visivel) "Esconder controles" else "Mostrar controles") { if (visivel) esconder() else { rem(bolha); bolha = null; mostrarTudo() } }
-        item("✎  Editar botões (estilo MuMu)", T.verde) { abrirEditor() }
-        item("⌨  Teclado: " + Layouts.nomes[Layouts.ids.indexOf(layout).coerceAtLeast(0)]) {
+        item("✎  Editar botões", T.verde) { abrirEditor() }
+        item("⌨  Teclado do PC: " + Layouts.nomes[Layouts.ids.indexOf(layout).coerceAtLeast(0)]) {
             val i = (Layouts.ids.indexOf(layout) + 1) % Layouts.ids.size
             layout = Layouts.ids[i]; Store.putStr("tec_layout", layout); visivel = true; mostrarControles()
         }
@@ -599,7 +599,9 @@ class TecladoService : Service() {
         }
     }
 
-    // ================= EDITOR (estilo MuMu) =================
+    // ================= EDITOR =================
+    // Ideia central: cada botao aperta um ponto do JOGO (a mira). Para criar: toque em "+ Botao" e depois toque
+    // no lugar do jogo que ele deve apertar. O circulo e onde VOCE aperta; a mira e onde o jogo recebe o toque.
     private fun dialogo(): AlertDialog.Builder = AlertDialog.Builder(ContextThemeWrapper(this, R.style.TemaDialogo))
 
     private fun mostrarDialogo(d: AlertDialog) {
@@ -607,6 +609,27 @@ class TecladoService : Service() {
         try { d.show() } catch (e: Exception) { Log2.registrar("dialogo: $e") }
     }
 
+    /** Linhas tracejadas do circulo ate a mira de cada botao. */
+    private class Ligacoes(ctx: Context, val itens: () -> List<Controle>, val w: Int, val h: Int) : View(ctx) {
+        private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = ctx.resources.displayMetrics.density * 2f
+            pathEffect = android.graphics.DashPathEffect(floatArrayOf(14f, 10f), 0f); color = 0xCCFFFFFF.toInt()
+        }
+        override fun onDraw(c: Canvas) {
+            for (k in itens()) {
+                if (k.tipo != "toque" && !(k.tipo == "analogico" && k.analog == "toque")) continue
+                c.drawLine(k.x * w, k.y * h, k.tx * w, k.ty * h, p)
+            }
+        }
+    }
+
+    private var edLista: MutableList<Controle> = ArrayList()
+    private var edRedesenhar: () -> Unit = {}
+    private var edAguardando: ((Float, Float) -> Unit)? = null
+    private var edAviso = ""
+    private var edSel: Controle? = null
+
+    @SuppressLint("ClickableViewAccessibility")
     fun abrirEditor() {
         if (editor != null) return
         soltarTudo()
@@ -617,74 +640,241 @@ class TecladoService : Service() {
         if (pkg.isEmpty() && fg != null && fg != packageName) { pkg = fg; Store.putStr("tec_pkg", pkg); controles = PerfisControle.carregar(pkg) }
         val (w, h) = Tela.tamanho(this)
         val raiz = FrameLayout(this)
-        raiz.setBackgroundColor(0x55000000)
-        val copia = controles.map { Controle.de(it.json()) }.toMutableList()
-        lateinit var redesenhar: () -> Unit
-        redesenhar = {
+        edLista = controles.map { Controle.de(it.json()) }.toMutableList()
+        edAguardando = null; edAviso = ""; edSel = null
+        val ligacoes = Ligacoes(this, { edLista }, w, h)
+
+        // toque no "fundo" do editor: usado para escolher a mira (o ponto do jogo)
+        raiz.setOnTouchListener { _, e ->
+            val cb = edAguardando
+            if (cb != null && e.actionMasked == MotionEvent.ACTION_UP) { edAguardando = null; cb(e.x, e.y) }
+            else if (cb == null && e.actionMasked == MotionEvent.ACTION_UP && edSel != null) { edSel = null; edRedesenhar() }
+            true
+        }
+
+        edRedesenhar = {
             raiz.removeAllViews()
-            for (c in copia) {
-                val tam = Ui.dp(this, if (c.tipo == "analogico") c.tam * 2 else c.tam)
-                if (c.tipo == "toque" || (c.tipo == "analogico" && c.analog == "toque")) {
-                    val m = Mira(this, if (c.tipo == "toque") T.azul else T.laranja)
-                    m.texto = c.texto()
-                    val mt = Ui.dp(this, if (c.tipo == "toque") 44 else 56)
-                    val lpM = FrameLayout.LayoutParams(mt, mt)
-                    lpM.leftMargin = (c.tx * w).toInt() - mt / 2; lpM.topMargin = (c.ty * h).toInt() - mt / 2
-                    raiz.addView(m, lpM)
-                    arrastarNoEditor(m, lpM, mt, null) { cx, cy -> c.tx = cx / w; c.ty = cy / h }
+            raiz.setBackgroundColor(if (edAguardando != null) 0x22000000 else 0x44000000)
+            raiz.addView(ligacoes, FrameLayout.LayoutParams(w, h))
+            ligacoes.invalidate()
+            if (edAguardando == null) {
+                for (c in edLista) {
+                    val alvoDeToque = c.tipo == "toque" || (c.tipo == "analogico" && c.analog == "toque")
+                    if (alvoDeToque) {
+                        val m = Mira(this, if (c.tipo == "toque") T.azul else T.laranja)
+                        val mt = Ui.dp(this, 40)
+                        val lpM = FrameLayout.LayoutParams(mt, mt)
+                        lpM.leftMargin = (c.tx * w).toInt() - mt / 2; lpM.topMargin = (c.ty * h).toInt() - mt / 2
+                        raiz.addView(m, lpM)
+                        arrastarNoEditor(m, lpM, mt, { edSel = c; edRedesenhar() }, { cx, cy -> c.tx = cx / w; c.ty = cy / h; ligacoes.invalidate() }, { cx, cy -> c.tx = cx / w; c.ty = cy / h; ligacoes.invalidate() })
+                    }
+                    val tam = Ui.dp(this, if (c.tipo == "analogico") c.tam * 2 else c.tam)
+                    val v: View = if (c.tipo == "analogico") Analogico(this).also { it.texto = c.texto() } else {
+                        val t = TextView(this)
+                        t.text = c.texto(); t.gravity = Gravity.CENTER; t.setTextColor(T.texto); t.typeface = Ui.negrito
+                        t.textSize = if (t.text.length > 3) 11f else 16f
+                        val cor = when (c.tipo) { "toque" -> T.verde; "macro" -> T.roxo; else -> T.amarelo }
+                        t.background = Ui.forma(this, 0xD90A0E14.toInt(), 50, cor, if (c === edSel) 4 else 2)
+                        t
+                    }
+                    if (c === edSel) v.alpha = 1f else v.alpha = 0.92f
+                    val lpV = FrameLayout.LayoutParams(tam, tam)
+                    lpV.leftMargin = (c.x * w).toInt() - tam / 2; lpV.topMargin = (c.y * h).toInt() - tam / 2
+                    raiz.addView(v, lpV)
+                    arrastarNoEditor(v, lpV, tam, { edSel = c; edRedesenhar() }, { cx, cy -> c.x = cx / w; c.y = cy / h; ligacoes.invalidate() }, { cx, cy -> c.x = cx / w; c.y = cy / h; ligacoes.invalidate() })
                 }
-                val v: View = if (c.tipo == "analogico") Analogico(this).also { it.texto = c.texto() } else {
-                    val t = TextView(this)
-                    t.text = c.texto(); t.gravity = Gravity.CENTER; t.setTextColor(T.texto); t.typeface = Ui.negrito
-                    t.textSize = if (t.text.length > 3) 11f else 15f
-                    val cor = when (c.tipo) { "toque" -> T.azul; "macro" -> T.roxo; else -> T.verde }
-                    t.background = Ui.forma(this, 0xCC0A0E14.toInt(), 50, cor, 2)
-                    t
-                }
-                val lpV = FrameLayout.LayoutParams(tam, tam)
-                lpV.leftMargin = (c.x * w).toInt() - tam / 2; lpV.topMargin = (c.y * h).toInt() - tam / 2
-                raiz.addView(v, lpV)
-                arrastarNoEditor(v, lpV, tam, { editarControle(c, copia, false, redesenhar) }) { cx, cy -> c.x = cx / w; c.y = cy / h }
             }
+
+            // barra de cima
             val barra = Ui.horizontal(this)
             barra.background = Ui.forma(this, 0xF20A0E14.toInt(), 50, Ui.alpha(T.verde, 0x88))
             barra.setPadding(Ui.dp(this, 6), Ui.dp(this, 4), Ui.dp(this, 6), Ui.dp(this, 4))
-            fun bt(t: String, cor: Int, acao: () -> Unit) {
-                val b = Ui.texto(this, t, 12.5f, cor, Ui.medio)
-                b.setPadding(Ui.dp(this, 10), Ui.dp(this, 8), Ui.dp(this, 10), Ui.dp(this, 8))
+            fun bt(t: String, cor: Int, cheio: Boolean = false, acao: () -> Unit) {
+                val b = Ui.texto(this, t, 13f, if (cheio) 0xFF06120D.toInt() else cor, Ui.negrito)
+                b.setPadding(Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12), Ui.dp(this, 8))
+                if (cheio) b.background = Ui.forma(this, cor, 50)
                 b.setOnClickListener { acao() }
-                barra.addView(b)
+                val lpb = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT); lpb.marginEnd = Ui.dp(this, 2)
+                barra.addView(b, lpb)
             }
-            bt("+ Tecla", T.verde) { novo(copia, "tecla", redesenhar) }
-            bt("+ Toque", T.azul) { novo(copia, "toque", redesenhar) }
-            bt("+ Analógico", T.laranja) { novo(copia, "analogico", redesenhar) }
-            bt("+ Macro", T.roxo) { novo(copia, "macro", redesenhar) }
-            bt("Mais", T.texto2) { maisOpcoes(copia, redesenhar) }
-            bt("Salvar", T.verde) { controles = copia; PerfisControle.salvar(pkg, copia); fecharEditor() }
-            bt("✕", T.vermelho) { fecharEditor() }
+            if (edAguardando != null) {
+                bt("Cancelar", T.vermelho) { edAguardando = null; edAviso = ""; edRedesenhar() }
+            } else {
+                bt("+ Botão", T.verde, true) { novoBotao(w, h) }
+                bt("+ Analógico", T.laranja) { novoAnalogico(w, h) }
+                bt("Mais", T.texto2) { maisOpcoes(edLista) { edRedesenhar() } }
+                bt("Salvar", T.verde) { controles = edLista; PerfisControle.salvar(pkg, edLista); fecharEditor() }
+                bt("Sair", T.texto3) {
+                    val mudou = edLista.map { it.json().toString() } != controles.map { it.json().toString() }
+                    if (!mudou) fecharEditor()
+                    else mostrarDialogo(dialogo().setMessage("Sair sem salvar as mudanças?").setPositiveButton("Sair sem salvar") { _, _ -> fecharEditor() }
+                        .setNeutralButton("Salvar e sair") { _, _ -> controles = edLista; PerfisControle.salvar(pkg, edLista); fecharEditor() }
+                        .setNegativeButton("Continuar editando", null).create())
+                }
+            }
             val hsv = HorizontalScrollView(this)
             hsv.isHorizontalScrollBarEnabled = false
             hsv.addView(barra)
             val lpB = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-            lpB.topMargin = Ui.dp(this, 24)
+            lpB.topMargin = Ui.dp(this, 16)
             raiz.addView(hsv, lpB)
-            val dica = Ui.texto(this, (if (pkg.isEmpty()) "" else Jogos.nome(this, pkg) + " · ") + "Arraste para posicionar · toque no botão para editar · a mira ◎ é onde o toque acontece no jogo", 11.5f, T.texto2)
-            dica.setBackgroundColor(0xAA0A0E14.toInt())
-            dica.setPadding(Ui.dp(this, 10), Ui.dp(this, 4), Ui.dp(this, 10), Ui.dp(this, 4))
-            raiz.addView(dica, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL))
+
+            // aviso / ajuda no rodape
+            val texto = when {
+                edAguardando != null -> edAviso
+                edLista.isEmpty() -> "Toque em “+ Botão” e depois toque no lugar do JOGO que esse botão vai apertar (ex.: o botão de atirar)."
+                else -> "Círculo = onde você aperta (arraste) · Mira ⊕ = onde o jogo recebe o toque (arraste) · Toque no círculo para ajustar"
+            }
+            val dica = Ui.texto(this, texto, if (edAguardando != null) 15f else 12f, if (edAguardando != null) T.texto else T.texto2, if (edAguardando != null) Ui.negrito else Ui.medio)
+            dica.gravity = Gravity.CENTER
+            dica.background = Ui.forma(this, 0xE60A0E14.toInt(), 14, if (edAguardando != null) T.verde else T.outline)
+            dica.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8))
+            val lpD = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, if (edAguardando != null) Gravity.CENTER else (Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL))
+            lpD.bottomMargin = Ui.dp(this, 12); lpD.leftMargin = Ui.dp(this, 24); lpD.rightMargin = Ui.dp(this, 24)
+            raiz.addView(dica, lpD)
+
+            // painel de ajustes do botao selecionado
+            edSel?.let { sel -> if (edAguardando == null) painelAjustes(raiz, sel, w, h) }
         }
-        redesenhar()
+        edRedesenhar()
         val p = lp(0, 0, w, h, focavel = false, tocavelFora = false)
         if (add(raiz, p)) editor = raiz
     }
 
+    private fun aguardarAlvo(aviso: String, pronto: (Float, Float) -> Unit) {
+        edAviso = aviso
+        edAguardando = pronto
+        edSel = null
+        edRedesenhar()
+    }
+
+    private fun novoBotao(w: Int, h: Int) {
+        aguardarAlvo("Toque no lugar do JOGO que este botão vai apertar") { x, y ->
+            val c = Controle(tipo = "toque", x = x / w, y = y / h, tx = x / w, ty = y / h, tam = 56, opac = 0.75f)
+            c.rotulo = (edLista.count { it.tipo == "toque" } + 1).toString()
+            edLista.add(c); edSel = c; edAviso = ""
+            edRedesenhar()
+        }
+    }
+
+    private fun novoAnalogico(w: Int, h: Int) {
+        aguardarAlvo("Toque no CENTRO do analógico (joystick) do jogo") { x, y ->
+            val c = Controle(tipo = "analogico", x = x / w, y = y / h, tx = x / w, ty = y / h, tam = 60, analog = "toque", raio = 0.08f, opac = 0.7f)
+            edLista.add(c); edSel = c; edAviso = ""
+            edRedesenhar()
+        }
+    }
+
+    /** Painel na parte de baixo (ou de cima) da tela com os ajustes do botao escolhido. Sem caixas de texto. */
+    private fun painelAjustes(raiz: FrameLayout, c: Controle, w: Int, h: Int) {
+        val box = Ui.vertical(this)
+        box.background = Ui.forma(this, 0xF50A0E14.toInt(), 18, Ui.alpha(T.verde, 0x77))
+        box.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10))
+        val topo = Ui.horizontal(this)
+        val titulo = when (c.tipo) { "toque" -> "Botão ${c.texto()}"; "analogico" -> "Analógico"; "macro" -> "Macro"; else -> "Botão de tecla ${c.texto()}" }
+        topo.addView(Ui.texto(this, titulo, 15f, T.texto, Ui.negrito), Ui.peso())
+        val ok = Ui.texto(this, "Pronto", 13.5f, 0xFF06120D.toInt(), Ui.negrito)
+        ok.background = Ui.forma(this, T.verde, 50); ok.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 14), Ui.dp(this, 6))
+        ok.setOnClickListener { edSel = null; edRedesenhar() }
+        topo.addView(ok)
+        box.addView(topo)
+
+        fun rot(t: String) { val v = Ui.texto(this, t, 11.5f, T.texto3, Ui.medio); v.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 3)); box.addView(v) }
+        fun chips(ops: List<String>, sel: Int, onSel: (Int) -> Unit) {
+            val hs = HorizontalScrollView(this); hs.isHorizontalScrollBarEnabled = false
+            val l = Ui.horizontal(this)
+            ops.forEachIndexed { i, o ->
+                val v = Ui.texto(this, o, 12.5f, if (i == sel) 0xFF06120D.toInt() else T.texto, Ui.medio)
+                v.setPadding(Ui.dp(this, 11), Ui.dp(this, 6), Ui.dp(this, 11), Ui.dp(this, 6))
+                v.background = if (i == sel) Ui.forma(this, T.verde, 50) else Ui.forma(this, T.surface2, 50, T.outline)
+                v.setOnClickListener { onSel(i); edRedesenhar() }
+                val lpv = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT); lpv.marginEnd = Ui.dp(this, 6)
+                l.addView(v, lpv)
+            }
+            hs.addView(l); box.addView(hs)
+        }
+        val teclasFisicas = listOf("Nenhuma", "Espaço", "W", "A", "S", "D", "Q", "E", "R", "F", "G", "C", "V", "X", "Z", "1", "2", "3", "4", "5", "Shift", "Ctrl", "Tab", "Botão A", "Botão B", "Botão X", "Botão Y", "L1", "R1", "L2", "R2")
+
+        when (c.tipo) {
+            "toque" -> {
+                rot("Ao apertar")
+                val ms = listOf("segurar", "alternar", "turbo")
+                chips(listOf("Normal", "Liga/desliga", "Turbo (repete rápido)"), ms.indexOf(c.modo).coerceAtLeast(0)) { c.modo = ms[it] }
+                if (c.modo == "turbo") {
+                    val vs = listOf(200, 120, 70, 40)
+                    rot("Velocidade do turbo")
+                    chips(listOf("Lenta", "Média", "Rápida", "Máxima"), vs.indexOfFirst { it == c.turboMs }.let { if (it < 0) 2 else it }) { c.turboMs = vs[it] }
+                }
+                rot("Tecla do teclado ou controle físico (opcional)")
+                val atual = if (c.tecla > 0) teclasFisicas.indexOfFirst { Teclas.codigo(it) == c.tecla }.coerceAtLeast(0) else 0
+                chips(teclasFisicas, atual) { i ->
+                    c.tecla = if (i == 0) 0 else Teclas.codigo(teclasFisicas[i])
+                    c.rotulo = if (i == 0) (edLista.filter { it.tipo == "toque" }.indexOf(c) + 1).toString() else ""
+                    if (i > 0 && !Mapeador.ativo()) toast("Para usar teclado ou controle físico, ative em SerpyraToolkit > Teclado e controles.")
+                }
+            }
+            "analogico" -> {
+                rot("Alcance do movimento")
+                val rs = listOf(0.05f, 0.08f, 0.11f, 0.14f)
+                chips(listOf("Curto", "Médio", "Longo", "Máximo"), rs.indexOfFirst { Math.abs(it - c.raio) < 0.01f }.let { if (it < 0) 1 else it }) { c.raio = rs[it] }
+                if (c.analog != "toque") {
+                    rot("Envia")
+                    val ops = listOf("toque", "wasd", "setas")
+                    chips(listOf("Arrastar no jogo", "W A S D", "Setas"), ops.indexOf(c.analog).coerceAtLeast(0)) { c.analog = ops[it] }
+                }
+            }
+            "tecla" -> {
+                rot("Tecla que este botão envia (só para jogos que aceitam teclado)")
+                val lista = teclasFisicas.drop(1)
+                chips(lista, lista.indexOfFirst { Teclas.codigo(it) == c.tecla }.coerceAtLeast(0)) { c.tecla = Teclas.codigo(lista[it]); c.rotulo = "" }
+                rot("Ao apertar")
+                val ms = listOf("segurar", "alternar", "turbo")
+                chips(listOf("Normal", "Liga/desliga", "Turbo"), ms.indexOf(c.modo).coerceAtLeast(0)) { c.modo = ms[it] }
+            }
+            "macro" -> {
+                val l = Ui.texto(this, "Sequência: " + c.macro.ifEmpty { "(vazia)" }, 12.5f, T.texto2)
+                box.addView(l)
+            }
+        }
+        rot("Tamanho e visibilidade")
+        val tams = listOf(44, 56, 68, 84)
+        chips(listOf("P", "M", "G", "GG"), tams.indexOf(c.tam).let { if (it < 0) 1 else it }) { c.tam = tams[it] }
+        val ops = listOf(0.35f, 0.55f, 0.75f, 0.95f)
+        chips(listOf("Quase invisível", "Fraco", "Normal", "Forte"), ops.indexOfFirst { Math.abs(it - c.opac) < 0.06f }.let { if (it < 0) 2 else it }) { c.opac = ops[it] }
+
+        val acoes = Ui.horizontal(this)
+        fun acao(t: String, cor: Int, f: () -> Unit) {
+            val v = Ui.texto(this, t, 12.5f, cor, Ui.medio)
+            v.setPadding(Ui.dp(this, 10), Ui.dp(this, 8), Ui.dp(this, 10), Ui.dp(this, 4))
+            v.setOnClickListener { f() }
+            acoes.addView(v)
+        }
+        if (c.tipo == "toque" || (c.tipo == "analogico" && c.analog == "toque")) acao("⊕ Escolher outro ponto do jogo", T.azul) {
+            aguardarAlvo(if (c.tipo == "toque") "Toque no novo lugar do JOGO que este botão vai apertar" else "Toque no CENTRO do analógico do jogo") { x, y -> c.tx = x / w; c.ty = y / h; edSel = c; edAviso = ""; edRedesenhar() }
+        }
+        if (c.tipo == "macro") acao("✎ Editar sequência", T.roxo) { editarControle(c, edLista, false) { edRedesenhar() } }
+        acao("Duplicar", T.texto2) { val n = Controle.de(c.json()); n.id = System.nanoTime(); n.x = (c.x + 0.07f).coerceAtMost(0.95f); edLista.add(n); edSel = n; edRedesenhar() }
+        acao("Excluir", T.vermelho) { edLista.remove(c); edSel = null; edRedesenhar() }
+        val hsA = HorizontalScrollView(this); hsA.isHorizontalScrollBarEnabled = false; hsA.addView(acoes)
+        box.addView(hsA)
+
+        val emBaixo = c.y < 0.55f
+        val lpP = FrameLayout.LayoutParams(Math.min(w - Ui.dp(this, 24), Ui.dp(this, 460)), ViewGroup.LayoutParams.WRAP_CONTENT,
+            (if (emBaixo) Gravity.BOTTOM else Gravity.TOP) or Gravity.CENTER_HORIZONTAL)
+        if (emBaixo) lpP.bottomMargin = Ui.dp(this, 8) else lpP.topMargin = Ui.dp(this, 64)
+        box.isClickable = true
+        raiz.addView(box, lpP)
+    }
+
+    private fun toast(t: String) { ui.post { android.widget.Toast.makeText(this, t, android.widget.Toast.LENGTH_LONG).show() } }
+
     private fun fecharEditor() {
-        rem(editor); editor = null
+        rem(editor); editor = null; edAguardando = null; edSel = null
         mostrarTudo()
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun arrastarNoEditor(v: View, lp: FrameLayout.LayoutParams, tam: Int, toque: (() -> Unit)?, aoMover: (Float, Float) -> Unit) {
+    private fun arrastarNoEditor(v: View, lp: FrameLayout.LayoutParams, tam: Int, toque: (() -> Unit)?, aoMover: (Float, Float) -> Unit, durante: (Float, Float) -> Unit = { _, _ -> }) {
         var ix = 0f
         var iy = 0f
         var ox = 0
@@ -697,7 +887,7 @@ class TecladoService : Service() {
                     val dx = (e.rawX - ix).toInt()
                     val dy = (e.rawY - iy).toInt()
                     if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moveu = true
-                    if (moveu) { lp.leftMargin = ox + dx; lp.topMargin = oy + dy; v.layoutParams = lp }
+                    if (moveu) { lp.leftMargin = ox + dx; lp.topMargin = oy + dy; v.layoutParams = lp; durante((lp.leftMargin + tam / 2).toFloat(), (lp.topMargin + tam / 2).toFloat()) }
                 }
                 MotionEvent.ACTION_UP -> {
                     if (moveu) aoMover((lp.leftMargin + tam / 2).toFloat(), (lp.topMargin + tam / 2).toFloat())
@@ -708,159 +898,59 @@ class TecladoService : Service() {
         }
     }
 
-    private fun novo(lista: MutableList<Controle>, tipo: String, depois: () -> Unit) {
-        val c = Controle(tipo = tipo, x = 0.5f + (lista.size % 5) * 0.04f, y = 0.45f + (lista.size % 4) * 0.05f)
-        when (tipo) {
-            "analogico" -> { c.x = 0.18f; c.y = 0.66f; c.tam = 60; c.tx = 0.18f; c.ty = 0.7f; c.analog = "toque" }
-            "toque" -> { c.tx = (c.x - 0.12f).coerceAtLeast(0.05f); c.ty = c.y }
-        }
-        if (tipo == "analogico" || tipo == "macro") { lista.add(c); editarControle(c, lista, true, depois); return }
-        // pede a letra direto, como no MuMu
-        pedirTecla(if (tipo == "toque") "Tecla deste toque (aparece no botão)" else "Qual tecla este botão aperta?") { k, texto ->
-            c.tecla = k
-            if (k == 0) c.rotulo = texto.take(6)
-            lista.add(c); depois()
-        }
-    }
-
-    private fun pedirTecla(titulo: String, ok: (Int, String) -> Unit) {
+    /** Ajustes avancados (so a macro usa caixa de texto). */
+    private fun editarControle(c: Controle, lista: MutableList<Controle>, novo: Boolean, depois: () -> Unit) {
         val box = Ui.vertical(this)
-        box.setPadding(Ui.dp(this, 20), Ui.dp(this, 8), Ui.dp(this, 20), 0)
-        val et = EditText(ContextThemeWrapper(this, R.style.TemaDialogo))
-        et.hint = "Digite: W, Espaço, Shift, F1, 1, ↑…"
-        et.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
-        box.addView(et)
-        val chips = HorizontalScrollView(this)
-        val linha = Ui.horizontal(this)
-        for (n in Teclas.comuns) {
-            val ch = Ui.chip(this, n, T.verde)
-            ch.setOnClickListener { et.setText(n); et.setSelection(n.length) }
-            val lpc = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT); lpc.rightMargin = Ui.dp(this, 6)
-            linha.addView(ch, lpc)
-        }
-        chips.addView(linha)
-        box.addView(chips, Ui.linhaLp(this, 8, 4))
-        val d = dialogo().setTitle(titulo).setView(box)
-            .setPositiveButton("OK") { _, _ -> val txt = et.text.toString().trim(); ok(Teclas.codigo(txt), txt) }
-            .setNegativeButton("Cancelar", null).create()
+        box.setPadding(Ui.dp(this, 20), Ui.dp(this, 6), Ui.dp(this, 20), Ui.dp(this, 6))
+        box.addView(Ui.texto(this, "Teclas e esperas em milissegundos, separadas por espaço. Ex.: Q 100 E 100 R  ·  Shift+W 500", 12f, T.texto3))
+        val e = EditText(ContextThemeWrapper(this, R.style.TemaDialogo))
+        e.setText(c.macro); e.setTextColor(T.texto); e.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        box.addView(e)
+        box.addView(Ui.texto(this, "Macro envia teclas: só funciona em jogos que aceitam teclado (Roblox, Minecraft, emuladores).", 11.5f, T.amarelo))
+        val d = dialogo().setTitle("Sequência da macro").setView(box)
+            .setPositiveButton("OK") { _, _ -> c.macro = e.text.toString().trim(); depois() }
+            .setNegativeButton(if (novo) "Cancelar" else "Voltar") { _, _ -> if (novo) lista.remove(c); depois() }.create()
         d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         mostrarDialogo(d)
     }
 
-    private fun editarControle(c: Controle, lista: MutableList<Controle>, novo: Boolean, depois: () -> Unit) {
-        val box = Ui.vertical(this)
-        box.setPadding(Ui.dp(this, 20), Ui.dp(this, 6), Ui.dp(this, 20), Ui.dp(this, 6))
-        fun rotulo(t: String) { val v = Ui.texto(this, t, 12f, T.texto2, Ui.medio); v.setPadding(0, Ui.dp(this, 12), 0, Ui.dp(this, 4)); box.addView(v) }
-        fun info(t: String) { box.addView(Ui.texto(this, t, 11.5f, T.texto3)) }
-        fun seletor(ops: List<String>, sel: Int, onSel: (Int) -> Unit) {
-            val hs = HorizontalScrollView(this)
-            val l = Ui.horizontal(this)
-            val vistas = ArrayList<TextView>()
-            ops.forEachIndexed { i, o ->
-                val v = Ui.texto(this, o, 12.5f, if (i == sel) T.bg else T.texto, Ui.medio)
-                v.setPadding(Ui.dp(this, 12), Ui.dp(this, 7), Ui.dp(this, 12), Ui.dp(this, 7))
-                v.background = if (i == sel) Ui.forma(this, T.verde, 50) else Ui.forma(this, T.surface2, 50, T.outline)
-                v.setOnClickListener {
-                    vistas.forEachIndexed { k, x -> x.background = if (k == i) Ui.forma(this, T.verde, 50) else Ui.forma(this, T.surface2, 50, T.outline); x.setTextColor(if (k == i) T.bg else T.texto) }
-                    onSel(i)
-                }
-                vistas.add(v)
-                val lpv = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT); lpv.rightMargin = Ui.dp(this, 6)
-                l.addView(v, lpv)
-            }
-            hs.addView(l); box.addView(hs)
-        }
-        fun campo(dica: String, valor: String, numero: Boolean = false): EditText {
-            val e = EditText(ContextThemeWrapper(this, R.style.TemaDialogo))
-            e.hint = dica; e.setText(valor); e.setTextColor(T.texto); e.setHintTextColor(T.texto3)
-            e.inputType = if (numero) InputType.TYPE_CLASS_NUMBER else (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
-            box.addView(e); return e
-        }
-        var etTecla: EditText? = null
-        var etMacro: EditText? = null
-        var etTurbo: EditText? = null
-        when (c.tipo) {
-            "analogico" -> {
-                rotulo("O analógico envia")
-                val ops = listOf("toque", "wasd", "setas")
-                seletor(listOf("Arrastar no jogo", "W A S D", "Setas"), ops.indexOf(c.analog).coerceAtLeast(0)) { c.analog = ops[it] }
-                info("“Arrastar no jogo” move o analógico do próprio jogo: coloque a mira laranja no centro dele. Funciona em qualquer jogo. Com teclado físico, W A S D também move.")
-                rotulo("Alcance do arraste")
-                val rs = listOf(0.05f, 0.08f, 0.11f, 0.14f)
-                seletor(listOf("Curto", "Médio", "Longo", "Máximo"), rs.indexOfFirst { Math.abs(it - c.raio) < 0.01f }.let { if (it < 0) 1 else it }) { c.raio = rs[it] }
-            }
-            "macro" -> {
-                rotulo("Sequência (teclas e esperas em milissegundos)")
-                etMacro = campo("Ex.: Q 100 E 100 R  ·  Shift+W 500", c.macro)
-                info("Cada nome é uma tecla apertada e solta; números são esperas. Use + para combinar (Ctrl+C).")
-                rotulo("Ao apertar")
-                val ms = listOf("segurar", "turbo")
-                seletor(listOf("Roda uma vez", "Repete enquanto segura"), if (c.modo == "turbo") 1 else 0) { c.modo = ms[it] }
-                rotulo("Intervalo entre repetições (ms)")
-                etTurbo = campo("300", c.turboMs.toString(), true)
-            }
-            else -> {
-                rotulo(if (c.tipo == "toque") "Tecla (aparece no botão e funciona no teclado/controle físico)" else "Tecla")
-                etTecla = campo("Ex.: W, Espaço, F1, Botão A", if (c.tecla > 0) Teclas.nome(c.tecla) else "")
-                if (c.tipo == "toque") info("Tocar neste botão (ou apertar a tecla num teclado/controle físico) faz o jogo receber um toque na mira azul. Funciona em qualquer jogo, inclusive os que não aceitam teclado.")
-                rotulo("Ao apertar")
-                val ms = listOf("segurar", "alternar", "turbo")
-                seletor(listOf("Segurar", "Liga/desliga", "Turbo (repete)"), ms.indexOf(c.modo).coerceAtLeast(0)) { c.modo = ms[it] }
-                rotulo("Intervalo do turbo (ms)")
-                etTurbo = campo("80", c.turboMs.toString(), true)
-            }
-        }
-        rotulo("Texto no botão (opcional)")
-        val etRotulo = campo("Ex.: Pular, Atirar", c.rotulo)
-        rotulo("Tamanho")
-        val tams = listOf(44, 56, 68, 84)
-        seletor(listOf("P", "M", "G", "GG"), tams.indexOf(c.tam).let { if (it < 0) 1 else it }) { c.tam = tams[it] }
-        rotulo("Visibilidade")
-        val ops = listOf(0.35f, 0.55f, 0.75f, 0.95f)
-        seletor(listOf("25%", "50%", "75%", "100%"), ops.indexOfFirst { Math.abs(it - c.opac) < 0.06f }.let { if (it < 0) 2 else it }) { c.opac = ops[it] }
-        val sv = ScrollView(this)
-        sv.addView(box)
-        val d = dialogo().setTitle(when (c.tipo) { "toque" -> "Botão de toque"; "analogico" -> "Analógico"; "macro" -> "Macro"; else -> "Botão de tecla" })
-            .setView(sv)
-            .setPositiveButton("OK") { _, _ ->
-                etTecla?.let { c.tecla = Teclas.codigo(it.text.toString()) }
-                etMacro?.let { c.macro = it.text.toString().trim() }
-                etTurbo?.let { c.turboMs = it.text.toString().toIntOrNull()?.coerceIn(30, 5000) ?: 80 }
-                c.rotulo = etRotulo.text.toString().trim().take(10)
-                depois()
-            }
-            .setNeutralButton("Excluir") { _, _ -> lista.remove(c); depois() }
-            .setNegativeButton(if (novo) "Cancelar" else "Duplicar") { _, _ ->
-                if (novo) lista.remove(c) else { val n = Controle.de(c.json()); n.id = System.nanoTime(); n.x = (c.x + 0.06f).coerceAtMost(0.95f); n.tx = (c.tx + 0.06f).coerceAtMost(0.95f); lista.add(n) }
-                depois()
-            }.create()
-        mostrarDialogo(d)
-    }
-
     private fun maisOpcoes(lista: MutableList<Controle>, depois: () -> Unit) {
-        val ops = arrayOf("Copiar botões de outro jogo", "Apagar todos os botões", "Teclado/controle físico (estilo MuMu)", "Ajuda")
+        val ops = arrayOf(
+            "Como funciona",
+            "Teclado do PC na tela: " + Layouts.nomes[Layouts.ids.indexOf(layout).coerceAtLeast(0)],
+            "Copiar botões de outro jogo",
+            "Apagar todos os botões",
+            "Teclado ou controle físico: " + if (Mapeador.ativo()) "ligado" else "desligado",
+            "Avançado: botão de tecla (jogos que aceitam teclado)",
+            "Avançado: macro (sequência de teclas)"
+        )
         mostrarDialogo(dialogo().setItems(ops) { _, i ->
             when (i) {
-                0 -> {
+                0 -> mostrarDialogo(dialogo().setTitle("Como funciona").setMessage(
+                    "1. Toque em “+ Botão”.\n2. Toque no lugar do jogo que esse botão deve apertar (por exemplo, o botão de atirar do jogo). Aparece a mira ⊕ ali.\n3. Arraste o círculo para onde for mais confortável para o seu dedo.\n4. Toque no círculo para escolher Turbo, Liga/desliga, tamanho ou uma tecla do teclado/controle físico.\n5. Toque em Salvar.\n\n" +
+                        "Quando você aperta o círculo durante o jogo, o app toca na mira para você. Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD.\n\n" +
+                        "Analógico: toque no centro do analógico do jogo. Ao arrastar o nosso, o app move o do jogo.\n\n" +
+                        "Os botões ficam salvos para cada jogo."
+                ).setPositiveButton("Entendi", null).create())
+                1 -> mostrarDialogo(dialogo().setTitle("Teclado do PC na tela").setItems(arrayOf(
+                    "Nenhum (recomendado para jogos de celular)", "Gamer: WASD e ações", "Setas", "Teclado completo"
+                )) { _, k -> layout = listOf("nenhum", "gamer", "setas", "completo")[k]; Store.putStr("tec_layout", layout)
+                    if (k > 0) toast("O teclado aparece ao sair do editor. Ele só funciona em jogos que aceitam teclado, como Roblox, Minecraft e emuladores.") }.create())
+                2 -> {
                     val outros = Jogos.todosApps(this).filter { it.pkg != pkg && PerfisControle.tem(it.pkg) }
                     if (outros.isEmpty()) mostrarDialogo(dialogo().setMessage("Nenhum outro jogo tem botões salvos ainda.").setPositiveButton("OK", null).create())
                     else mostrarDialogo(dialogo().setTitle("Copiar de").setItems(outros.map { it.nome }.toTypedArray()) { _, k ->
                         lista.clear(); lista.addAll(PerfisControle.carregar(outros[k].pkg).onEach { it.id = System.nanoTime() + (it.id % 100000) }); depois()
                     }.create())
                 }
-                1 -> mostrarDialogo(dialogo().setMessage("Apagar todos os botões deste jogo?").setPositiveButton("Apagar") { _, _ -> lista.clear(); depois() }.setNegativeButton("Cancelar", null).create())
-                2 -> mostrarDialogo(dialogo().setTitle("Teclado/controle físico").setMessage(
-                    "Com um teclado ou controle Bluetooth/USB, cada tecla colocada num botão de TOQUE vira um toque na mira azul, e o analógico “Arrastar no jogo” anda com W A S D ou setas, igual ao MuMu Player.\n\nStatus: " +
-                        (if (Mapeador.ativo()) "ATIVO ✓ (lido pelo Shizuku, sem acessibilidade)" else "desligado. Ative em SerpyraToolkit > Teclado e controles.")
+                3 -> mostrarDialogo(dialogo().setMessage("Apagar todos os botões deste jogo?").setPositiveButton("Apagar") { _, _ -> lista.clear(); edSel = null; depois() }.setNegativeButton("Cancelar", null).create())
+                4 -> mostrarDialogo(dialogo().setTitle("Teclado ou controle físico").setMessage(
+                    "Com um teclado ou controle Bluetooth/USB, escolha uma tecla em cada botão (toque no círculo > Tecla do teclado ou controle físico). Ao apertar a tecla, o jogo recebe o toque na mira, igual ao MuMu Player. W A S D e as setas movem o analógico.\n\nSituação: " +
+                        (if (Mapeador.ativo()) "ligado ✓" else "desligado. Para ligar: SerpyraToolkit > Teclado e controles > Teclado ou controle físico.")
                 ).setPositiveButton("OK", null).create())
-                3 -> mostrarDialogo(dialogo().setTitle("Como funciona").setMessage(
-                    "• Tecla: o jogo recebe a tecla como de um teclado de verdade (Roblox, Minecraft, emuladores).\n\n" +
-                        "• Toque: o jogo recebe um toque na mira azul. Funciona em QUALQUER jogo (Free Fire, PUBG…): crie botões em lugares mais confortáveis, com turbo ou liga/desliga.\n\n" +
-                        "• Analógico: arrasta o analógico do jogo, ou envia W A S D / setas.\n\n" +
-                        "• Macro: sequência de teclas com esperas.\n\n" +
-                        "Os botões ficam salvos por jogo e trocam sozinhos quando você muda de jogo."
-                ).setPositiveButton("OK", null).create())
+                5 -> { val c = Controle(tipo = "tecla", x = 0.5f, y = 0.5f, tecla = KeyEvent.KEYCODE_SPACE); lista.add(c); edSel = c; depois()
+                    toast("Botão de tecla: só funciona em jogos que aceitam teclado. Para Free Fire, PUBG e afins, use “+ Botão”.") }
+                6 -> { val c = Controle(tipo = "macro", x = 0.5f, y = 0.4f); lista.add(c); edSel = c; editarControle(c, lista, true, depois) }
             }
         }.create())
     }
@@ -902,7 +992,7 @@ object TecladoJogo {
     fun iniciar(con: Console, pkgFixo: String? = null) {
         val ctx = con.ctx
         con.titulo("Teclado e controles no jogo")
-        con.linha("Coloque botões onde quiser por cima do jogo, cada um com a tecla que você escolher, como no MuMu Player. Também tem teclado completo, analógico e macros.", T.texto2)
+        con.linha("Crie botões por cima do jogo: cada um aperta um ponto do jogo para você, com turbo, liga/desliga ou uma tecla do teclado/controle físico.", T.texto2)
         if (!Pro.exigir(con, "Teclado e controles no jogo")) return
         if (!Sh.privOk()) {
             con.aviso("Para enviar teclas e toques a outro app o Android exige o modo automático (Shizuku) ou root.")
@@ -912,35 +1002,35 @@ object TecladoJogo {
         if (!Injetor.preparar()) { con.erro("Não consegui acessar o serviço de entrada do Android."); return }
         if (Injetor.modo == "shell") con.aviso("Modo compatível: toques simples funcionam, mas segurar e arrastar não funcionam neste celular.")
         else con.ok("Envio de teclas e toques pronto")
-        val jogo = if (pkgFixo != null) Jogo(pkgFixo, Jogos.nome(ctx, pkgFixo), "") else Jogos.escolher(con, "Abrir qual jogo?")
+        val jogo = if (pkgFixo != null) Jogo(pkgFixo, Jogos.nome(ctx, pkgFixo), "") else Jogos.escolher(con, "Em qual jogo?")
         if (jogo == null) return
         val tem = PerfisControle.tem(jogo.pkg)
         val opcoes = arrayListOf<String>()
         if (tem) opcoes.add("Jogar com meus botões (${PerfisControle.carregar(jogo.pkg).size})")
-        opcoes.add(if (tem) "Editar meus botões" else "Criar meus botões (editor estilo MuMu)")
-        opcoes.add("Só o teclado Gamer (WASD + ações)")
-        opcoes.add("Teclado completo de PC")
+        opcoes.add(if (tem) "Editar meus botões" else "Criar meus botões")
+        opcoes.add("Teclado ou controle físico (Bluetooth/USB): " + if (Mapeador.ativo()) "ligado" else "desligado")
         val i = con.escolher(jogo.nome, opcoes)
         if (i < 0) return
-        val escolha = opcoes[i]
-        val editar = escolha.startsWith("Editar") || escolha.startsWith("Criar")
-        val layout = when {
-            escolha.startsWith("Só o teclado") -> "gamer"
-            escolha.startsWith("Teclado completo") -> "completo"
-            else -> "nenhum"
+        if (opcoes[i].startsWith("Teclado ou controle")) {
+            if (Mapeador.ativo()) { if (con.ask("Desligar o uso de teclado/controle físico?", "Desligar", "Manter")) { Mapeador.desativar(); con.ok("Desligado") } }
+            else Mapeador.ativar(con)
+            return
         }
-        if (!Mapeador.ativo() && !Store.bool("mapeador_perguntado", false)) {
-            Store.putBool("mapeador_perguntado", true)
-            if (con.ask("Você usa teclado ou controle físico (Bluetooth/USB)? Posso fazer cada tecla virar um toque na tela, igual ao MuMu Player.", "Usar", "Não uso", importante = true)) Mapeador.ativar(con)
-        }
-        ctx.startForegroundService(Intent(ctx, TecladoService::class.java).putExtra("pkg", jogo.pkg).putExtra("layout", layout).putExtra("abrir", true).putExtra("editar", editar))
+        val editar = !opcoes[i].startsWith("Jogar")
+        ctx.startForegroundService(Intent(ctx, TecladoService::class.java).putExtra("pkg", jogo.pkg).putExtra("abrir", true).putExtra("editar", editar))
         con.linha("")
         con.ok("Abrindo ${jogo.nome}" + if (editar) " no editor" else "")
-        con.subtitulo("Como usar")
-        con.item("Bolinha ⌨: menu com Editar, Teclado, Esconder e Fechar (arraste para mudar de lugar)")
-        con.item("Editor: + Tecla, + Toque, + Analógico, + Macro. Arraste para posicionar e toque no botão para mudar a letra")
-        con.item("Botão de TOQUE funciona em qualquer jogo, mesmo nos que não aceitam teclado")
-        con.item("Com o jogo já aberto: use o atalho “Teclado SerpyraToolkit” nas Configurações rápidas (puxe a barra de notificações e edite os blocos)")
-        con.info("Os botões ficam salvos por jogo e trocam sozinhos quando você muda de jogo.")
+        if (editar) {
+            con.subtitulo("Como criar um botão (leva 10 segundos)")
+            con.item("1. Toque em “+ Botão” na barra de cima")
+            con.item("2. Toque no lugar do JOGO que ele deve apertar (ex.: o botão de atirar do jogo)")
+            con.item("3. Arraste o círculo para onde ficar mais confortável")
+            con.item("4. Toque no círculo para escolher Turbo, Liga/desliga ou uma tecla do controle")
+            con.item("5. Toque em Salvar")
+        } else {
+            con.item("A bolinha ⌨ abre o menu: Editar, Esconder e Fechar. Arraste-a para mudar de lugar.")
+        }
+        con.info("Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD. Os botões ficam salvos para cada jogo.")
+
     }
 }
