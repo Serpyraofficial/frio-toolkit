@@ -1,8 +1,8 @@
 {
- "versionCode": 59,
- "versionName": "5.8",
- "notas": "- Pro vitalício: paga uma vez e não vence mais\n- Dê o Pro de presente: a pessoa recebe um código por e-mail\n- Indique e ganhe: seu amigo ganha 10% e você ganha 15 dias de Pro a cada compra dele\n- 10% de desconto para renovar quando o Pro está perto de vencer\n- Avisos e promoções aparecem na tela inicial\n- Tudo da 5.7: modelos prontos de botões, Modo campeonato, relatório da partida, backup e mais",
- "sha256": "0a0afaa4445134415a70eb8541f6630dd5c223539286cb30f9ccc3721cfb04ce",
- "tamanho": 1179025,
- "arquivo": "SerpyraToolkit-5.8-0a0afaa444.apk"
+ "versionCode": 60,
+ "versionName": "5.9",
+ "notas": "- Botões na tela corrigidos: quando o círculo fica em cima do botão do jogo, o toque agora chega ao jogo (antes o próprio círculo \"engolia\" o toque)\n- Turbo e Liga/desliga afastam o círculo do ponto do jogo sozinhos, e o editor avisa quando um botão esconde o ponto de outro\n- Toda mudança de configuração agora é conferida: o app só diz \"pronto\" se o Android realmente aceitou\n- Liberar memória funciona no Android 14+ (com o modo automático) e mostra quanto liberou de verdade\n- Limpeza conta só o que foi realmente apagado e mostra o espaço liberado do cache\n- DNS mais rápido testa a internet depois de trocar e volta sozinho se a rede bloquear\n- Raio-X: taxa da tela avaliada pelo limite configurado (telas adaptativas não aparecem mais como erro)\n- Desfazer guarda o que não conseguiu voltar para tentar de novo",
+ "sha256": "d5d65371303a6b6de5b1d788a25c96b0a972901abffb80430e7320813047717b",
+ "tamanho": 1184701,
+ "arquivo": "SerpyraToolkit-5.9-d5d6537130.apk"
 }
