@@ -176,6 +176,12 @@ h2{font-weight:500;font-size:clamp(34px,4.4vw,56px);line-height:1.04;letter-spac
 
 /* instalar */
 .instalar{background:var(--branco)}
+.aviso-inst{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:36px}
+.aviso-inst>div{border:1px solid rgba(242,183,5,.35);background:rgba(242,183,5,.08);border-radius:18px;padding:18px 20px}
+.aviso-inst b{display:block;font-size:16px;margin-bottom:6px}
+.aviso-inst p{font-size:14.5px;line-height:1.55;opacity:.85}
+.aviso-inst p b{display:inline;font-size:inherit;margin:0}
+@media(max-width:760px){.aviso-inst{grid-template-columns:1fr}}
 .inst-g{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;counter-reset:n}
 @media(max-width:900px){.inst-g{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.inst-g{grid-template-columns:1fr}}
@@ -386,7 +392,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     <a class="b b-menta b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
     <a class="b b-vidro b-grande" href="#como">Ver o que ele faz</a>
    </div>
-   <span class="hero-versao" id="versao">Android 8 ou mais novo</span>
+   <span class="hero-versao" id="versao">Somente para Android 8 ou mais novo (não funciona no iPhone)</span>
    <div class="hero-provas">
     <span><svg aria-hidden="true"><use href="#certo"/></svg>Grátis para usar</span>
     <span><svg aria-hidden="true"><use href="#certo"/></svg>Sem anúncios</span>
@@ -616,6 +622,10 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
    <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
    <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
   </div>
+  <div class="aviso-inst">
+   <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema pelo Shizuku. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
+   <div><b>Só para Android</b><p>O app funciona em celulares Android 8 ou mais novos. Não existe versão para iPhone: o iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz.</p></div>
+  </div>
  </div>
 </section>
 
@@ -634,6 +644,8 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   <div class="sec-cab"><h2>Dúvidas frequentes</h2></div>
   <div class="faq">
    <details><summary>Precisa de root?</summary><p>Não. Para os ajustes avançados o app usa o Shizuku, que é gratuito e é ativado pelo próprio celular, sem computador. Se o seu celular tiver root, o app também aproveita.</p></details>
+   <details><summary>Funciona no iPhone?</summary><p>Não. O SerpyraToolkit é só para Android 8 ou mais novo. O iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz, então não existe versão para iPhone.</p></details>
+   <details><summary>O celular disse que o app é suspeito. É perigoso?</summary><p>Não. Esse aviso aparece para apps instalados fora da Play Store que pedem permissões avançadas, como mostrar botões por cima do jogo e ajustar o sistema pelo Shizuku. São essas permissões que fazem o app funcionar por completo. Toque em Mais detalhes e em Instalar mesmo assim, e baixe sempre por este site.</p></details>
    <details><summary>Funciona no meu celular?</summary><p>Funciona em Android 8 ou mais novo. Algumas opções dependem do fabricante, como a taxa de atualização da tela. Nesses casos o app mostra o que é possível no seu aparelho.</p></details>
    <details><summary>Como pago o Pro?</summary><p>Na tela do Pro, escolha o plano (1, 3 ou 6 meses), digite seu e-mail e, se tiver, um cupom de desconto. Pague o Pix e o Pro ativa sozinho assim que o pagamento é confirmado. A chave também chega no seu e-mail. Não existe cobrança automática.</p></details>
    <details><summary>Dá para testar antes de pagar?</summary><p>Sim. Na tela do Pro, toque em Começar o teste grátis: você usa tudo do Pro por 1 hora, sem pagar e sem cadastro. O teste vale uma vez por celular e por internet (Wi-Fi ou dados).</p></details>
@@ -697,7 +709,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   fetch('/versao',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(v){
     if(!v||!v.versionName) return;
     var mb=v.tamanho?' com '+(v.tamanho/1048576).toFixed(1).replace('.',',')+' MB':'';
-    var e=document.getElementById("versao"); if(e) e.textContent='Versão '+v.versionName+mb+', para Android 8 ou mais novo';
+    var e=document.getElementById("versao"); if(e) e.textContent='Versão '+v.versionName+mb+' · somente para Android 8 ou mais novo (não funciona no iPhone)';
     var notas=String(v.notas||'').split('\n').map(function(l){return l.replace(/^[-•]\s*/,'').trim()}).filter(function(l){return l&&!/^Tudo d/i.test(l)});
     var curta=function(l){return l.split(/[:(]/)[0].trim()};
     var aL=document.getElementById('avL'), aC=document.getElementById('avC');
