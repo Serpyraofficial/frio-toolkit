@@ -1,2 +1,3 @@
-- Indique e ganhe: seu amigo ganha 10% de desconto e você ganha de 5 a 30 dias por compra dele (até 15 dias por mês)
-- Chave do Pro colada do e-mail sempre funciona, mesmo com espaços invisíveis
+- Pro agora inclui Modo Jogo ilimitado, Modo campeonato, Medidor de FPS, monitor de temperatura e gravação de tela
+- Pro inclui também Internet para jogos, DNS mais rápido, limpeza avançada e Blindagem
+- Versão grátis: Raio-X, Modo Jogo 2 vezes por dia, limpeza rápida e verificação de segurança

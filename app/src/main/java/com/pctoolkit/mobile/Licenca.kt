@@ -405,7 +405,11 @@ object Pro {
         "Tuner de jogos (resolução, limite de FPS e driver por jogo)",
         "Modo Frio e Turbo no Modo Jogo",
         "Mira na tela para jogos de tiro",
-        "Abrir os seus botões sozinho junto com o jogo"
+        "Abrir os seus botões sozinho junto com o jogo",
+        "Modo Jogo sem limite (grátis: ${ModoJogo.GRATIS_POR_DIA} por dia) e Modo campeonato",
+        "Medidor de FPS e monitor de temperatura na tela, gravar a tela",
+        "Internet para jogos, DNS mais rápido e ajustes por jogo",
+        "Limpeza avançada (duplicados, grandes, apps esquecidos) e Blindagem contra vírus"
     )
 
     fun ativo(): Boolean = Licenca.ativo()

@@ -245,6 +245,7 @@ object Fps {
 
     // ---------------- por jogo ----------------
     fun porJogo(con: Console, fixo: Jogo? = null) {
+        if (!Pro.exigir(con, "Ajustes para um jogo")) return
         val ctx = con.ctx
         con.titulo("Ajustes para um jogo")
         val j = fixo ?: Jogos.escolher(con) ?: return
@@ -284,6 +285,7 @@ object Fps {
 
     // ---------------- medidor de FPS ----------------
     fun medidor(con: Console) {
+        if (!Pro.exigir(con, "O Medidor de FPS na tela")) return
         con.titulo("Medidor de FPS")
         if (!Sh.privOk() || Sensores.contadorQuadros() == null) {
             con.linha(if (Sh.privOk()) "Este Android não libera o contador de quadros nem para o modo automático (alguns fabricantes bloqueiam). Dá para ver o FPS pelos jeitos abaixo." else "Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo automático (Shizuku) ou root, o medidor funciona.", T.texto2)

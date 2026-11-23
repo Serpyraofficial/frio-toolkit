@@ -41,42 +41,42 @@ object Menus {
         Item("Otimizar o celular para jogos", "Passo a passo completo", F, T.verde, acao = { Fps.otimizar(it) }),
         Item("Teste de desempenho", "Força do processador e estabilidade com calor", F, T.azul, acao = { Fps.benchmark(it) }),
         Item("Taxa de atualização da tela", "Destravar 90/120 Hz", F, T.azul, acao = { Fps.tela(it) }),
-        Item("Ajustes para um jogo", "Bateria sem restrição e gráficos ideais", J, T.azul, acao = { Fps.porJogo(it) }),
+        Item("Ajustes para um jogo", "Bateria sem restrição e gráficos ideais", J, T.azul, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Fps.porJogo(it) }),
         Item("Liberar memória", "Encerra apps em segundo plano", F, T.roxo, acao = { Fps.liberarRam(it) }),
         Item("Apps em segundo plano", "Quem inicia sozinho e gasta recursos", F, T.roxo, acao = { Fps.segundoPlano(it) }),
-        Item("Modo campeonato", "Tudo no máximo para uma partida importante", J, T.amarelo, "Novo", T.amarelo, acao = { ModoJogo.executar(it, null, true) }),
-        Item("Internet para jogos", "Ping, oscilação e perda: o lag é do Wi-Fi ou da internet?", F, T.azul, "Novo", T.azul, acao = { InternetJogos.executar(it) }),
+        Item("Modo campeonato", "Tudo no máximo para uma partida importante", J, T.amarelo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { ModoJogo.executar(it, null, true) }),
+        Item("Internet para jogos", "Ping, oscilação e perda: o lag é do Wi-Fi ou da internet?", F, T.azul, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { InternetJogos.executar(it) }),
         Item("Modo bateria (longe da tomada)", "Brilho menor e tela em 60 Hz para a partida durar mais", F, T.verde, "Novo", T.verde, acao = { Economia.executar(it) }),
-        Item("Gravar a tela", "Grava a partida com o painel de FPS aparecendo", F, T.roxo, "Novo", T.roxo, acao = { Gravador.executar(it) }),
+        Item("Gravar a tela", "Grava a partida com o painel de FPS aparecendo", F, T.roxo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Gravador.executar(it) }),
         Item("Conquistas", "Pequenas metas do app", F, T.amarelo, acao = { Conquistas.executar(it) }),
         Item("Teste da tela de toque", "Quantos dedos a tela aceita e a velocidade do toque", F, T.ciano, "Novo", T.ciano, tela = { it.abrirTela { it.telaTesteToque() } }),
-        Item("Medidor de FPS", "FPS real durante o jogo", F, T.cinza, selo(!Sh.privOk(), "Automático"), T.cinza, acao = { Fps.medidor(it) }),
+        Item("Medidor de FPS", "FPS real durante o jogo", F, T.cinza, if (!Pro.ativo()) "Pro" else selo(!Sh.privOk(), "Automático"), if (!Pro.ativo()) T.amarelo else T.cinza, acao = { Fps.medidor(it) }),
         Item("Histórico do Modo Jogo", "Sessões, temperatura e bateria", J, T.cinza, acao = { ModoJogo.historico(it) })
     ))
 
     fun limpeza() = Menu("Limpeza", "Livre: " + fmtTam(Sensores.armazenamento().first), L, T.azul, listOf(
         Item("Limpeza rápida", "Lixo seguro + cache de todos os apps", L, T.azul, "Recomendado", T.verde, acao = { Limpeza.rapida(it, false) }),
         Item("Simular limpeza", "Mostra quanto libera sem apagar nada", L, T.azul, acao = { Limpeza.rapida(it, true) }),
-        Item("Analisar armazenamento", "O que ocupa espaço, por tipo e pasta", L, T.azul, acao = { Limpeza.analisar(it) }),
-        Item("Arquivos grandes", "Encontre os maiores arquivos", L, T.roxo, acao = { Limpeza.grandes(it) }),
-        Item("Arquivos duplicados", "Cópias idênticas de fotos e vídeos", L, T.roxo, acao = { Limpeza.duplicados(it) }),
-        Item("Downloads antigos", "Arquivos esquecidos na pasta Download", L, T.roxo, acao = { Limpeza.downloadsAntigos(it) }),
-        Item("Quanto cada jogo ocupa", "Tamanho real com dados e cache", J, T.verde, acao = { Limpeza.tamanhoJogos(it) }),
-        Item("Apps que mais ocupam", "Limpar dados ou desinstalar", L, T.amarelo, acao = { Limpeza.appsMaiores(it) }),
-        Item("Apps esquecidos", "Sem uso há semanas", L, T.amarelo, acao = { Limpeza.esquecidos(it) }),
+        Item("Analisar armazenamento", "O que ocupa espaço, por tipo e pasta", L, T.azul, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.analisar(it) }),
+        Item("Arquivos grandes", "Encontre os maiores arquivos", L, T.roxo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.grandes(it) }),
+        Item("Arquivos duplicados", "Cópias idênticas de fotos e vídeos", L, T.roxo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.duplicados(it) }),
+        Item("Downloads antigos", "Arquivos esquecidos na pasta Download", L, T.roxo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.downloadsAntigos(it) }),
+        Item("Quanto cada jogo ocupa", "Tamanho real com dados e cache", J, T.verde, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.tamanhoJogos(it) }),
+        Item("Apps que mais ocupam", "Limpar dados ou desinstalar", L, T.amarelo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.appsMaiores(it) }),
+        Item("Apps esquecidos", "Sem uso há semanas", L, T.amarelo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Limpeza.esquecidos(it) }),
         Item("Lixeira do SerpyraToolkit", fmtTam(Lixeira.tamanho()) + " · restaurar ou esvaziar", D, T.cinza, acao = { Limpeza.lixeiraMenu(it) })
     ))
 
     fun rede() = Menu("Rede para jogos", "Conexão: " + Rede.tipo(PcApp.ctx), RD, T.ciano, listOf(
         Item("Teste de conexão para jogos", "Ping, jitter e perda até o roteador e a internet", RD, T.ciano, "Recomendado", T.verde, acao = { Rede.testeCompleto(it) }),
         Item("Teste de velocidade", "Download e upload", RD, T.ciano, acao = { Rede.velocidade(it) }),
-        Item("DNS mais rápido", "Testa 5 servidores e configura o melhor", RD, T.azul, acao = { Rede.dns(it) }),
+        Item("DNS mais rápido", "Testa 5 servidores e configura o melhor", RD, T.azul, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Rede.dns(it) }),
         Item("Informações do Wi-Fi", "Sinal, faixa e velocidade do link", RD, T.azul, acao = { it.titulo("Wi-Fi"); Rede.infoWifi(it) })
     ))
 
     fun temperatura() = Menu("Temperatura", "Bateria agora: " + f1(Sensores.bateria(PcApp.ctx).tempC) + " °C", TP, T.laranja, listOf(
         Item("Diagnóstico", "Temperatura, limitação por calor e sensores", TP, T.laranja, acao = { Temperatura.diagnostico(it) }),
-        Item("Monitor em tempo real", "Temperatura, bateria, RAM e CPU", TP, T.laranja, acao = { Temperatura.monitor(it) }),
+        Item("Monitor em tempo real", "Temperatura, bateria, RAM e CPU", TP, T.laranja, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Temperatura.monitor(it) }),
         Item("Modo Frio", "Segura a temperatura durante o jogo sem desligar o boost", TP, T.ciano, "Novo", T.ciano, acao = { con ->
             con.titulo("Modo Frio")
             con.linha("Funciona dentro do Modo Jogo. Conforme o celular esquenta, ele age em etapas e volta tudo quando esfria:", T.texto2)
@@ -95,9 +95,9 @@ object Menus {
 
     fun seguranca() = Menu("Segurança", Store.str("seg_ultimo").ifEmpty { "Nenhuma verificação ainda" }, S, T.vermelho, listOf(
         Item("Verificação de segurança", "Apps espiões, golpes e configurações de risco", S, T.vermelho, "Recomendado", T.verde, acao = { Seguranca.cacar(it) }),
-        Item("Verificar na VirusTotal", "APK ou app com ~70 antivírus", S, T.vermelho, acao = { Seguranca.verificarArquivoVt(it) }),
-        Item("Blindagem", "Fechar as portas de entrada de vírus", S, T.amarelo, acao = { Seguranca.blindagem(it) }),
-        Item("Testar um app com segurança", "Como isolar apps duvidosos", S, T.azul, acao = { Seguranca.caixaDeAreia(it) }),
+        Item("Verificar na VirusTotal", "APK ou app com ~70 antivírus", S, T.vermelho, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Seguranca.verificarArquivoVt(it) }),
+        Item("Blindagem", "Fechar as portas de entrada de vírus", S, T.amarelo, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Seguranca.blindagem(it) }),
+        Item("Testar um app com segurança", "Como isolar apps duvidosos", S, T.azul, selo(!Pro.ativo(), "Pro"), T.amarelo, acao = { Seguranca.caixaDeAreia(it) }),
         Item("Último relatório", "Resultado da última verificação", S, T.cinza, acao = { Seguranca.ultimoRelatorio(it) })
     ))
 

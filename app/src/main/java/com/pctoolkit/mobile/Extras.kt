@@ -211,6 +211,7 @@ object Economia {
 // ============================================================
 object InternetJogos {
     fun executar(con: Console) {
+        if (!Pro.exigir(con, "Internet para jogos")) return
         val ctx = con.ctx
         con.titulo("Internet para jogos")
         con.linha("Mede o atraso (ping), a oscilação e a perda de pacotes, e diz se o lag vem do Wi-Fi ou da internet.", T.texto2)
@@ -269,6 +270,7 @@ object Gravador {
     fun gravando(): Boolean = Sh.privOk() && Sh.root("pidof screenrecord", 5).out.isNotBlank()
 
     fun executar(con: Console) {
+        if (!Pro.exigir(con, "Gravar a tela")) return
         con.titulo("Gravar a tela")
         con.linha("Grava até 3 minutos por vez. Ligue o painel do Modo Jogo antes para o FPS e a temperatura aparecerem no vídeo.", T.texto2)
         if (!Sh.privOk() && !Priv.ativar(con)) { con.erro("Gravar pela ferramenta precisa do modo automático (Shizuku). Você também pode usar o gravador de tela do próprio Android."); return }

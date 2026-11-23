@@ -182,6 +182,7 @@ object Seguranca {
     }
 
     fun blindagem(con: Console) {
+        if (!Pro.exigir(con, "A Blindagem")) return
         val ctx = con.ctx
         con.titulo("Blindagem")
         con.linha("Fecha as portas que golpes e vírus usam para entrar. Passo a passo:", T.texto2)
@@ -207,6 +208,7 @@ object Seguranca {
     }
 
     fun caixaDeAreia(con: Console) {
+        if (!Pro.exigir(con, "Testar um app com segurança")) return
         con.titulo("Testar um app com segurança")
         con.linha("Se precisar abrir um app duvidoso, isole ele do resto do celular:", T.texto2)
         con.item("Pasta Segura (Samsung) ou Segundo Espaço (Xiaomi): o app fica num perfil separado, sem ver suas fotos e contas")
@@ -311,6 +313,7 @@ object Seguranca {
     }
 
     fun verificarArquivoVt(con: Console) {
+        if (!Pro.exigir(con, "Verificar na VirusTotal")) return
         val ctx = con.ctx
         con.titulo("Verificar na VirusTotal")
         val opc = con.escolher("O que verificar?", listOf("Um arquivo (APK baixado etc.)", "Um app já instalado", "Trocar a chave da API"))

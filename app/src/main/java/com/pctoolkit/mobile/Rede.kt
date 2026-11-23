@@ -227,6 +227,7 @@ object Rede {
     }
 
     fun dns(con: Console) {
+        if (!Pro.exigir(con, "O DNS mais rápido")) return
         val ctx = con.ctx
         con.titulo("DNS mais rápido")
         con.linha("O DNS não muda o ping dentro da partida, mas acelera login, busca de partida, lojas e downloads.", T.texto2)

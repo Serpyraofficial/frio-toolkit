@@ -55,6 +55,7 @@ object Temperatura {
     }
 
     fun monitor(con: Console) {
+        if (!Pro.exigir(con, "O Monitor em tempo real")) return
         val ctx = con.ctx
         con.titulo("Monitor em tempo real")
         con.linha("Atualiza a cada 3 s. Toque em Parar para encerrar.", T.texto2)

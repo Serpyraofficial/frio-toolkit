@@ -32,9 +32,20 @@ import java.util.Locale
 
 /** MODO JOGO sem root: prepara o celular, abre o jogo, vigia o calor e restaura tudo no fim. */
 object ModoJogo {
+    const val GRATIS_POR_DIA = 2
+    private fun hojeTxt() = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
+    fun usosHoje(): Int = if (Store.str("mj_dia") == hojeTxt()) Store.str("mj_usos").toIntOrNull() ?: 0 else 0
+    private fun contarUso() { val n = usosHoje() + 1; Store.putStr("mj_dia", hojeTxt()); Store.putStr("mj_usos", n.toString()) }
+
     fun executar(con: Console, pkgFixo: String? = null, campeonato: Boolean = false) {
         val ctx = con.ctx
         con.titulo(if (campeonato) "Modo campeonato" else "Modo Jogo")
+        if (campeonato && !Pro.exigir(con, "O Modo campeonato")) return
+        if (!campeonato && !GameService.rodando && !Pro.ativo() && usosHoje() >= GRATIS_POR_DIA) {
+            con.aviso("Você já usou o Modo Jogo $GRATIS_POR_DIA vezes hoje na versão grátis. Amanhã libera de novo.")
+            Pro.exigir(con, "Usar o Modo Jogo sem limite")
+            return
+        }
         con.linha(if (campeonato) "Tudo no máximo para uma partida importante: bloqueia notificações e chamadas, trava o brilho, libera memória, mostra o ping e avisa se a internet oscilar." else "Prepara o celular, abre o jogo, mostra um painel com temperatura e memória e, quando você terminar, devolve tudo ao normal.", T.texto2)
         if (GameService.rodando) {
             con.aviso("Já existe uma sessão em andamento: ${Store.str("sessao_nome")}")
@@ -113,6 +124,7 @@ object ModoJogo {
         for ((k, v) in op) i.putExtra(k, v)
         if (perfil.aplicado && perfil.resGlobal in 40..99 && Sh.privOk()) i.putExtra("res", perfil.resGlobal)
         ctx.startForegroundService(i)
+        if (!Pro.ativo()) { contarUso(); val r = GRATIS_POR_DIA - usosHoje(); con.info(if (r > 0) "Versão grátis: você ainda pode usar o Modo Jogo mais $r vez hoje. Com o Pro é ilimitado." else "Versão grátis: esse foi o último Modo Jogo de hoje. Com o Pro é ilimitado.") }
         if (op["mj_botoes"] == true) {
             try { ctx.startForegroundService(Intent(ctx, TecladoService::class.java).putExtra("pkg", jogo.pkg).putExtra("layout", "nenhum").putExtra("abrir", false).putExtra("editar", false)) } catch (e: Exception) { }
             con.ok("Seus botões vão aparecer por cima de ${jogo.nome}")

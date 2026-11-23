@@ -52,6 +52,7 @@ object Limpeza {
 
     // ---------------------------------------------------------------
     fun analisar(con: Console) {
+        if (!Pro.exigir(con, "Analisar armazenamento")) return
         con.titulo("Análise do armazenamento")
         val (livre, total) = Sensores.armazenamento()
         con.linha("Livre: ${fmtTam(livre)} de ${fmtTam(total)} (${if (total > 0) (livre * 100 / total) else 0}%)", T.azul)
@@ -197,6 +198,7 @@ object Limpeza {
     }
 
     fun grandes(con: Console) {
+        if (!Pro.exigir(con, "Arquivos grandes")) return
         con.titulo("Arquivos grandes")
         if (!exigirArquivos(con)) return
         val mb = con.numero("Tamanho mínimo (MB)", 100, 10, 50000)
@@ -206,6 +208,7 @@ object Limpeza {
     }
 
     fun downloadsAntigos(con: Console) {
+        if (!Pro.exigir(con, "Downloads antigos")) return
         con.titulo("Downloads antigos")
         if (!exigirArquivos(con)) return
         val dias = con.numero("Mais antigos que quantos dias?", 60, 1, 3650)
@@ -228,6 +231,7 @@ object Limpeza {
     }
 
     fun duplicados(con: Console) {
+        if (!Pro.exigir(con, "Arquivos duplicados")) return
         con.titulo("Arquivos duplicados")
         con.linha("Encontra cópias idênticas (mesmo conteúdo) de fotos, vídeos, músicas e documentos.", T.texto2)
         if (!exigirArquivos(con)) return
@@ -261,6 +265,7 @@ object Limpeza {
     }
 
     fun tamanhoJogos(con: Console) {
+        if (!Pro.exigir(con, "Quanto cada jogo ocupa")) return
         con.titulo("Quanto cada jogo ocupa")
         if (!con.garantirNome("Acesso ao uso")) return
         val l = Jogos.instalados(con.ctx).mapNotNull { j -> Jogos.tamanho(con.ctx, j.pkg)?.let { Pair(j, it) } }.sortedByDescending { it.second.total }
@@ -273,6 +278,7 @@ object Limpeza {
     }
 
     fun esquecidos(con: Console) {
+        if (!Pro.exigir(con, "Apps esquecidos")) return
         con.titulo("Apps esquecidos")
         con.linha("Apps que você não abre há muito tempo e só ocupam espaço (e às vezes rodam em segundo plano).", T.texto2)
         if (!con.garantirNome("Acesso ao uso")) return
@@ -294,6 +300,7 @@ object Limpeza {
     }
 
     fun appsMaiores(con: Console) {
+        if (!Pro.exigir(con, "Apps que mais ocupam")) return
         con.titulo("Apps que mais ocupam")
         if (!con.garantirNome("Acesso ao uso")) return
         val l = Jogos.todosApps(con.ctx).mapNotNull { a -> Jogos.tamanho(con.ctx, a.pkg)?.let { Pair(a, it) } }.sortedByDescending { it.second.total }.take(40)
