@@ -1,3 +1,1 @@
-- Atualização sozinha mais rápida: instala segundos depois que você sai do app
-- Xiaomi/Redmi/Poco: o tutorial do Shizuku agora mostra o “Instalar via USB”, necessário para atualizar sozinho
-- Em Menu > Atualizar sozinho aparece o resultado da última tentativa
+- Foto do tutorial do Shizuku atualizada, com os 5 itens que precisam ficar ligados

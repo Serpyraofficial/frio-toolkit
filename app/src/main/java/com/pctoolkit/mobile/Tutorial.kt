@@ -114,7 +114,7 @@ object TutorialShizuku {
 
         // foto
         col.addView(Ui.secao(act, "O que ativar"))
-        val fd = Ui.texto(act, "Em Opções do desenvolvedor, ligue tudo que está marcado em verde. Atenção: o 3 (Instalar via USB) aparece desligado nesta foto, mas precisa ficar LIGADO.", 12.5f, T.texto2)
+        val fd = Ui.texto(act, "Em Opções do desenvolvedor, deixe assim: os 5 itens marcados em verde ligados. Os números batem com o passo a passo abaixo.", 12.5f, T.texto2)
         fd.setPadding(0, 0, 0, Ui.dp(act, 10))
         col.addView(fd)
         val foto = ImageView(act)
