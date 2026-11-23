@@ -21,9 +21,9 @@ const B32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TESTE_DIAS = 3;
 const TROCA_INTERVALO = 30;
 const PLANOS = {
-  m1: { nome: "1 mês", dias: 30, centavos: 1000 },
-  m3: { nome: "3 meses", dias: 90, centavos: 2500 },
-  m6: { nome: "6 meses", dias: 180, centavos: 4500 }
+  m1: { nome: "1 mês", dias: 30, centavos: 1500 },
+  m3: { nome: "3 meses", dias: 90, centavos: 3900 },
+  m6: { nome: "6 meses", dias: 180, centavos: 6900 }
 };
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
 

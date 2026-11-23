@@ -1,9 +1,2 @@
-- Teste o Pro grátis por 3 dias
-- Planos de 1, 3 e 6 meses, com desconto nos maiores
-- Cupons de desconto na hora de assinar
-- Trocou de celular? Passe o Pro pelo e-mail da compra
-- Mira na tela para jogos de tiro (Pro)
-- Ping no painel do Modo Jogo
-- O Modo Jogo pode abrir os seus botões do teclado junto com o jogo (Pro)
-- Atalhos: segure o ícone do app para abrir Modo Jogo, Botões, Mira ou Raio-X
-- Aviso 2 dias antes do Pro vencer
+- Novos preços do Pro: R$ 15 por mês, R$ 39 por 3 meses e R$ 69 por 6 meses
+- Continua: teste grátis de 3 dias, cupons de desconto e troca de celular pelo e-mail

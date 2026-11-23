@@ -35,8 +35,8 @@ object Vendedor {
     const val WHATSAPP = ""           // numero com DDI e DDD, so digitos (ex.: 5511999998888)
     /** Endereco do servidor de vendas (Cloudflare Worker). Vazio = so o Pix manual. */
     const val SERVIDOR = "https://serpyratoolkit.officialcarloswendrik.workers.dev"
-    const val PRECO = "10.00"
-    const val PRECO_TXT = "R$ 10"
+    const val PRECO = "15.00"
+    const val PRECO_TXT = "R$ 15"
     const val TESTE_DIAS = 3
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
     fun automatico() = SERVIDOR.startsWith("https://")
@@ -61,7 +61,7 @@ object Compra {
         fun preco(c: Int = centavos) = "R$ " + String.format(Locale("pt", "BR"), "%.2f", c / 100.0).replace(".00", "").replace(",00", "")
         fun porMes() = centavos * 30 / dias
     }
-    val PLANOS_PADRAO = listOf(Plano("m1", "1 mês", 30, 1000), Plano("m3", "3 meses", 90, 2500), Plano("m6", "6 meses", 180, 4500))
+    val PLANOS_PADRAO = listOf(Plano("m1", "1 mês", 30, 1500), Plano("m3", "3 meses", 90, 3900), Plano("m6", "6 meses", 180, 6900))
 
     /** Planos do servidor (com os precos atuais); sem internet usa os padroes. */
     fun planos(): List<Plano> = try {
