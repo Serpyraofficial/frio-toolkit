@@ -1,8 +1,8 @@
 {
- "versionCode": 76,
- "versionName": "5.15.1",
- "notas": "- Chave do Pro colada do e-mail agora sempre funciona, mesmo com espaços invisíveis ou texto copiado junto",
- "sha256": "1c816bb5f562dc8e2e23be24dcf76c1bfbd45efa88ae74452436399e4a9d15e8",
- "tamanho": 1331505,
- "arquivo": "SerpyraToolkit-5.15.1-1c816bb5f5.apk"
+ "versionCode": 77,
+ "versionName": "5.15.2",
+ "notas": "- Indique e ganhe: seu amigo ganha 10% de desconto e você ganha de 5 a 30 dias por compra dele (até 15 dias por mês)\n- Chave do Pro colada do e-mail sempre funciona, mesmo com espaços invisíveis",
+ "sha256": "8a7cfdf515100a4e86048e0faef20cb98f71bbd9f93abcd717ea1e76a7cee057",
+ "tamanho": 1331597,
+ "arquivo": "SerpyraToolkit-5.15.2-8a7cfdf515.apk"
 }
