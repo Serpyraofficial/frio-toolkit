@@ -1,8 +1,8 @@
 {
- "versionCode": 66,
- "versionName": "5.12",
- "notas": "- O app agora se atualiza sozinho quando você não está usando: ao abrir, já está na versão nova\n- Suas configurações, botões e Pro continuam iguais depois de atualizar\n- Dá para ligar ou desligar em Menu > Atualizar sozinho",
- "sha256": "753cb03c4abd0944863b203533582ee0bf29959da4b0bd5ea5195906990bfab3",
- "tamanho": 1206221,
- "arquivo": "SerpyraToolkit-5.12-753cb03c4a.apk"
+ "versionCode": 67,
+ "versionName": "5.13",
+ "notas": "- Nova aba SHIZUKU na tela inicial: vídeo tutorial, foto do que ativar e passo a passo\n- Atalhos para abrir as Opções do desenvolvedor e o Shizuku direto\n- Esta versão também testa a atualização sozinha",
+ "sha256": "35291c7f5a4f0e0559d3938970e3be688efc190fb92775d9668295cbe7573c7e",
+ "tamanho": 1334557,
+ "arquivo": "SerpyraToolkit-5.13-35291c7f5a.apk"
 }
