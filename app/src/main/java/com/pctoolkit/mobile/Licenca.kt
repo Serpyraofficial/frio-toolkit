@@ -821,16 +821,16 @@ private fun MainActivity.usarCodigo(texto: String, msg: android.widget.TextView)
         "chave" -> {
             val (ok, m) = Licenca.ativar(texto)
             msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho)
-            if (ok) { Thread { Compra.registrar() }.start(); msg.postDelayed({ mostrar() }, 1200) }
+            if (ok) { Thread { Compra.registrar() }.start(); window.decorView.postDelayed({ mostrar() }, 1200) }
         }
         "presente" -> {
             msg.text = "Ativando o código de presente…"; msg.setTextColor(T.texto2)
-            Thread { val (ok, m) = Compra.resgatar(c); runOnUiThread { msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho); if (ok) msg.postDelayed({ mostrar() }, 1500) } }.start()
+            Thread { val (ok, m) = Compra.resgatar(c); runOnUiThread { msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho); if (ok) window.decorView.postDelayed({ mostrar() }, 1500) } }.start()
         }
         "cupom" -> {
             Store.putStr("cupom_pendente", c)
             msg.text = "$c é um cupom de desconto: já coloquei no Pix lá em cima. Escolha o plano e toque em Gerar Pix."; msg.setTextColor(T.verde)
-            msg.postDelayed({ mostrar() }, 1600)
+            window.decorView.postDelayed({ mostrar() }, 1600)
         }
         else -> { msg.text = "Não reconheci esse código. Confira se copiou inteiro."; msg.setTextColor(T.vermelho) }
     }
@@ -850,7 +850,7 @@ private fun MainActivity.oferecerCopiado() {
                 val tv = android.widget.TextView(this)
                 usarCodigo(achado, tv)
                 Toast.makeText(this, if (Compra.tipoCodigo(achado) == "cupom") "Cupom $achado colocado no Pix." else "Conferindo…", Toast.LENGTH_SHORT).show()
-                if (Compra.tipoCodigo(achado) != "cupom") tv.postDelayed({ Toast.makeText(this, tv.text, Toast.LENGTH_LONG).show(); mostrar() }, 2500)
+                if (Compra.tipoCodigo(achado) != "cupom") window.decorView.postDelayed({ Toast.makeText(this, tv.text, Toast.LENGTH_LONG).show(); mostrar() }, 2500)
             }.setNegativeButton("Não", null).show()
     } catch (e: Exception) { }
 }

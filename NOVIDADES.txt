@@ -1,3 +1,3 @@
 - Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou
-- Faixa de promoção mostra a frase inteira, mesmo quando é maior que a tela
-- Botões de um amigo: se o celular não deixar colar sozinho, aparece um campo para colar o código
+- Código copiado (chave ou presente): ao tocar em Usar, a tela do Pro agora atualiza e mostra o resultado
+- Faixa de promoção mostra a frase inteira; botões de um amigo podem ser colados à mão
