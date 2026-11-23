@@ -1,8 +1,3 @@
-- Botões na tela corrigidos: quando o círculo fica em cima do botão do jogo, o toque agora chega ao jogo (antes o próprio círculo "engolia" o toque)
-- Turbo e Liga/desliga afastam o círculo do ponto do jogo sozinhos, e o editor avisa quando um botão esconde o ponto de outro
-- Toda mudança de configuração agora é conferida: o app só diz "pronto" se o Android realmente aceitou
-- Liberar memória funciona no Android 14+ (com o modo automático) e mostra quanto liberou de verdade
-- Limpeza conta só o que foi realmente apagado e mostra o espaço liberado do cache
-- DNS mais rápido testa a internet depois de trocar e volta sozinho se a rede bloquear
-- Raio-X: taxa da tela avaliada pelo limite configurado (telas adaptativas não aparecem mais como erro)
-- Desfazer guarda o que não conseguiu voltar para tentar de novo
+- Aviso de atualização mais rápido: o app confere sempre que é aberto
+- Notificação "Atualização disponível" mesmo com o app fechado (confere a cada 2 horas)
+- Tudo da 5.9: botões na tela corrigidos e ajustes conferidos de verdade

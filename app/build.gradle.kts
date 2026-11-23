@@ -11,8 +11,8 @@ android {
         applicationId = "com.serpyra.toolkit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 60
-        versionName = "5.9"
+        versionCode = 61
+        versionName = "5.9.1"
     }
 
     // Assinatura fixa (sempre a mesma): sem ela o Android recusa a atualizacao por cima.

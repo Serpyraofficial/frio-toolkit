@@ -42,6 +42,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|smallestScreenSize"
             android:exported="true">
             <intent-filter>
@@ -51,6 +52,10 @@
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/atalhos" />
         </activity>
 
+        <service
+            android:name=".AtualizacaoJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".CuidadoJob"
             android:exported="false"

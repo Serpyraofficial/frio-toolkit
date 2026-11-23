@@ -213,7 +213,9 @@ class MainActivity : Activity() {
             "temperatura" -> abrirMenu { Menus.temperatura() }
             "memoria" -> executar("Liberar memória") { Fps.liberarRam(it) }
             "relatorio" -> executar("Histórico do Modo Jogo") { ModoJogo.historico(it) }
+            "atualizar" -> executar("Atualizar o app") { Atualizador.procurar(it) }
         }
+        Atualizador.agendar(this)
         Automatico.agendar(this)
         Thread { Conquistas.conferir() }.start()
         if (Vendedor.automatico()) Thread {
@@ -276,6 +278,11 @@ class MainActivity : Activity() {
             con.linha("")
             con.ok("Toque em Concluir para começar. Dica: comece pelo Raio-X.")
         }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent?.getStringExtra("acao") == "atualizar" && !naTarefa) executar("Atualizar o app") { Atualizador.procurar(it) }
     }
 
     override fun onResume() {

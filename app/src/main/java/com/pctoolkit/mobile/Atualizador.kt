@@ -24,7 +24,34 @@ import java.security.MessageDigest
 object Atualizador {
     class Info(val codigo: Int, val nome: String, val notas: String, val sha256: String, val tamanho: Long)
 
-    private const val INTERVALO = 10 * 60_000L   // confere a cada abertura do app (no maximo 1x a cada 10 min)
+    private const val INTERVALO = 45_000L   // confere sempre que o app abre ou volta (no maximo 1x a cada 45 s)
+    private const val JOB = 4343
+
+    /** Confere em segundo plano a cada 2 horas (com internet) e avisa por notificacao, mesmo com o app fechado. */
+    fun agendar(ctx: Context) {
+        try {
+            val js = ctx.getSystemService(android.app.job.JobScheduler::class.java)
+            if (js.getPendingJob(JOB) != null) return
+            js.schedule(android.app.job.JobInfo.Builder(JOB, android.content.ComponentName(ctx, AtualizacaoJob::class.java))
+                .setRequiredNetworkType(android.app.job.JobInfo.NETWORK_TYPE_ANY).setPeriodic(2 * 3_600_000L).setPersisted(true).build())
+        } catch (e: Exception) { Log2.registrar("job atualizacao: $e") }
+    }
+
+    /** Notificacao do sistema: "Atualizacao disponivel". Uma vez por versao. */
+    fun notificar(ctx: Context, i: Info) {
+        if (Store.str("upd_notificada") == i.codigo.toString()) return
+        Store.putStr("upd_notificada", i.codigo.toString())
+        try {
+            val nm = ctx.getSystemService(android.app.NotificationManager::class.java)
+            nm.createNotificationChannel(android.app.NotificationChannel("atualizacao", "Atualizações do app", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+            val abrir = PendingIntent.getActivity(ctx, 3, Intent(ctx, MainActivity::class.java).putExtra("acao", "atualizar").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            val txt = i.notas.lines().firstOrNull { it.isNotBlank() }?.removePrefix("- ") ?: "Toque para atualizar. Seu Pro continua ativo."
+            nm.notify(7273, android.app.Notification.Builder(ctx, "atualizacao").setSmallIcon(R.drawable.ic_jogo)
+                .setContentTitle("SerpyraToolkit ${i.nome} disponível").setContentText(txt)
+                .setStyle(android.app.Notification.BigTextStyle().bigText(txt + "\nToque para atualizar."))
+                .setContentIntent(abrir).setAutoCancel(true).setColor(T.verde).build())
+        } catch (e: Exception) { }
+    }
     @Volatile var tela: WeakReference<Activity>? = null
 
     fun atual(): Int = BuildConfig.VERSION_CODE
@@ -194,6 +221,15 @@ class AtualizacaoReceiver : BroadcastReceiver() {
             else -> Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
         }
     }
+}
+
+/** Confere a versao em segundo plano. */
+class AtualizacaoJob : android.app.job.JobService() {
+    override fun onStartJob(p: android.app.job.JobParameters?): Boolean {
+        Thread { try { Atualizador.verificar()?.let { Atualizador.notificar(applicationContext, it) } } catch (e: Throwable) { }; jobFinished(p, false) }.start()
+        return true
+    }
+    override fun onStopJob(p: android.app.job.JobParameters?): Boolean = true
 }
 
 /** Depois que a atualizacao instala: o Android nao deixa reabrir sozinho, entao avisa com uma notificacao. */
