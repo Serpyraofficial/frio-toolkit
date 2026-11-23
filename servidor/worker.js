@@ -558,6 +558,12 @@ async function admin(req, url, env) {
     const st = await mandarEmail(env, c.email, "Sua chave do SerpyraToolkit Pro", m.html, m.texto);
     return st === "enviado" ? json({ ok: true }) : json({ erro: "Falhou: " + st }, 502);
   }
+  if (rota === "testar-aviso" && req.method === "POST") {
+    const para = env.AVISO_EMAIL || env.REMETENTE_EMAIL;
+    const html = moldura("✅ Teste: aviso de venda funcionando", "É assim que você vai ser avisado a cada Pix pago.", `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4"><tr><td style="color:#9AA8BA">Plano</td><td align="right">1 mês (exemplo)</td></tr><tr><td style="color:#9AA8BA">Valor</td><td align="right">R$ 15,00</td></tr><tr><td style="color:#9AA8BA">Quando</td><td align="right">${agoraBr()}</td></tr></table></div><a href="https://serpyratoolkit.pages.dev/painel" style="color:#3DDC97">Abrir o painel de vendas</a>`);
+    const st = await mandarEmail(env, para, "✅ Teste: aviso de venda do SerpyraToolkit", html, "Teste do aviso de venda. A cada Pix pago você recebe um e-mail assim.");
+    return st === "enviado" ? json({ ok: true, para }) : json({ erro: "Não consegui enviar: " + st }, 502);
+  }
   if (rota === "vencendo") {
     const nomes = await listar(env, "chave:", 2000);
     const l = (await Promise.all(nomes.map(async n => ({ codigo: n.slice(6), ...(await lerJson(env, n)) })))).filter(c => c.dia && c.dia < DIA_VITALICIO && c.dia >= hoje() - 3 && c.dia <= hoje() + 7);

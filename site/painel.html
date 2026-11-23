@@ -2,111 +2,177 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0B111B">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Painel · SerpyraToolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%230E1726'/%3E%3Cpath d='M30 68a24 24 0 1 1 48 0' fill='none' stroke='%233DDC97' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M54 68 66 48' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='68' r='5' fill='%233B5BFF'/%3E%3C/svg%3E">
 <style>
-:root{--fundo:#0B111B;--fundo2:#111A27;--papel:#F3F5F8;--branco:#fff;--tinta:#0E1726;--t2:#4A5568;--t3:#8A94A6;--linha:#E3E7EC;--menta:#3DDC97;--menta-esc:#0F9960;--azul:#3B5BFF;--verm:#E5484D;--amar:#A87900;--raio:18px}
+:root{--noite:#0B111B;--noite2:#121B29;--noite3:#1B2738;--papel:#EEF1F5;--branco:#fff;--tinta:#0E1726;--t2:#4A5568;--t3:#8A94A6;--linha:#E1E6EC;--menta:#3DDC97;--menta-esc:#0C8A55;--menta-claro:#E3F8EE;--azul:#3B5BFF;--verm:#D93F44;--amar:#9A6E00;--r:20px;--sombra:0 1px 2px rgba(14,23,38,.05),0 8px 24px -12px rgba(14,23,38,.14)}
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
-body{background:var(--papel);color:var(--tinta);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:15.5px;line-height:1.5;font-variation-settings:"opsz" 14}
-.w{max-width:1080px;margin:0 auto;padding:0 18px}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:120px}
+body{background:var(--papel);color:var(--tinta);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:15.5px;line-height:1.5;font-variation-settings:"opsz" 14;-webkit-tap-highlight-color:transparent}
+.w{max-width:1040px;margin:0 auto;padding:0 20px}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
 /* topo */
-.topo{background:var(--fundo);color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 1px 0 #1D2838}
-.topo .w{display:flex;align-items:center;gap:10px;height:58px}
-.marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
-.marca svg{width:30px;height:30px;flex:none}
-#modo{color:#8FA0B6;font-size:13px;font-weight:500}
-.sair{margin-left:auto;background:none;border:1px solid #2E3B50;color:#C9D4E2;border-radius:10px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
-.abas{background:var(--fundo);position:sticky;top:58px;z-index:19;border-bottom:1px solid #1D2838}
-.abas .w{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-top:8px;padding-bottom:10px}
-.abas .w::-webkit-scrollbar{display:none}
-.aba-b{flex:none;font:inherit;font-size:14.5px;font-weight:600;color:#9FB0C5;background:transparent;border:1px solid transparent;border-radius:999px;padding:8px 15px;cursor:pointer;white-space:nowrap}
+.topo{background:var(--noite);color:#fff;position:sticky;top:0;z-index:30;padding-top:env(safe-area-inset-top)}
+.topo .w{display:flex;align-items:center;gap:12px;height:60px}
+.marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.marca svg{width:32px;height:32px;flex:none}
+#modo{color:#8FA0B6;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acoes-topo{margin-left:auto;display:flex;gap:8px}
+.bt-topo{display:inline-flex;align-items:center;gap:6px;background:var(--noite3);border:0;color:#D5DEEA;border-radius:12px;padding:0 12px;height:38px;font:inherit;font-size:14px;font-weight:550;cursor:pointer}
+.bt-topo:hover{background:#243349}
+.bt-topo.girando svg{animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* abas (computador: no topo; celular: barra de baixo) */
+.abas{background:var(--noite);position:sticky;top:calc(60px + env(safe-area-inset-top));z-index:29;border-bottom:1px solid #1D2838}
+.abas .w{display:flex;gap:4px;padding-top:6px;padding-bottom:10px}
+.aba-b{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14.5px;font-weight:600;color:#9FB0C5;background:transparent;border:0;border-radius:12px;padding:9px 14px;cursor:pointer;white-space:nowrap}
+.aba-b .rot{display:inline}
 .aba-b.on{background:var(--menta);color:#06130D}
-.aba-b:not(.on):hover{border-color:#2E3B50;color:#fff}
+.aba-b:not(.on):hover{background:var(--noite3);color:#fff}
+
 /* destaque */
-.hero{background:linear-gradient(180deg,var(--fundo) 0,var(--fundo) 62%,var(--papel) 62%);padding:22px 0 6px}
-.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.num{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:16px 18px;min-width:0}
-.num small{color:var(--t2);font-size:13.5px;font-weight:500}
-.num b{display:block;font-size:28px;font-weight:650;letter-spacing:-.02em;font-variation-settings:"opsz" 60,"wdth" 88;line-height:1.15;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.num i{font-style:normal;color:var(--t3);font-size:13px}
-.num.dest{background:linear-gradient(150deg,#123A2A,#0F1F33);border-color:#1E4B39;color:#fff}
-.num.dest small{color:#9FE6C4}.num.dest i{color:#8FA0B6}
-main{padding:10px 0 80px}
-.aba{display:none}.aba.on{display:block}
-h2{font-size:19px;font-weight:650;margin:28px 0 10px;letter-spacing:-.01em}
-.sub{color:var(--t2);font-size:14px;margin:-4px 0 12px}
-.caixa{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:18px}
-.aviso-email{display:flex;gap:12px;align-items:flex-start;background:#EAF8F1;border:1px solid #BFEBD5;color:#0B5A39;border-radius:var(--raio);padding:14px 16px;margin-top:16px;font-size:14px}
-.aviso-email svg{flex:none;width:22px;height:22px;margin-top:1px}
-.grafico{display:flex;align-items:flex-end;gap:3px;height:150px;padding-top:8px}
-.grafico div{flex:1;background:var(--menta);border-radius:4px 4px 0 0;min-height:2px;position:relative}
-.grafico div.zero{background:var(--linha)}
-.grafico div:hover::after,.grafico div:active::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;font-size:12px;padding:4px 8px;border-radius:7px;white-space:nowrap;margin-bottom:4px;z-index:2}
-.eixo{display:flex;justify-content:space-between;color:var(--t3);font-size:12px;margin-top:6px}
-.barra-motivo{height:8px;background:var(--azul);border-radius:4px;margin:3px 0 10px}
-.linha{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-label{display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--t2);font-weight:500}
-input,select{font:inherit;font-size:16px;border:1px solid #CBD3DD;border-radius:12px;padding:11px 12px;min-width:0;background:#fff;color:var(--tinta);min-height:46px}
-input[type=checkbox]{min-height:0;width:20px;height:20px;accent-color:var(--menta-esc)}
-input:focus,select:focus{outline:2px solid var(--azul);outline-offset:1px}
-button.b,a.b{font:inherit;font-size:15px;font-weight:650;border:0;border-radius:12px;padding:12px 18px;min-height:46px;cursor:pointer;background:var(--tinta);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
-button.b.v{background:var(--menta);color:#06130D}
-button.b.l,a.b.l{background:#fff;border:1px solid #CBD3DD;color:var(--tinta);font-weight:550;min-height:40px;padding:8px 14px;font-size:14px}
+.hero{background:var(--noite);padding:18px 0 64px;color:#fff}
+.hero-g{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:12px}
+.num{border-radius:var(--r);padding:16px 18px;min-width:0;background:var(--noite2);border:1px solid #1E2A3C}
+.num small{display:block;color:#8FA0B6;font-size:13px;font-weight:550}
+.num b{display:block;font-size:26px;font-weight:650;letter-spacing:-.02em;font-variation-settings:"opsz" 60,"wdth" 85;line-height:1.15;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num i{font-style:normal;color:#6F8097;font-size:13px}
+.num.dest{background:linear-gradient(155deg,#17493A 0%,#123026 55%,#0F2230 100%);border-color:#21583F}
+.num.dest small{color:#A8F0CB}.num.dest b{font-size:34px;color:#fff}.num.dest i{color:#9FC9B5}
+
+main{margin-top:-46px;padding-bottom:60px;position:relative;z-index:2}
+.aba{display:none}.aba.on{display:block;animation:entra .18s ease-out}
+@keyframes entra{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.aba.on{animation:none}.bt-topo.girando svg{animation:none}}
+
+.card{background:var(--branco);border-radius:var(--r);box-shadow:var(--sombra);padding:20px;margin-bottom:16px}
+.card-t{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.card-t h2{font-size:17.5px;font-weight:650;letter-spacing:-.01em}
+.card-t .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--menta-claro);color:var(--menta-esc);flex:none}
+.card-t .ic.az{background:#E8ECFF;color:var(--azul)}.card-t .ic.am{background:#FFF3D1;color:var(--amar)}.card-t .ic.vm{background:#FDE7E8;color:var(--verm)}
+.card-d{color:var(--t2);font-size:14px;margin-bottom:14px}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.duas>.card{margin-bottom:0}
+.pilha{display:grid;gap:16px;margin-bottom:16px}
+
+.email-ok{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.email-ok .txt{flex:1 1 260px;font-size:14.5px;color:var(--t2)}
+.email-ok .txt b{color:var(--tinta)}
+
+.grafico{display:flex;align-items:flex-end;gap:3px;height:160px;padding-top:10px}
+.grafico div{flex:1;background:linear-gradient(180deg,#5BE6AA,var(--menta-esc));border-radius:5px 5px 2px 2px;min-height:3px;position:relative;cursor:pointer}
+.grafico div.zero{background:#E6EAF0}
+.grafico div:hover::after,.grafico div:active::after,.grafico div:focus::after{content:attr(data-t);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;font-size:12.5px;padding:5px 9px;border-radius:8px;white-space:nowrap;z-index:3}
+.eixo{display:flex;justify-content:space-between;color:var(--t3);font-size:12px;margin-top:8px}
+.barra-motivo{height:8px;background:var(--azul);border-radius:4px;margin:4px 0 12px}
+#pesq>div:not(.barra-motivo){font-size:14.5px}
+
+.linha{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--t2);font-weight:550}
+input,select{font:inherit;font-size:16px;border:1.5px solid #D3DAE3;border-radius:13px;padding:11px 13px;min-width:0;background:#FAFBFC;color:var(--tinta);min-height:48px;width:100%}
+input[type=checkbox]{min-height:0;width:22px;height:22px;accent-color:var(--menta-esc)}
+input:focus,select:focus{outline:none;border-color:var(--azul);background:#fff;box-shadow:0 0 0 3px rgba(59,91,255,.15)}
+.check{flex-direction:row;align-items:center;gap:10px;margin-top:12px;font-size:14.5px;color:var(--tinta);font-weight:500}
+
+button.b,a.b{font:inherit;font-size:15px;font-weight:650;border:0;border-radius:13px;padding:12px 18px;min-height:48px;cursor:pointer;background:var(--tinta);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:transform .08s}
+button.b:active,a.b:active{transform:scale(.98)}
+button.b.l,a.b.l{background:#F1F4F8;color:var(--tinta);font-weight:600;min-height:40px;padding:8px 14px;font-size:14px;border-radius:11px}
+button.b.l:hover,a.b.l:hover{background:#E6EBF1}
 button.b:disabled{opacity:.5;cursor:default}
-#btCortesia,#btCupom,#btChave{background:var(--menta);color:#06130D}
+.b.prin,#btCortesia,#btCupom,#btChave,#btEntrar{background:var(--menta);color:#06130D}
+.acao-l{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+
 .msg{margin-top:10px;font-size:14px;color:var(--t2);overflow-wrap:anywhere}
+.msg:empty{display:none}
 .msg.ok{color:var(--menta-esc)}.msg.erro{color:var(--verm)}
-.chave{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:#F0F3F6;border:1px dashed #C6CFDA;border-radius:10px;padding:12px;margin-top:8px;word-break:break-all;color:var(--tinta)}
+#extra{margin:0 0 14px;color:var(--t2)}
+.chave{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:600;letter-spacing:.04em;background:var(--menta-claro);border:1.5px dashed #9ADDBE;border-radius:12px;padding:12px 14px;margin-top:10px;word-break:break-all;color:#064A2D}
+
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;color:var(--t2);font-weight:550;padding:8px 10px;border-bottom:1px solid var(--linha);white-space:nowrap}
-td{padding:10px;border-bottom:1px solid #EEF1F4;vertical-align:top}
+th{text-align:left;color:var(--t3);font-weight:600;font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--linha);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid #EFF2F5;vertical-align:top}
+tr:last-child td{border-bottom:0}
 .rolar{overflow-x:auto}
-.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:7px;padding:2px 8px;background:#EEF0F3;color:var(--t2)}
-.tag.v{background:#DDF7EB;color:var(--menta-esc)}.tag.a{background:#FFF3C7;color:var(--amar)}
-.vazio{color:var(--t3);padding:14px 4px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tag{display:inline-block;font-size:12px;font-weight:650;border-radius:7px;padding:2px 8px;background:#EEF0F3;color:var(--t2)}
+.tag.v{background:#DDF7EB;color:var(--menta-esc)}.tag.a{background:#FFF1C2;color:var(--amar)}
+.vazio{color:var(--t3);padding:16px 4px}
+
+#cliRes>div:first-child b{font-size:20px!important}
+
 /* entrar */
-.entrar{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(120% 80% at 50% 0,#163A2C 0,var(--fundo) 60%)}
-.entrar .card{width:100%;max-width:400px;background:var(--fundo2);border:1px solid #223047;border-radius:22px;padding:28px;color:#E8EEF5}
-.entrar h1{font-size:24px;font-weight:650;margin:14px 0 6px}
+.entrar{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 70% at 50% 0,#17463A 0,var(--noite) 62%)}
+.entrar .cx{width:100%;max-width:400px;background:var(--noite2);border:1px solid #223047;border-radius:24px;padding:30px;color:#E8EEF5}
+.entrar h1{font-size:26px;font-weight:650;margin:16px 0 6px;letter-spacing:-.02em}
 .entrar p{color:#9FB0C5;margin-bottom:18px;font-size:14.5px}
-.entrar input{width:100%;margin-bottom:12px;background:#0B111B;border-color:#2B3A51;color:#fff}
-.entrar button{width:100%;background:var(--menta)!important;color:#06130D!important}
+.entrar input{margin-bottom:12px;background:#0B111B;border-color:#2B3A51;color:#fff}
+.entrar button{width:100%}
+
 /* celular */
 @media(max-width:760px){
  .w{padding:0 14px}
- .nums{grid-template-columns:1fr 1fr;gap:10px}
- .num{padding:13px 14px}.num b{font-size:22px}
- .grid2{grid-template-columns:1fr;gap:0}
- h2{font-size:18px;margin-top:24px}
- .caixa{padding:15px}
+ .topo .w{height:56px}
+ #modo{display:none}
+ .bt-topo .rot{display:none}
+ .bt-topo{width:40px;padding:0;justify-content:center}
+ .abas{position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:0;border-top:1px solid #1D2838;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 24px rgba(0,0,0,.25)}
+ .abas .w{padding:6px 4px 6px;gap:0;justify-content:space-around}
+ .aba-b{flex:1;flex-direction:column;gap:3px;padding:7px 2px;font-size:11px;border-radius:12px;min-width:0}
+ .aba-b svg.i{width:22px;height:22px}
+ .aba-b.on{background:transparent;color:var(--menta)}
+ .aba-b.on svg.i{background:rgba(61,220,151,.16);border-radius:10px;padding:3px;width:34px;height:28px}
+ .hero{padding:14px 0 56px}
+ .hero-g{grid-template-columns:1fr 1fr;gap:10px}
+ .num{padding:13px 14px;border-radius:16px}
+ .num.dest{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+ .num.dest b{font-size:36px;order:2;margin:0}.num.dest small{width:100%}.num.dest i{order:3}
+ .num b{font-size:21px}
+ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+ .duas{grid-template-columns:1fr}
+ .card{padding:16px;border-radius:18px}
  .linha>label{flex:1 1 100%!important;width:auto!important}
- #zOutroL,#zQtd{width:auto}
- .caixa label[style*="width:90px"],.caixa label[style*="width:110px"],.caixa label[style*="width:100px"]{flex:1 1 40%!important}
+ .linha>label.meia{flex:1 1 40%!important}
  button.b{width:100%}
- button.b.l,a.b.l{width:auto}
+ button.b.l,a.b.l{width:auto;flex:1 1 auto}
+ .acao-l .b{flex:1 1 45%}
  /* tabelas viram cartoes */
  .rolar table,.rolar tbody,.rolar tr,.rolar td{display:block;width:100%}
  .rolar thead{display:none}
- .rolar tr{border:1px solid var(--linha);border-radius:14px;padding:6px 12px;margin-bottom:10px;background:#fff}
+ .rolar tr{background:#F7F9FB;border-radius:14px;padding:8px 12px;margin-bottom:10px}
  .rolar td{border:0;padding:6px 0;display:flex;gap:12px;justify-content:space-between;text-align:right;overflow-wrap:anywhere}
  .rolar td::before{content:attr(data-l);color:var(--t3);font-size:13px;text-align:left;flex:none;max-width:42%}
  .rolar td[data-l=""]::before{content:none}
- .rolar td[data-l=""]{justify-content:flex-start}
+ .rolar td[data-l=""]{justify-content:flex-start;flex-wrap:wrap;gap:8px}
  .rolar td.vazio{display:block;text-align:left}
- .rolar.caixa{background:transparent;border:0;padding:0}
 }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="ic-resumo" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></symbol>
+ <symbol id="ic-presente" viewBox="0 0 24 24"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H8a2.5 2.5 0 1 1 0-5c3 0 4 5 4 5zM12 7h4a2.5 2.5 0 1 0 0-5c-3 0-4 5-4 5z"/></symbol>
+ <symbol id="ic-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+ <symbol id="ic-cupom" viewBox="0 0 24 24"><path d="M3 9a3 3 0 0 0 0 6v4h18v-4a3 3 0 0 1 0-6V5H3z"/><path d="M14 5v2M14 11v2M14 17v2"/></symbol>
+ <symbol id="ic-pix" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/></symbol>
+ <symbol id="ic-aviso" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol>
+ <symbol id="ic-email" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+ <symbol id="ic-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+ <symbol id="ic-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></symbol>
+ <symbol id="ic-atual" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+ <symbol id="ic-sair" viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></symbol>
+ <symbol id="ic-motivo" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+</svg>
+
 <div id="login" class="entrar" hidden>
- <div class="card">
+ <div class="cx">
   <div class="marca"><svg viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" rx="26" fill="#16233A"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="8" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#3B5BFF"/></svg> SerpyraToolkit</div>
   <h1>Painel de vendas</h1>
   <p>Cole o seu token do painel. Ele fica salvo só neste aparelho.</p>
@@ -117,113 +183,137 @@ td{padding:10px;border-bottom:1px solid #EEF1F4;vertical-align:top}
 </div>
 
 <div id="app" hidden>
-<header class="topo"><div class="w"><div class="marca"><svg viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" rx="26" fill="#16233A"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="8" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#3B5BFF"/></svg><span>SerpyraToolkit</span></div><span id="modo">Painel de vendas</span><button class="sair" id="sair">Sair</button></div></header>
-<nav class="abas"><div class="w">
- <button class="aba-b on" data-ir="resumo">Resumo</button>
- <button class="aba-b" data-ir="cortesia">Cortesias</button>
- <button class="aba-b" data-ir="clientes">Clientes</button>
- <button class="aba-b" data-ir="cupons">Cupons</button>
- <button class="aba-b" data-ir="vendas">Vendas</button>
- <button class="aba-b" data-ir="avisos">Avisos</button>
+<header class="topo"><div class="w">
+ <div class="marca"><svg viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" rx="26" fill="#16233A"/><path d="M30 68a24 24 0 1 1 48 0" fill="none" stroke="#3DDC97" stroke-width="8" stroke-linecap="round"/><path d="M54 68 66 48" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="54" cy="68" r="5" fill="#3B5BFF"/></svg><span>SerpyraToolkit</span></div>
+ <span id="modo">Painel de vendas</span>
+ <div class="acoes-topo">
+  <button class="bt-topo" id="btAtualizar" title="Atualizar"><svg class="i"><use href="#ic-atual"/></svg><span class="rot">Atualizar</span></button>
+  <button class="bt-topo" id="sair" title="Sair"><svg class="i"><use href="#ic-sair"/></svg><span class="rot">Sair</span></button>
+ </div>
+</div></header>
+<nav class="abas" aria-label="Seções"><div class="w">
+ <button class="aba-b on" data-ir="resumo"><svg class="i"><use href="#ic-resumo"/></svg><span class="rot">Resumo</span></button>
+ <button class="aba-b" data-ir="vendas"><svg class="i"><use href="#ic-pix"/></svg><span class="rot">Vendas</span></button>
+ <button class="aba-b" data-ir="cortesia"><svg class="i"><use href="#ic-presente"/></svg><span class="rot">Cortesias</span></button>
+ <button class="aba-b" data-ir="clientes"><svg class="i"><use href="#ic-pessoa"/></svg><span class="rot">Clientes</span></button>
+ <button class="aba-b" data-ir="cupons"><svg class="i"><use href="#ic-cupom"/></svg><span class="rot">Cupons</span></button>
+ <button class="aba-b" data-ir="avisos"><svg class="i"><use href="#ic-aviso"/></svg><span class="rot">Avisos</span></button>
 </div></nav>
 <div class="hero"><div class="w">
- <div class="nums">
+ <div class="hero-g">
   <div class="num dest"><small>Hoje</small><b id="n-hoje">–</b><i id="v-hoje"></i></div>
-  <div class="num"><small>Últimos 7 dias</small><b id="n-semana">–</b><i id="v-semana"></i></div>
-  <div class="num"><small>Últimos 30 dias</small><b id="n-mes">–</b><i id="v-mes"></i></div>
+  <div class="num"><small>7 dias</small><b id="n-semana">–</b><i id="v-semana"></i></div>
+  <div class="num"><small>30 dias</small><b id="n-mes">–</b><i id="v-mes"></i></div>
   <div class="num"><small>Desde o início</small><b id="n-tudo">–</b><i id="v-tudo"></i></div>
  </div>
 </div></div>
 <main class="w">
  <p class="msg" id="extra"></p>
 
-
 <section class="aba on" id="aba-resumo">
- <div class="aviso-email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="m4 6 8 7 8-7"/></svg><div><b>Você recebe um e-mail a cada venda.</b> Chega em officialcarloswendrik@gmail.com com o valor, o plano, o cliente e o cupom usado. Se não aparecer, olhe a pasta Promoções ou Spam e marque como "não é spam".</div></div>
- <h2>Vendas por dia</h2>
- <h2>Vendas por dia (últimos 30 dias)</h2>
- <div class="caixa"><div class="grafico" id="graf"></div><div class="eixo"><span id="gIni"></span><span>passe o mouse ou toque numa barra</span><span>hoje</span></div></div>
- <h2>Vencendo nos próximos 7 dias</h2>
- <h2>Vencendo nos próximos 7 dias</h2>
- <div class="caixa rolar"><table><thead><tr><th>Celular</th><th>E-mail</th><th>Vence</th><th></th></tr></thead><tbody id="tVence"></tbody></table>
- <p class="msg">O app já oferece 10% de desconto (cupom RENOVA10) para quem está a 7 dias de vencer.</p></div>
- <h2>Por que não renovaram</h2>
-    <div class="caixa" id="pesq"></div>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-email"/></svg></span><h2>Aviso de venda no seu e-mail</h2></div>
+  <div class="email-ok">
+   <div class="txt">A cada Pix pago chega um e-mail em <b>officialcarloswendrik@gmail.com</b> com o valor, o plano, o cliente e o cupom. Se não aparecer, olhe Promoções ou Spam e marque como “não é spam”.</div>
+   <button class="b l" id="btTesteEmail"><svg class="i"><use href="#ic-email"/></svg>Mandar um e-mail de teste</button>
+  </div>
+  <div class="msg" id="msgTesteEmail"></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-resumo"/></svg></span><h2>Vendas por dia</h2></div>
+  <div class="card-d">Últimos 30 dias. Toque numa barra para ver o dia.</div>
+  <div class="grafico" id="graf"></div><div class="eixo"><span id="gIni"></span><span>hoje</span></div>
+ </div>
+ <div class="duas">
+  <div class="card">
+   <div class="card-t"><span class="ic am"><svg class="i"><use href="#ic-relogio"/></svg></span><h2>Vencendo em 7 dias</h2></div>
+   <div class="card-d">O app já oferece 10% (cupom RENOVA10) para quem está perto de vencer.</div>
+   <div class="rolar"><table><thead><tr><th>Celular</th><th>E-mail</th><th>Vence</th><th></th></tr></thead><tbody id="tVence"></tbody></table></div>
+  </div>
+  <div class="card">
+   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-motivo"/></svg></span><h2>Por que não renovaram</h2></div>
+   <div class="card-d">Resposta que o app pergunta quando um Pro comprado vence.</div>
+   <div id="pesq"></div>
+  </div>
+ </div>
+</section>
+
+<section class="aba" id="aba-vendas">
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-pix"/></svg></span><h2>Últimas vendas</h2></div>
+  <div class="card-d">As 60 mais recentes. “E-mail pendente” é tentado de novo sozinho todo dia.</div>
+  <div class="rolar"><table><thead><tr><th>Data</th><th>Pedido</th><th>Plano</th><th>Valor</th><th>E-mail</th><th>Celular</th><th>Vale até</th></tr></thead><tbody id="tVendas"></tbody></table></div>
+ </div>
 </section>
 
 <section class="aba" id="aba-cortesia">
- <h2>Dar o Pro sem pagar</h2>
- <h2>Cortesia: Pro sem pagar</h2>
- <div class="caixa">
-  <p class="msg" style="margin-top:0">Gera um código para dar o Pro a alguém (amigo, parceiro, exceção). A pessoa instala o app, abre <b>SerpyraToolkit Pro</b> e cola o código em <b>Tem um código?</b>. Não precisa do código do celular dela. Cada código vale para um celular.</p>
-  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-   <label style="flex:1 1 150px">Quanto tempo<select id="zDur"><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="90">3 meses</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="vida">Vitalício</option><option value="outro">Outro…</option></select></label>
-   <label style="width:110px" id="zOutroL" hidden>Dias<input id="zOutro" type="number" min="1" max="3650" value="45"></label>
-   <label style="width:90px">Quantos<input id="zQtd" type="number" min="1" max="20" value="1"></label>
-   <label style="flex:1 1 160px">Para quem (anotação)<input id="zNota" maxlength="60" placeholder="Ex.: primo João"></label>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-presente"/></svg></span><h2>Dar o Pro sem pagar</h2></div>
+  <div class="card-d">Gera um código para um amigo, parceiro ou exceção. A pessoa instala o app pelo link e ele acha o código sozinho (ou ela cola em “Tem um código?”). Cada código vale para um celular.</div>
+  <div class="linha">
+   <label style="flex:1 1 170px">Quanto tempo<select id="zDur"><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="90">3 meses</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="vida">Vitalício</option><option value="outro">Outro número de dias…</option></select></label>
+   <label class="meia" style="width:120px" id="zOutroL" hidden>Dias<input id="zOutro" type="number" min="1" max="3650" value="45" inputmode="numeric"></label>
+   <label class="meia" style="width:110px">Quantos códigos<input id="zQtd" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
+   <label style="flex:1 1 200px">Para quem (só para você lembrar)<input id="zNota" maxlength="60" placeholder="Ex.: primo João"></label>
   </div>
-  <button class="b" id="btCortesia" style="margin-top:12px">Gerar código</button>
+  <div class="acao-l"><button class="b" id="btCortesia"><svg class="i"><use href="#ic-presente"/></svg>Gerar código</button></div>
   <div class="msg" id="msgCortesia"></div>
  </div>
- <h2>Códigos criados</h2>
- <h2>Códigos de cortesia e presente</h2>
- <div class="caixa rolar"><table><thead><tr><th>Código</th><th>Tipo</th><th>Duração</th><th>Para</th><th>Situação</th><th></th></tr></thead><tbody id="tCort"></tbody></table></div>
- <h2>Chave direta (com o código do celular)</h2>
-   <div class="caixa">
-    <p style="color:var(--t2);font-size:14px;margin-bottom:12px">Para quem trocou de celular ou restaurou o aparelho. O código aparece no app quando a pessoa cola uma chave de outro celular.</p>
-    <div class="linha">
-     <label style="flex:1 1 150px">Código do celular<input id="kCod" placeholder="ABCD-EFGH" maxlength="9"></label>
-     <label style="width:110px">Dias<input id="kDias" type="number" min="1" value="30"></label>
-    </div>
-    <label style="flex-direction:row;align-items:center;gap:8px;margin-top:10px"><input id="kSomar" type="checkbox" checked style="width:auto">Somar aos dias que o celular já tem</label>
-    <button class="b" id="btChave" style="margin-top:12px">Gerar chave</button>
-    <div class="msg" id="msgChave"></div>
-   </div>
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-presente"/></svg></span><h2>Códigos criados</h2></div>
+  <div class="card-d">Cortesias suas e presentes que clientes compraram.</div>
+  <div class="rolar"><table><thead><tr><th>Código</th><th>Tipo</th><th>Duração</th><th>Para</th><th>Situação</th><th></th></tr></thead><tbody id="tCort"></tbody></table></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic am"><svg class="i"><use href="#ic-chave"/></svg></span><h2>Chave direta</h2></div>
+  <div class="card-d">Quando você já tem o código do celular da pessoa (aparece na tela do Pro, no app dela).</div>
+  <div class="linha">
+   <label style="flex:1 1 170px">Código do celular<input id="kCod" placeholder="ABCD-EFGH" maxlength="9" autocapitalize="characters"></label>
+   <label class="meia" style="width:120px">Dias<input id="kDias" type="number" min="1" value="30" inputmode="numeric"></label>
+  </div>
+  <label class="check"><input id="kSomar" type="checkbox" checked>Somar aos dias que o celular já tem</label>
+  <div class="acao-l"><button class="b" id="btChave"><svg class="i"><use href="#ic-chave"/></svg>Gerar chave</button></div>
+  <div class="msg" id="msgChave"></div>
+ </div>
 </section>
 
 <section class="aba" id="aba-clientes">
- <h2>Procurar cliente</h2>
- <p class="sub">Dê dias, torne vitalício, reenvie a chave ou bloqueie o Pro.</p>
- <h2>Clientes</h2>
- <div class="caixa">
-  <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="cliQ" style="flex:1 1 220px" placeholder="Código do celular (ABCD-EFGH) ou e-mail"><button class="b" id="btCli">Procurar</button></div>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-pessoa"/></svg></span><h2>Procurar cliente</h2></div>
+  <div class="card-d">Dê dias, torne vitalício, reenvie a chave ou bloqueie o Pro.</div>
+  <div class="linha"><label style="flex:1 1 240px">Código do celular ou e-mail<input id="cliQ" placeholder="ABCD-EFGH ou cliente@email.com" autocapitalize="off"></label><button class="b prin" id="btCli" style="flex:0 0 auto">Procurar</button></div>
   <div id="cliRes" class="msg"></div>
  </div>
 </section>
 
 <section class="aba" id="aba-cupons">
- <h2>Criar ou mudar cupom</h2>
-   <div class="caixa">
-    <div class="linha">
-     <label style="flex:1 1 130px">Cupom<input id="cCod" placeholder="YOUTUBER10" maxlength="20"></label>
-     <label style="width:90px">Desconto %<input id="cPct" type="number" min="1" max="90" value="10"></label>
-     <label style="width:100px">Limite de usos<input id="cLim" type="number" min="0" value="0"></label>
-    </div>
-    <label style="margin-top:10px">De quem é (opcional)<input id="cDono" placeholder="Nome do canal ou parceiro"></label>
-    <button class="b" id="btCupom" style="margin-top:12px">Salvar cupom</button>
-    <div class="msg" id="msgCupom"></div>
-    <p style="color:var(--t3);font-size:13px;margin-top:8px">Limite 0 = sem limite. Salvar um cupom que já existe atualiza o desconto e o limite.</p>
-   </div>
- <h2>Cupons</h2>
- <h2>Cupons</h2>
- <div class="caixa rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
-</section>
-
-<section class="aba" id="aba-vendas">
- <h2>Últimas vendas</h2>
- <h2>Últimas vendas</h2>
- <div class="caixa rolar"><table><thead><tr><th>Data</th><th>Pedido</th><th>Plano</th><th>Valor</th><th>E-mail</th><th>Celular</th><th>Vale até</th></tr></thead><tbody id="tVendas"></tbody></table></div>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-cupom"/></svg></span><h2>Criar ou mudar cupom</h2></div>
+  <div class="card-d">Limite 0 = sem limite. Salvar um cupom que já existe atualiza o desconto e o limite.</div>
+  <div class="linha">
+   <label style="flex:1 1 160px">Cupom<input id="cCod" placeholder="YOUTUBER10" maxlength="20" autocapitalize="characters"></label>
+   <label class="meia" style="width:110px">Desconto %<input id="cPct" type="number" min="1" max="90" value="10" inputmode="numeric"></label>
+   <label class="meia" style="width:120px">Limite de usos<input id="cLim" type="number" min="0" value="0" inputmode="numeric"></label>
+   <label style="flex:1 1 200px">De quem é (opcional)<input id="cDono" placeholder="Nome do canal ou parceiro"></label>
+  </div>
+  <div class="acao-l"><button class="b" id="btCupom"><svg class="i"><use href="#ic-cupom"/></svg>Salvar cupom</button></div>
+  <div class="msg" id="msgCupom"></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-cupom"/></svg></span><h2>Seus cupons</h2></div>
+  <div class="rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
+ </div>
 </section>
 
 <section class="aba" id="aba-avisos">
- <h2>Aviso para todos no app</h2>
- <p class="sub">Aparece no topo da tela inicial do app de todo mundo, em até 30 minutos.</p>
-   <div class="caixa">
-    <label>Texto (aparece no topo da tela inicial do app)<input id="aTxt" maxlength="240" placeholder="Ex.: Promoção de Natal: 20% com o cupom NATAL"></label>
-    <label style="margin-top:10px">Link ao tocar (opcional, começando com https://)<input id="aLink" placeholder="https://..."></label>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="b" id="btAviso">Publicar aviso</button><button class="b l" id="btTirar">Tirar aviso</button></div>
-    <div class="msg" id="msgAviso"></div>
-   </div>
+ <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-aviso"/></svg></span><h2>Aviso para todos no app</h2></div>
+  <div class="card-d">Aparece no topo da tela inicial do app de todo mundo, em até 30 minutos.</div>
+  <label>Texto<input id="aTxt" maxlength="240" placeholder="Ex.: Promoção de Natal: 20% com o cupom NATAL"></label>
+  <label style="margin-top:12px">Link ao tocar (opcional, começando com https://)<input id="aLink" placeholder="https://..." inputmode="url" autocapitalize="off"></label>
+  <div class="acao-l"><button class="b prin" id="btAviso">Publicar aviso</button><button class="b l" id="btTirar">Tirar aviso</button></div>
+  <div class="msg" id="msgAviso"></div>
+ </div>
 </section>
 </main>
 </div>
@@ -345,6 +435,8 @@ td{padding:10px;border-bottom:1px solid #EEF1F4;vertical-align:top}
     }).catch(function(e){msg($('cliRes'),e.message,'erro')});
   };
   $('cliQ').onkeydown=function(e){if(e.key==='Enter')$('btCli').click()};
+  $('btTesteEmail').onclick=function(){var b=this;b.disabled=true;msg($('msgTesteEmail'),'Enviando…');api('POST','/admin/testar-aviso').then(function(r){msg($('msgTesteEmail'),'Enviado para '+r.para+'. Confira a caixa de entrada (e Promoções/Spam).','ok')}).catch(function(e){msg($('msgTesteEmail'),e.message,'erro')}).finally(function(){b.disabled=false})};
+  $('btAtualizar').onclick=function(){var b=this;b.classList.add('girando');carregar().catch(function(){}).finally(function(){setTimeout(function(){b.classList.remove('girando')},300)})};
   $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btTirar').onclick=function(){$('aTxt').value='';$('btAviso').click()};
 
