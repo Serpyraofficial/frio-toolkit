@@ -80,6 +80,25 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
  </div>
  <p class="msg" id="extra"></p>
 
+ <h2>Cortesia: Pro sem pagar</h2>
+ <div class="caixa">
+  <p class="msg" style="margin-top:0">Gera um código para dar o Pro a alguém (amigo, parceiro, exceção). A pessoa instala o app, abre <b>SerpyraToolkit Pro</b> e cola o código em <b>Tem um código?</b>. Não precisa do código do celular dela. Cada código vale para um celular.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+   <label style="flex:1 1 150px">Quanto tempo<select id="zDur"><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="90">3 meses</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="vida">Vitalício</option><option value="outro">Outro…</option></select></label>
+   <label style="width:110px" id="zOutroL" hidden>Dias<input id="zOutro" type="number" min="1" max="3650" value="45"></label>
+   <label style="width:90px">Quantos<input id="zQtd" type="number" min="1" max="20" value="1"></label>
+   <label style="flex:1 1 160px">Para quem (anotação)<input id="zNota" maxlength="60" placeholder="Ex.: primo João"></label>
+  </div>
+  <button class="b" id="btCortesia" style="margin-top:12px">Gerar código</button>
+  <div class="msg" id="msgCortesia"></div>
+ </div>
+
+ <h2>Clientes</h2>
+ <div class="caixa">
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="cliQ" style="flex:1 1 220px" placeholder="Código do celular (ABCD-EFGH) ou e-mail"><button class="b" id="btCli">Procurar</button></div>
+  <div id="cliRes" class="msg"></div>
+ </div>
+
  <h2>Vendas por dia (últimos 30 dias)</h2>
  <div class="caixa"><div class="grafico" id="graf"></div><div class="eixo"><span id="gIni"></span><span>passe o mouse ou toque numa barra</span><span>hoje</span></div></div>
 
@@ -105,7 +124,7 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
 
  <div class="grid2">
   <div>
-   <h2>Gerar chave para um cliente</h2>
+   <h2>Chave direta (com o código do celular)</h2>
    <div class="caixa">
     <p style="color:var(--t2);font-size:14px;margin-bottom:12px">Para quem trocou de celular ou restaurou o aparelho. O código aparece no app quando a pessoa cola uma chave de outro celular.</p>
     <div class="linha">
@@ -132,6 +151,9 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
    </div>
   </div>
  </div>
+
+ <h2>Códigos de cortesia e presente</h2>
+ <div class="caixa rolar"><table><thead><tr><th>Código</th><th>Tipo</th><th>Duração</th><th>Para</th><th>Situação</th><th></th></tr></thead><tbody id="tCort"></tbody></table></div>
 
  <h2>Cupons</h2>
  <div class="caixa rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
@@ -172,6 +194,7 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
       var pq=r.pesquisa||{}, tot=Object.keys(pq).reduce(function(t,k){return t+pq[k]},0);
       $('pesq').innerHTML=tot?Object.keys(pq).sort(function(a,b){return pq[b]-pq[a]}).map(function(k){return '<div>'+esc(k)+' <b>'+pq[k]+'</b></div><div class="barra-motivo" style="width:'+Math.round(pq[k]*100/tot)+'%"></div>'}).join(''):'<p class="vazio">Ninguém respondeu ainda. A pergunta aparece no app quando o Pro comprado vence.</p>';
       if(r.aviso&&r.aviso.texto){$('aTxt').value=r.aviso.texto;$('aLink').value=r.aviso.link||'';msg($('msgAviso'),'Aviso no ar.','ok')}
+      cortesias();
       api('GET','/admin/vencendo').then(function(v){
         $('tVence').innerHTML=v.vencendo.length?v.vencendo.map(function(x){return '<tr><td>'+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.validade)+' ('+(x.dias<0?'venceu':x.dias===0?'hoje':'em '+x.dias+' dia(s)')+')</td><td>'+(x.email?'<a class="b l" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.email)+'?subject='+encodeURIComponent('Seu SerpyraToolkit Pro está vencendo')+'&body='+encodeURIComponent('Oi! Seu Pro vence em '+x.validade+'. Renovando pelo app agora você ganha 10% com o cupom RENOVA10.')+'">Mandar e-mail</a>':'')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="vazio">Ninguém vencendo nos próximos dias.</td></tr>';
       }).catch(function(){});
@@ -208,6 +231,55 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
       .catch(function(e){msg($('msgCupom'),e.message,'erro')}).finally(function(){b.disabled=false});
   };
 
+  function zap(t){return 'https://wa.me/?text='+encodeURIComponent(t)}
+  function textoCortesia(c,dur){return 'Você ganhou o SerpyraToolkit Pro ('+dur+')!\n\n1. Baixe: https://serpyratoolkit.pages.dev/?codigo='+c+'\n2. Abra o app e toque em SerpyraToolkit Pro\n3. O app acha o código sozinho (ou cole em "Tem um código?"): '+c}
+  $('zDur').onchange=function(){$('zOutroL').hidden=this.value!=='outro'};
+  $('btCortesia').onclick=function(){
+    var b=this,v=$('zDur').value,corpo={qtd:$('zQtd').value,nota:$('zNota').value};
+    if(v==='vida') corpo.vitalicio=true; else corpo.dias=v==='outro'?$('zOutro').value:v;
+    b.disabled=true; msg($('msgCortesia'),'Gerando…');
+    api('POST','/admin/cortesia',corpo).then(function(r){
+      $('msgCortesia').className='msg ok';
+      $('msgCortesia').innerHTML='Pronto ('+esc(r.duracao)+'). Mande para a pessoa:'+r.codigos.map(function(c){return '<div class="chave">'+esc(c)+'</div><div style="display:flex;gap:8px;margin:6px 0 12px"><button class="b l" data-copiar="'+esc(textoCortesia(c,r.duracao))+'" style="padding:4px 10px">Copiar mensagem</button><a class="b l" style="padding:4px 10px;text-decoration:none" target="_blank" href="'+esc(zap(textoCortesia(c,r.duracao)))+'">Mandar no WhatsApp</a></div>'}).join('');
+      [].forEach.call(document.querySelectorAll('[data-copiar]'),function(x){x.onclick=function(){navigator.clipboard.writeText(x.getAttribute('data-copiar')).then(function(){x.textContent='Copiado ✓'})}});
+      cortesias();
+    }).catch(function(e){msg($('msgCortesia'),e.message,'erro')}).finally(function(){b.disabled=false});
+  };
+  function cortesias(){
+    api('GET','/admin/cortesias').then(function(r){
+      $('tCort').innerHTML=r.cortesias.length?r.cortesias.map(function(x){
+        return '<tr><td><b>'+esc(x.codigo)+'</b></td><td>'+esc(x.tipo)+'</td><td>'+esc(x.duracao)+'</td><td>'+esc(x.para)+'</td><td>'+(x.usado?'usado no celular '+esc(x.usado.slice(0,4)+'-'+x.usado.slice(4))+(x.validade?' · vale até '+esc(x.validade):''):'<span class="tag a">ainda não usado</span>')+'</td><td>'+(x.usado?'<button class="b l" data-cli="'+esc(x.usado)+'" style="padding:4px 10px">Ver cliente</button>':'<button class="b l" data-zap="'+esc(x.codigo)+'|'+esc(x.duracao)+'" style="padding:4px 10px">WhatsApp</button> <button class="b l" data-apagarc="'+esc(x.codigo)+'" style="padding:4px 10px">Apagar</button>')+'</td></tr>'}).join('')
+        :'<tr><td colspan="6" class="vazio">Nenhum código criado ainda.</td></tr>';
+      [].forEach.call(document.querySelectorAll('[data-apagarc]'),function(b){b.onclick=function(){var c=b.getAttribute('data-apagarc');if(!confirm('Apagar o código '+c+'? Ele deixa de funcionar.'))return;api('DELETE','/admin/cortesia?c='+encodeURIComponent(c)).then(cortesias).catch(function(e){alert(e.message)})}});
+      [].forEach.call(document.querySelectorAll('[data-zap]'),function(b){b.onclick=function(){var p=b.getAttribute('data-zap').split('|');window.open(zap(textoCortesia(p[0],p[1])),'_blank')}});
+      [].forEach.call(document.querySelectorAll('[data-cli]'),function(b){b.onclick=function(){$('cliQ').value=b.getAttribute('data-cli');$('btCli').click();$('cliQ').scrollIntoView({behavior:'smooth',block:'center'})}});
+    }).catch(function(){});
+  }
+  function acaoCli(codigo,corpo){
+    corpo.codigo=codigo;
+    return api('POST','/admin/cliente',corpo).then(function(r){alert(r.msg+(r.validade?'\nVale até: '+r.validade:''));$('btCli').click()}).catch(function(e){alert(e.message)});
+  }
+  $('btCli').onclick=function(){
+    var q=$('cliQ').value.trim(); if(!q) return;
+    msg($('cliRes'),'Procurando…');
+    api('GET','/admin/cliente?q='+encodeURIComponent(q)).then(function(c){
+      var cod=c.codigo.slice(0,4)+'-'+c.codigo.slice(4);
+      var est=c.revogada?'<span class="tag">bloqueado</span>':(!c.existe?'sem Pro registrado':(c.dias<0?'vencido em '+esc(c.validade):'Pro ativo até '+esc(c.validade)));
+      $('cliRes').className='msg';
+      $('cliRes').innerHTML='<div style="margin:10px 0"><b style="font-size:18px">'+esc(cod)+'</b> · '+est+'</div>'+
+        '<div>E-mail: '+esc(c.email||'—')+' · Origem: '+esc(c.origem||'—')+' · Indicações: '+esc(c.indicacoes)+(c.teste?' · Teste grátis até '+esc(c.teste):'')+'</div>'+
+        (c.compras.length?'<div style="margin-top:6px">Compras: '+c.compras.map(function(p){return esc(p.numero)+' ('+esc(p.plano)+', '+esc(p.valor)+')'}).join(', ')+'</div>':'')+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">'+
+        '<button class="b l" data-d="7">+7 dias</button><button class="b l" data-d="30">+30 dias</button><button class="b l" data-d="90">+90 dias</button><button class="b l" data-d="-7">−7 dias</button>'+
+        '<button class="b l" id="cVida">Tornar vitalício</button>'+(c.email?'<button class="b l" id="cReenv">Reenviar chave por e-mail</button>':'')+
+        (c.revogada?'':'<button class="b l" id="cBloq" style="color:var(--verm)">Bloquear Pro</button>')+'</div>';
+      [].forEach.call($('cliRes').querySelectorAll('[data-d]'),function(b){b.onclick=function(){acaoCli(c.codigo,{acao:'dias',dias:b.getAttribute('data-d')})}});
+      $('cVida').onclick=function(){if(confirm('Deixar '+cod+' com Pro vitalício?'))acaoCli(c.codigo,{acao:'vitalicio'})};
+      if($('cBloq')) $('cBloq').onclick=function(){if(confirm('Bloquear o Pro de '+cod+'? Ele perde o Pro na próxima vez que o app conferir (até 12 h com internet). Para desbloquear, dê dias de novo.'))acaoCli(c.codigo,{acao:'bloquear'})};
+      if($('cReenv')) $('cReenv').onclick=function(){api('POST','/admin/reenviar-chave',{codigo:c.codigo}).then(function(){alert('Chave reenviada para '+c.email)}).catch(function(e){alert(e.message)})};
+    }).catch(function(e){msg($('cliRes'),e.message,'erro')});
+  };
+  $('cliQ').onkeydown=function(e){if(e.key==='Enter')$('btCli').click()};
   $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btTirar').onclick=function(){$('aTxt').value='';$('btAviso').click()};
 

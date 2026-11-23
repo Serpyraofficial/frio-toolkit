@@ -27,6 +27,7 @@ const PLANOS = {
   vida: { nome: "Vitalício", dias: 0, centavos: 14900, vitalicio: true }
 };
 const DIA_VITALICIO = 99999;
+const LICENCA_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEe1+AJ9msQvTj5AdyZO0SzXl0SNyekG3tBq3nUeQHdWSvy3u7i8k6qTJsZ8iU890vHizszVAKeAxs4fjOVXVnFQ==";
 const IND_PCT = 10, IND_DIAS = 15, RENOVA_PCT = 10;
 const MOTIVOS = ["Caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro"];
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
@@ -54,6 +55,21 @@ async function assinarChave(env, codigo, dia) {
   return "PCT-" + codigo + "." + dia + "." + b64url(sig);
 }
 
+/* confere uma chave PCT-CODIGO.DIA.ASSINATURA; devolve { codigo, dia } ou null */
+async function conferirChave(chave) {
+  const t = String(chave || "").trim().replace(/\s+/g, "").replace(/^PCT-/i, "");
+  const p = t.split(".");
+  if (p.length !== 3) return null;
+  const codigo = p[0].toUpperCase().replace(/-/g, ""), dia = parseInt(p[1], 10);
+  if (!codigoValido(codigo) || !(dia > 0)) return null;
+  try {
+    const sig = b64ToBytes(p[2].replace(/-/g, "+").replace(/_/g, "/") + "===".slice((p[2].length + 3) % 4));
+    if (sig.length !== 64) return null;
+    const pub = await crypto.subtle.importKey("spki", b64ToBytes(LICENCA_PUB), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pub, sig, new TextEncoder().encode(codigo + "." + dia));
+    return ok ? { codigo, dia } : null;
+  } catch (e) { return null; }
+}
 async function hmacValido(env, corpo, assinatura) {
   if (!env.PURIN_WEBHOOK_SECRET) return null;
   if (!assinatura) return false;
@@ -109,7 +125,7 @@ async function cupomValido(env, cod, codigo) {
     const ref = cod.slice(3);
     if (!codigoValido(ref) || ref === codigo) return null;
     const c = await lerJson(env, "chave:" + ref);
-    return c ? { pct: IND_PCT, ativo: true, especial: "indicacao", ref } : null;
+    return c && !c.revogada ? { pct: IND_PCT, ativo: true, especial: "indicacao", ref } : null;
   }
   if (cod === "RENOVA10") {
     if (!codigoValido(codigo)) return null;
@@ -261,13 +277,30 @@ async function resgatarPresente(req, env) {
   if (!g.usado) {
     g.usado = codigo; g.dia = dia; g.em = new Date().toISOString();
     await env.PCT.put("presente:" + v, JSON.stringify(g));
-    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, email: g.para }));
-    await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, email: emailValido(g.para) ? g.para : "", origem: g.de === "cortesia" ? "cortesia" : "presente" }));
+    if (emailValido(g.para)) await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
   }
   return json({ ok: true, chave, validade: validadeTxt(dia) });
 }
 
 /* ---------------- avisos e pesquisa ---------------- */
+/* o app avisa qual chave esta usando: assim o codigo de indicacao dele vale e o painel enxerga o cliente */
+async function registrar(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const k = await conferirChave(b.chave);
+  if (!k || k.codigo !== limpaCodigo(b.codigo)) return json({ erro: "Chave inválida." }, 400);
+  if (k.dia < hoje()) return json({ erro: "Chave vencida." }, 410);
+  if (!(await limitar("reg:" + k.codigo, 6))) return json({ ok: true });
+  const t = parseInt((await env.PCT.get("teste:" + k.codigo)) || "0", 10);
+  if (t && t === k.dia) return json({ ok: true, teste: true });
+  const c = await lerJson(env, "chave:" + k.codigo);
+  if (c && c.revogada) return json({ status: "revogada" }, 410);
+  if (c && c.dia >= k.dia) return json({ ok: true });
+  // a chave vitalicia do dono nao fica guardada em texto no servidor
+  await env.PCT.put("chave:" + k.codigo, JSON.stringify({ ...(c || {}), chave: k.dia >= DIA_VITALICIO ? "" : String(b.chave).trim(), dia: k.dia, email: (c && c.email) || "", origem: (c && c.origem) || "registrada" }));
+  return json({ ok: true });
+}
+
 async function avisoAtual(env) {
   const cache = caches.default;
   const req = new Request("https://aviso.local/atual");
@@ -341,6 +374,7 @@ async function licenca(url, env) {
   if (!codigoValido(codigo)) return json({ erro: "Código inválido." }, 400);
   const o = await lerJson(env, "chave:" + codigo);
   if (!o) return json({ status: "nenhuma" }, 404);
+  if (o.revogada) return json({ status: "revogada" }, 410);
   if (o.dia < hoje()) return json({ status: "vencida", validade: validadeTxt(o.dia) }, 404);
   return json({ status: "ativa", chave: o.chave, validade: validadeTxt(o.dia) });
 }
@@ -450,6 +484,77 @@ async function admin(req, url, env) {
     return json({ ok: true });
   }
   if (rota === "reenviar" && req.method === "POST") return json(await reenviarEmails(env));
+  if (rota === "cortesia" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const vital = !!b.vitalicio;
+    const dias = parseInt(b.dias, 10);
+    if (!vital && !(dias >= 1 && dias <= 3650)) return json({ erro: "Escolha de 1 a 3650 dias (ou vitalício)." }, 400);
+    const qtd = Math.min(20, Math.max(1, parseInt(b.qtd, 10) || 1));
+    const nota = String(b.nota || "").trim().slice(0, 60);
+    const codigos = [];
+    for (let i = 0; i < qtd; i++) {
+      const v = novoVoucher();
+      await env.PCT.put("presente:" + v, JSON.stringify({ plano: "cortesia", dias: vital ? 0 : dias, vitalicio: vital, de: "cortesia", para: nota, usado: "", criado: new Date().toISOString() }));
+      codigos.push(v);
+    }
+    return json({ codigos, duracao: vital ? "vitalício" : dias + " dia(s)" });
+  }
+  if (rota === "cortesias" && req.method === "GET") {
+    const nomes = await listar(env, "presente:", 1000);
+    const l = (await Promise.all(nomes.map(async n => ({ codigo: n.slice(9), ...(await lerJson(env, n)) })))).filter(x => x && x.plano);
+    l.sort((a, b) => String(b.criado || b.em || "").localeCompare(String(a.criado || a.em || "")));
+    return json({ cortesias: l.slice(0, 300).map(x => ({ codigo: x.codigo, tipo: x.de === "cortesia" ? "cortesia" : "presente pago", duracao: x.vitalicio ? "vitalício" : (x.dias || 30) + " dias", para: x.para || "", usado: x.usado || "", em: x.em || "", validade: x.dia ? validadeTxt(x.dia) : "", criado: x.criado || "" })) });
+  }
+  if (rota === "cortesia" && req.method === "DELETE") {
+    const v = limpaCupom(url.searchParams.get("c"));
+    const g = await lerJson(env, "presente:" + v);
+    if (!g) return json({ erro: "Código não encontrado." }, 404);
+    if (g.usado) return json({ erro: "Esse código já foi usado. Para tirar o Pro, use Clientes > Bloquear." }, 409);
+    await env.PCT.delete("presente:" + v);
+    return json({ ok: true });
+  }
+  if (rota === "cliente" && req.method === "GET") {
+    const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+    let codigo = limpaCodigo(q);
+    let em = null;
+    if (q.includes("@")) { em = await lerJson(env, "email:" + q); codigo = em ? em.codigo : ""; }
+    if (!codigoValido(codigo)) return json({ erro: em === null && q.includes("@") ? "Nenhuma compra com esse e-mail." : "Digite o código do celular (8 letras/números) ou o e-mail." }, 404);
+    const c = await lerJson(env, "chave:" + codigo);
+    const teste = await env.PCT.get("teste:" + codigo);
+    const nomes = await listar(env, "pedido:", 3000);
+    const pedidos = (await Promise.all(nomes.map(n => lerJson(env, n)))).filter(p => p && p.status === "pago" && (p.codigo === codigo || (c && c.email && p.email === c.email)));
+    return json({ codigo, existe: !!c, validade: c ? validadeTxt(c.dia) : "", dias: c ? c.dia - hoje() : 0, vitalicio: !!(c && c.dia >= DIA_VITALICIO), email: (c && c.email) || "", origem: (c && c.origem) || (c ? "compra" : ""), revogada: !!(c && c.revogada), indicacoes: (c && c.indicacoes) || 0, teste: teste ? validadeTxt(parseInt(teste, 10)) : "",
+      compras: pedidos.map(p => ({ numero: p.numero, data: p.pagoEm, plano: (PLANOS[p.plano] || PLANOS.m1).nome, valor: reais(p.valor) })) });
+  }
+  if (rota === "cliente" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const codigo = limpaCodigo(b.codigo);
+    if (!codigoValido(codigo)) return json({ erro: "Código inválido." }, 400);
+    const c = (await lerJson(env, "chave:" + codigo)) || { email: "", origem: "painel" };
+    if (b.acao === "bloquear") { c.revogada = true; await env.PCT.put("chave:" + codigo, JSON.stringify(c)); return json({ ok: true, msg: "Bloqueado. O Pro sai do celular na próxima vez que o app conferir (em até 12 horas com internet)." }); }
+    let dia;
+    if (b.acao === "vitalicio") dia = DIA_VITALICIO;
+    else {
+      const d = parseInt(b.dias, 10);
+      if (!(d >= -3650 && d <= 3650) || d === 0) return json({ erro: "Dias inválidos." }, 400);
+      dia = Math.max(hoje(), c.dia && c.dia < DIA_VITALICIO ? c.dia : hoje()) + d;
+      if (dia <= hoje()) dia = hoje() - 1;
+    }
+    const chave = await assinarChave(env, codigo, dia);
+    delete c.revogada;
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ ...c, chave, dia }));
+    return json({ ok: true, chave, validade: validadeTxt(dia), msg: "Pronto. O celular recebe sozinho ao abrir o app (ou cole a chave)." });
+  }
+  if (rota === "reenviar-chave" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const codigo = limpaCodigo(b.codigo);
+    const c = await lerJson(env, "chave:" + codigo);
+    if (!c || !c.email) return json({ erro: "Esse cliente não tem e-mail guardado." }, 404);
+    if (!c.chave) return json({ erro: "Não há chave guardada para reenviar." }, 404);
+    const m = emailCompra({ numero: "reenvio", codigo, chave: c.chave, valor: "—", plano: "reenvio da chave", cupom: "", validade: validadeTxt(c.dia), dataPago: agoraBr() });
+    const st = await mandarEmail(env, c.email, "Sua chave do SerpyraToolkit Pro", m.html, m.texto);
+    return st === "enviado" ? json({ ok: true }) : json({ erro: "Falhou: " + st }, 502);
+  }
   if (rota === "vencendo") {
     const nomes = await listar(env, "chave:", 2000);
     const l = (await Promise.all(nomes.map(async n => ({ codigo: n.slice(6), ...(await lerJson(env, n)) })))).filter(c => c.dia && c.dia < DIA_VITALICIO && c.dia >= hoje() - 3 && c.dia <= hoje() + 7);
@@ -535,6 +640,7 @@ export default {
       if (m === "POST" && p === "/troca/confirmar") return await trocaConfirmar(req, env);
       if (m === "POST" && p === "/simular") return await simular(url, env);
       if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
+      if (m === "POST" && p === "/registrar") return await registrar(req, env);
       if (m === "GET" && p === "/aviso") return await avisoAtual(env);
       if (m === "POST" && p === "/pesquisa") return await pesquisa(req, env);
       if (m === "GET" && p === "/versao") return await versao(env);

@@ -230,7 +230,7 @@ class MainActivity : Activity() {
         perguntarMotivo()
         AvisoPro.agendar(this)
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
-        else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
+        else if (Vendedor.automatico()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() }; Compra.registrar() }.start()
         Atualizador.aoAbrir(this)
         Atualizador.novidadesSeAtualizou(this)
         if (!GameService.rodando && Sessao.pendente() && Store.str("sessao_cfg").isNotEmpty()) {

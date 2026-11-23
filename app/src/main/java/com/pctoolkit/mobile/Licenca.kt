@@ -1,6 +1,8 @@
 package com.pctoolkit.mobile
 
 import android.content.ClipData
+import android.app.AlertDialog
+import android.widget.Toast
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -148,12 +150,13 @@ object Compra {
      * A chave so funciona neste aparelho, entao o servidor pode devolve-la pelo codigo.
      */
     fun restaurar(forcar: Boolean = false): Boolean {
-        if (!Vendedor.automatico() || Licenca.vitalicio()) return false
+        if (!Vendedor.automatico()) return false
         val ultima = Store.str("lic_rest_em").toLongOrNull() ?: 0L
         if (!forcar && System.currentTimeMillis() - ultima < 12 * 3_600_000L) return false
         Store.putStr("lic_rest_em", System.currentTimeMillis().toString())
         return try {
             val (code, t) = http("GET", "/licenca?codigo=" + Licenca.codigo(), null)
+            if (code == 410 && t.contains("revogada")) { Store.putStr("lic_chave", ""); Store.putStr("lic_registrada", ""); return true }
             if (code != 200) return false
             val ch = org.json.JSONObject(t).optString("chave")
             // ja ativo: so troca se a chave do servidor vale ate mais tarde (dias ganhos por indicacao, presente...)
@@ -162,6 +165,29 @@ object Compra {
             if (ok) Store.putBool("lic_comprou", true)
             ok
         } catch (e: Exception) { false }
+    }
+
+    /** Avisa o servidor qual chave este celular usa (assim o codigo de indicacao vale e o painel enxerga). Uma vez por chave. */
+    fun registrar() {
+        if (!Vendedor.automatico() || !Licenca.ativo()) return
+        val ch = Store.str("lic_chave")
+        if (ch.isEmpty() || Store.str("lic_registrada") == ch.hashCode().toString()) return
+        try {
+            val (code, t) = http("POST", "/registrar", org.json.JSONObject().put("codigo", Licenca.codigo()).put("chave", ch).toString())
+            if (code == 410 && t.contains("revogada")) { Store.putStr("lic_chave", ""); return }
+            if (code == 200) Store.putStr("lic_registrada", ch.hashCode().toString())
+        } catch (e: Exception) { }
+    }
+
+    /** Que tipo de codigo a pessoa colou? */
+    fun tipoCodigo(t: String): String {
+        val c = t.trim().uppercase().replace(" ", "")
+        return when {
+            c.startsWith("PCT-") || Regex("^[A-Z2-9]{4}-?[A-Z2-9]{4}\\.\\d+\\.").containsMatchIn(c) -> "chave"
+            Regex("^PRE[A-Z2-9]{9}$").matches(c) -> "presente"
+            Regex("^[A-Z0-9]{3,20}$").matches(c) -> "cupom"
+            else -> ""
+        }
     }
 
     /** Resgata um codigo de presente neste celular. */
@@ -390,7 +416,7 @@ fun MainActivity.telaPro() {
     }
     col.addView(st, Ui.linhaLp(this, 0, 6))
 
-    if (Vendedor.automatico()) { secaoAutomatica(col, ativo); secaoChave(col); setContentView(raiz(col)); return }
+    if (Vendedor.automatico()) { secaoAutomatica(col, ativo); secaoChave(col); setContentView(raiz(col)); col.postDelayed({ if (!isFinishing) oferecerCopiado() }, 700); return }
 
     // passo 1: codigo
     col.addView(Ui.secao(this, if (ativo) "Renovar (os dias se somam)" else "Como assinar"))
@@ -478,11 +504,12 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         bi.addView(Ui.botao(this, "Copiar", T.amarelo, false) { copiar("indicacao", codInd) }, Ui.peso())
         bi.addView(Ui.espaco(this, 10, 1))
         bi.addView(Ui.botao(this, "Compartilhar", T.amarelo, true) {
-            val txt = "Uso o SerpyraToolkit para jogar melhor no celular (Modo Jogo, botões na tela, Modo Frio). Baixe em https://serpyratoolkit.pages.dev e use o cupom $codInd para ganhar 10% no Pro."
+            val txt = "Uso o SerpyraToolkit para jogar melhor no celular (Modo Jogo, botões na tela, Modo Frio).\n\n1. Baixe: https://serpyratoolkit.pages.dev/?cupom=$codInd\n2. Abra o app e toque em SerpyraToolkit Pro\n3. Cole o código $codInd no campo \"Tem um código?\" ou em Cupom\n\nVocê ganha 10% de desconto em qualquer plano."
             try { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, txt), "Indicar o SerpyraToolkit")) } catch (e: Exception) { }
         }, Ui.peso())
         ci.addView(bi, Ui.linhaLp(this, 8, 0))
-        ci.addView(Ui.texto(this, "Vale para quem já comprou ou ganhou o Pro (não vale no teste grátis).", 11.5f, T.texto3), Ui.linhaLp(this, 6, 0))
+        ci.addView(Ui.texto(this, "Vale para quem já comprou ou ganhou o Pro (não vale no teste grátis). O seu amigo cola o código no campo “Tem um código?” desta mesma tela.", 11.5f, T.texto3), Ui.linhaLp(this, 6, 0))
+        Thread { Compra.registrar() }.start()
         col.addView(ci, Ui.linhaLp(this, 10))
     }
 
@@ -528,6 +555,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     val listaPlanos = Ui.vertical(this)
     c.addView(listaPlanos, Ui.linhaLp(this, 8, 4))
     lateinit var botaoTxt: () -> Unit
+    var aplicarCupom: (String) -> Unit = {}
     fun desenharPlanos() {
         listaPlanos.removeAllViews()
         val base = planos.firstOrNull { it.id == "m1" }?.porMes() ?: 1000
@@ -544,7 +572,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             if (eco >= 5) { linha.addView(Ui.chip(this, "−$eco%", T.verde)); linha.addView(Ui.espaco(this, 10, 1)) }
             linha.addView(Ui.texto(this, pl.preco(), 16f, if (sel) T.verde else T.texto, Ui.negrito))
             linha.isClickable = true
-            linha.setOnClickListener { escolhido = pl.id; Store.putStr("lic_plano", pl.id); precoCupom = -1; cupomOk = ""; desenharPlanos(); botaoTxt() }
+            linha.setOnClickListener { escolhido = pl.id; Store.putStr("lic_plano", pl.id); precoCupom = -1; desenharPlanos(); botaoTxt(); if (cupomOk.isNotEmpty()) aplicarCupom(cupomOk) }
             listaPlanos.addView(linha, Ui.linhaLp(this, 0, 8))
         }
     }
@@ -566,19 +594,26 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     ec.setTextColor(T.texto); ec.setHintTextColor(T.texto3)
     lc.addView(ec, Ui.peso())
     val msgCupom = Ui.texto(this, "", 12.5f, T.texto2)
-    if (ativo && !sempre && Licenca.diasRestantes() <= 7) { ec.setText("RENOVA10"); msgCupom.text = "Seu Pro vence em ${Licenca.diasRestantes()} dia(s): toque em Aplicar para ganhar 10% renovando agora."; msgCupom.setTextColor(T.amarelo) }
-    lc.addView(Ui.botao(this, "Aplicar", T.verde, false) {
-        val cod = ec.text.toString().trim()
-        if (cod.isEmpty()) { msgCupom.text = "Digite o cupom."; msgCupom.setTextColor(T.amarelo); return@botao }
-        msgCupom.text = "Conferindo…"; msgCupom.setTextColor(T.texto2)
+    val pendente = Store.str("cupom_pendente")
+    if (pendente.isNotEmpty()) { ec.setText(pendente); msgCupom.text = "Código $pendente pronto: toque em Aplicar (ou direto em Gerar Pix)."; msgCupom.setTextColor(T.azul) }
+    else if (ativo && !sempre && Licenca.diasRestantes() <= 7) { ec.setText("RENOVA10"); msgCupom.text = "Seu Pro vence em ${Licenca.diasRestantes()} dia(s): toque em Aplicar para ganhar 10% renovando agora."; msgCupom.setTextColor(T.amarelo) }
+    aplicarCupom = { codigo ->
+        val cod = codigo.trim().uppercase()
+        msgCupom.text = "Conferindo o cupom $cod…"; msgCupom.setTextColor(T.texto2)
         Thread {
             try {
                 val v = Compra.cupom(cod, escolhido)
-                runOnUiThread { precoCupom = v; cupomOk = cod.uppercase(); msgCupom.text = "Cupom $cupomOk aplicado."; msgCupom.setTextColor(T.verde); botaoTxt() }
+                val pl = planos.firstOrNull { it.id == escolhido }
+                runOnUiThread { precoCupom = v; cupomOk = cod; Store.putStr("cupom_pendente", ""); msgCupom.text = "Cupom $cod aplicado: " + (pl?.let { "${it.preco()} → ${it.preco(v)}" } ?: ""); msgCupom.setTextColor(T.verde); botaoTxt() }
             } catch (e: Exception) {
-                runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = e.message ?: "Cupom inválido."; msgCupom.setTextColor(T.vermelho); botaoTxt() }
+                runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = (e.message ?: "Cupom inválido.") + if (cod.startsWith("IND")) " (o código de indicação só vale se quem indicou já tiver o Pro comprado, e não vale o seu próprio)" else ""; msgCupom.setTextColor(T.vermelho); botaoTxt() }
             }
         }.start()
+    }
+    lc.addView(Ui.botao(this, "Aplicar", T.verde, false) {
+        val cod = ec.text.toString().trim()
+        if (cod.isEmpty()) { msgCupom.text = "Digite o cupom."; msgCupom.setTextColor(T.amarelo); return@botao }
+        aplicarCupom(cod)
     }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     c.addView(lc, Ui.linhaLp(this, 6, 0))
     c.addView(msgCupom)
@@ -672,6 +707,17 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     botao.setOnClickListener {
         val email = et.text.toString().trim()
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { msg.text = "Digite um e-mail válido."; msg.setTextColor(T.vermelho); return@setOnClickListener }
+        val digitado = ec.text.toString().trim().uppercase()
+        if (digitado.isNotEmpty() && digitado != cupomOk) {
+            // a pessoa digitou o cupom mas nao tocou em Aplicar: confere agora em vez de ignorar
+            msg.text = "Conferindo o cupom antes de gerar o Pix…"; msg.setTextColor(T.texto2)
+            Thread {
+                try { val v = Compra.cupom(digitado, escolhido); runOnUiThread { precoCupom = v; cupomOk = digitado; botaoTxt(); botao.performClick() } }
+                catch (e: Exception) { runOnUiThread { msg.text = "O cupom $digitado não vale: ${e.message}. Apague o cupom para pagar sem desconto."; msg.setTextColor(T.vermelho) } }
+            }.start()
+            return@setOnClickListener
+        }
+        if (digitado.isEmpty()) { cupomOk = ""; precoCupom = -1 }
         val presente = if (cbPres.isChecked) ep.text.toString().trim() else ""
         if (cbPres.isChecked && !android.util.Patterns.EMAIL_ADDRESS.matcher(presente).matches()) { msg.text = "Digite o e-mail de quem vai ganhar o presente."; msg.setTextColor(T.vermelho); return@setOnClickListener }
         msg.text = "Gerando o Pix…"; msg.setTextColor(T.texto2)
@@ -735,14 +781,56 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     if (pend.isNotEmpty()) { mostrarPix(Store.str("lic_pedido_num"), Store.str("lic_pedido_br"), Store.str("lic_pedido_qr"), false); vigiar(pend) }
 }
 
+/** Usa qualquer codigo: chave, presente/cortesia ou cupom. */
+private fun MainActivity.usarCodigo(texto: String, msg: android.widget.TextView) {
+    val c = texto.trim().uppercase().replace(" ", "")
+    when (Compra.tipoCodigo(c)) {
+        "chave" -> {
+            val (ok, m) = Licenca.ativar(texto)
+            msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho)
+            if (ok) { Thread { Compra.registrar() }.start(); msg.postDelayed({ mostrar() }, 1200) }
+        }
+        "presente" -> {
+            msg.text = "Ativando o código de presente…"; msg.setTextColor(T.texto2)
+            Thread { val (ok, m) = Compra.resgatar(c); runOnUiThread { msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho); if (ok) msg.postDelayed({ mostrar() }, 1500) } }.start()
+        }
+        "cupom" -> {
+            Store.putStr("cupom_pendente", c)
+            msg.text = "$c é um cupom de desconto: já coloquei no Pix lá em cima. Escolha o plano e toque em Gerar Pix."; msg.setTextColor(T.verde)
+            msg.postDelayed({ mostrar() }, 1600)
+        }
+        else -> { msg.text = "Não reconheci esse código. Confira se copiou inteiro."; msg.setTextColor(T.vermelho) }
+    }
+}
+
+/** Ao abrir a tela do Pro: se a pessoa copiou um codigo (do WhatsApp, do e-mail...), oferece usar. */
+private fun MainActivity.oferecerCopiado() {
+    try {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val t = (cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: "").trim()
+        val achado = Regex("PCT-[A-Za-z0-9\\-]+\\.\\d+\\.[A-Za-z0-9_\\-]+|PRE[A-Z2-9]{9}|IND[A-Z2-9]{8}").find(t)?.value ?: return
+        if (Store.str("clip_visto") == achado) return
+        Store.putStr("clip_visto", achado)
+        val tipo = when (Compra.tipoCodigo(achado)) { "chave" -> "a chave"; "presente" -> "o código de presente"; else -> "o cupom" }
+        AlertDialog.Builder(this).setTitle("Usar o código copiado?").setMessage("Você copiou $tipo ${achado.take(24)}${if (achado.length > 24) "…" else ""}. Quer usar agora?")
+            .setPositiveButton("Usar") { _, _ ->
+                val tv = android.widget.TextView(this)
+                usarCodigo(achado, tv)
+                Toast.makeText(this, if (Compra.tipoCodigo(achado) == "cupom") "Cupom $achado colocado no Pix." else "Conferindo…", Toast.LENGTH_SHORT).show()
+                if (Compra.tipoCodigo(achado) != "cupom") tv.postDelayed({ Toast.makeText(this, tv.text, Toast.LENGTH_LONG).show(); mostrar() }, 2500)
+            }.setNegativeButton("Não", null).show()
+    } catch (e: Exception) { }
+}
+
 private fun MainActivity.secaoChave(col: LinearLayout) {
     // passo 3: ativar
     val c3 = Ui.vertical(this)
     c3.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
     c3.background = Ui.forma(this, T.surface, 18, T.outline)
-    c3.addView(Ui.texto(this, if (Vendedor.automatico()) "Já tem uma chave? Cole aqui" else "3. Cole a chave que você recebeu", 14.5f, T.texto, Ui.medio))
+    c3.addView(Ui.texto(this, if (Vendedor.automatico()) "Tem um código? Cole aqui" else "3. Cole a chave que você recebeu", 14.5f, T.texto, Ui.medio))
+    if (Vendedor.automatico()) c3.addView(Ui.texto(this, "Serve para chave (PCT-…), código de presente/cortesia (PRE…) e cupom de desconto ou de indicação (IND…). O app descobre sozinho qual é.", 12f, T.texto3))
     val et = EditText(this)
-    et.hint = "PCT-…"
+    et.hint = "PCT-…  ·  PRE…  ·  IND…"
     et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
     et.typeface = Typeface.MONOSPACE; et.textSize = 13f
     c3.addView(et)
@@ -754,11 +842,7 @@ private fun MainActivity.secaoChave(col: LinearLayout) {
         et.setText(cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: "")
     }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     linha.addView(Ui.espaco(this, 10, 1))
-    linha.addView(Ui.botao(this, "Ativar", T.verde, true) {
-        val (ok, m) = Licenca.ativar(et.text.toString())
-        msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho)
-        if (ok) msg.postDelayed({ mostrar() }, 1200)
-    }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+    linha.addView(Ui.botao(this, "Usar", T.verde, true) { usarCodigo(et.text.toString(), msg) }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     c3.addView(linha, Ui.linhaLp(this, 10, 0))
     if (Vendedor.automatico() && !Licenca.ativo()) {
         c3.addView(Ui.botao(this, "Já comprei: recuperar meu Pro", T.azul, false) {
