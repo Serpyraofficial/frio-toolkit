@@ -1,3 +1,1 @@
-- Nova aba SHIZUKU na tela inicial: vídeo tutorial, foto do que ativar e passo a passo
-- Atalhos para abrir as Opções do desenvolvedor e o Shizuku direto
-- Esta versão também testa a atualização sozinha
+- Aba SHIZUKU agora abre ao tocar: vídeo tutorial, foto do que ativar e passo a passo

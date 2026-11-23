@@ -167,5 +167,6 @@ object TutorialShizuku {
             act.startActivity(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS))
         })
         col.addView(Ui.linhaMenu(act, R.drawable.ic_jogo, T.verde, "Assistir ao vídeo", "Tutorial curto no YouTube", "Ver", T.verde) { abrirVideo(act) })
+        act.setContentView(act.raiz(col))
     }
 }
