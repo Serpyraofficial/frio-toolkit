@@ -1,3 +1,2 @@
-- Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou
-- Código copiado (chave ou presente): ao tocar em Usar, a tela do Pro agora atualiza e mostra o resultado
-- Faixa de promoção mostra a frase inteira; botões de um amigo podem ser colados à mão
+- Corrigido: comandos mais demorados pelo Shizuku davam “process hasn't exited” (limpar o cache e outros ajustes)
+- Corrigido: a atualização sozinha pelo Shizuku falhava pelo mesmo motivo

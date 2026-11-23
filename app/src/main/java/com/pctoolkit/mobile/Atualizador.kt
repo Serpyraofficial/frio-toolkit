@@ -147,10 +147,10 @@ object Atualizador {
             val te = Thread { try { p.errorStream.bufferedReader().forEachLine { synchronized(e) { e.append(it).append('\n') } } } catch (x: Exception) { } }
             to.start(); te.start()
             try { p.outputStream.use { out -> arq.inputStream().use { it.copyTo(out, 64 * 1024) } } } catch (x: Exception) { }
-            val fim = p.waitFor(120, java.util.concurrent.TimeUnit.SECONDS)
-            if (!fim) p.destroy()
+            val cod = Priv.esperar(p, 120)
+            if (cod == null) p.destroy()
             to.join(2000); te.join(2000)
-            Sh.R(if (fim) p.exitValue() else -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
+            Sh.R(cod ?: -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
         } catch (x: Throwable) { Sh.R(-1, "", x.message ?: "erro") }
     }
 

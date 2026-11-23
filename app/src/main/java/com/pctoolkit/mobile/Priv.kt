@@ -78,6 +78,20 @@ object Priv {
         return try { m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
     }
 
+    /**
+     * Espera o comando terminar e devolve o codigo de saida (null se passou do tempo).
+     * Nao usa waitFor(tempo): no processo do Shizuku, o "ainda nao terminou" chega como outro tipo de erro
+     * ("process hasn't exited") e o comando era dado como falho antes de acabar.
+     */
+    fun esperar(p: Process, timeoutS: Long): Int? {
+        val fim = System.currentTimeMillis() + timeoutS * 1000
+        while (true) {
+            try { return p.exitValue() } catch (e: RuntimeException) { }
+            if (System.currentTimeMillis() > fim) return null
+            try { Thread.sleep(80) } catch (e: InterruptedException) { return null }
+        }
+    }
+
     fun exec(cmd: String, timeoutS: Long = 60): Sh.R {
         if (!pronto()) return Sh.R(-1, "", "Shizuku indisponível")
         val m = metodo ?: return Sh.R(-1, "", "Shizuku sem newProcess")
@@ -88,10 +102,10 @@ object Priv {
             val to = Thread { try { p.inputStream.bufferedReader().forEachLine { synchronized(o) { o.append(it).append('\n') } } } catch (x: Exception) { } }
             val te = Thread { try { p.errorStream.bufferedReader().forEachLine { synchronized(e) { e.append(it).append('\n') } } } catch (x: Exception) { } }
             to.start(); te.start()
-            val fim = p.waitFor(timeoutS, TimeUnit.SECONDS)
-            if (!fim) p.destroy()
+            val cod = esperar(p, timeoutS)
+            if (cod == null) p.destroy()
             to.join(2000); te.join(2000)
-            Sh.R(if (fim) p.exitValue() else -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
+            Sh.R(cod ?: -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
         } catch (x: Throwable) { Sh.R(-1, "", x.message ?: "erro") }
     }
 
