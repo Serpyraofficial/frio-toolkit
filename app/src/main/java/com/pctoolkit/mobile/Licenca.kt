@@ -402,6 +402,7 @@ private fun MainActivity.copiar(rotulo: String, t: String) {
 }
 
 fun MainActivity.telaPro() {
+    Relatorio.evento("pro")
     Thread { Licenca.sincronizarHora() }.start()
     val col = coluna()
     val ativo = Licenca.ativo()

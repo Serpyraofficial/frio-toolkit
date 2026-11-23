@@ -1,3 +1,5 @@
-- Pagamento corrigido: um cupom que não vale não impede mais de gerar o Pix (o app oferece pagar o preço normal)
-- Cupom explica o motivo quando não vale (não existe, esgotado, código de indicação, renovação)
-- O desconto de renovação só aparece para quem já comprou e quando o servidor confirma que vale
+- Faixa de promoções no topo do app: toque para ir ao Pro com o cupom já colocado
+- Quando algo falha, o app avisa sozinho para a gente corrigir rápido
+- Lembrete quando o seu Pix expira sem pagar
+- Compartilhe seus botões com um amigo (e use os dele) por um código
+- Pagamento e cupom corrigidos

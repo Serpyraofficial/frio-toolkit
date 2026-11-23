@@ -109,6 +109,27 @@ tr:last-child td{border-bottom:0}
 
 #cliRes>div:first-child b{font-size:20px!important}
 
+.funil{display:grid;gap:10px}
+.funil .et{display:grid;grid-template-columns:130px 1fr 70px;gap:12px;align-items:center;font-size:14.5px}
+.funil .et b{font-variant-numeric:tabular-nums;text-align:right}
+.funil .tr{height:14px;border-radius:7px;background:#EEF1F5;overflow:hidden}
+.funil .tr i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--azul),#7C93FF)}
+.funil .et:nth-child(3) .tr i{background:linear-gradient(90deg,var(--menta-esc),var(--menta))}
+.funil .conv{color:var(--t2);font-size:13.5px;margin-top:4px}
+.promo-previa{position:relative;overflow:hidden;border-radius:14px;background:#FFF3D1;border:1px solid #F2D27A;padding:10px 0;white-space:nowrap;font-weight:650}
+.promo-previa span{display:inline-block;padding-left:100%;animation:corre 14s linear infinite}
+@keyframes corre{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.promo-previa span{animation:none;padding-left:14px}}
+.er-nums{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.er-nums div{background:#F4F6F9;border-radius:12px;padding:10px 14px;font-size:13px;color:var(--t2)}
+.er-nums b{display:block;font-size:20px;color:var(--tinta)}
+.er{border-top:1px solid var(--linha);padding:14px 0}
+.er:first-child{border-top:0}
+.er .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.er .msg2{font-family:ui-monospace,Consolas,monospace;font-size:13px;background:#F6F7F9;border-radius:10px;padding:8px 10px;margin-top:8px;overflow-wrap:anywhere}
+.er small{color:var(--t3);font-size:12.5px;display:block;margin-top:6px}
+.er details{margin-top:6px;font-size:12.5px;color:var(--t2)}
+.er pre{white-space:pre-wrap;font-size:12px;margin-top:6px}
 /* entrar */
 .entrar{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 70% at 50% 0,#17463A 0,var(--noite) 62%)}
 .entrar .cx{width:100%;max-width:400px;background:var(--noite2);border:1px solid #223047;border-radius:24px;padding:30px;color:#E8EEF5}
@@ -126,7 +147,8 @@ tr:last-child td{border-bottom:0}
  .bt-topo{width:40px;padding:0;justify-content:center}
  .abas{position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:0;border-top:1px solid #1D2838;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 24px rgba(0,0,0,.25)}
  .abas .w{padding:6px 4px 6px;gap:0;justify-content:space-around}
- .aba-b{flex:1;flex-direction:column;gap:3px;padding:7px 2px;font-size:11px;border-radius:12px;min-width:0}
+ .aba-b{flex:1;flex-direction:column;gap:3px;padding:7px 1px;font-size:10.5px;border-radius:12px;min-width:0}
+ .funil .et{grid-template-columns:96px 1fr 44px;gap:8px;font-size:13.5px}
  .aba-b svg.i{width:22px;height:22px}
  .aba-b.on{background:transparent;color:var(--menta)}
  .aba-b.on svg.i{background:rgba(61,220,151,.16);border-radius:10px;padding:3px;width:34px;height:28px}
@@ -169,6 +191,8 @@ tr:last-child td{border-bottom:0}
  <symbol id="ic-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></symbol>
  <symbol id="ic-atual" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
  <symbol id="ic-sair" viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></symbol>
+ <symbol id="ic-erro" viewBox="0 0 24 24"><path d="M12 3 2 21h20zM12 10v5M12 18h.01"/></symbol>
+ <symbol id="ic-funil" viewBox="0 0 24 24"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></symbol>
  <symbol id="ic-motivo" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
 </svg>
 
@@ -198,7 +222,8 @@ tr:last-child td{border-bottom:0}
  <button class="aba-b" data-ir="cortesia"><svg class="i"><use href="#ic-presente"/></svg><span class="rot">Cortesias</span></button>
  <button class="aba-b" data-ir="clientes"><svg class="i"><use href="#ic-pessoa"/></svg><span class="rot">Clientes</span></button>
  <button class="aba-b" data-ir="cupons"><svg class="i"><use href="#ic-cupom"/></svg><span class="rot">Cupons</span></button>
- <button class="aba-b" data-ir="avisos"><svg class="i"><use href="#ic-aviso"/></svg><span class="rot">Avisos</span></button>
+ <button class="aba-b" data-ir="avisos"><svg class="i"><use href="#ic-aviso"/></svg><span class="rot">Promoção</span></button>
+ <button class="aba-b" data-ir="erros"><svg class="i"><use href="#ic-erro"/></svg><span class="rot">Erros</span></button>
 </div></nav>
 <div class="hero"><div class="w">
  <div class="hero-g">
@@ -219,6 +244,11 @@ tr:last-child td{border-bottom:0}
    <button class="b l" id="btTesteEmail"><svg class="i"><use href="#ic-email"/></svg>Mandar um e-mail de teste</button>
   </div>
   <div class="msg" id="msgTesteEmail"></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-funil"/></svg></span><h2>Funil de vendas</h2></div>
+  <div class="card-d">Últimos 30 dias: quantas pessoas abriram a tela do Pro, quantas geraram Pix e quantas pagaram.</div>
+  <div class="funil" id="funil"><div class="vazio">Carregando…</div></div>
  </div>
  <div class="card">
   <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-resumo"/></svg></span><h2>Vendas por dia</h2></div>
@@ -308,12 +338,35 @@ tr:last-child td{border-bottom:0}
 
 <section class="aba" id="aba-avisos">
  <div class="card">
+  <div class="card-t"><span class="ic am"><svg class="i"><use href="#ic-aviso"/></svg></span><h2>Faixa de promoção</h2></div>
+  <div class="card-d">Uma linha que corre de uma ponta à outra no topo do app de todo mundo, em até 5 minutos, sem precisar atualizar. Tocando nela, a pessoa vai para o Pro com o cupom já colocado.</div>
+  <div class="promo-previa" id="prPrevia"><span id="prPreviaTxt">🔥  Sua promoção aparece assim, correndo na tela</span></div>
+  <label style="margin-top:14px">Texto da promoção<input id="prTxt" maxlength="200" placeholder="Ex.: Black Friday: 30% de desconto no Pro!"></label>
+  <div class="linha" style="margin-top:12px">
+   <label style="flex:1 1 150px">Cupom (opcional, crie em Cupons)<input id="prCupom" maxlength="20" placeholder="BLACK30" autocapitalize="characters"></label>
+   <label style="flex:1 1 150px">Dura<select id="prHoras"><option value="0">Até eu tirar</option><option value="6">6 horas</option><option value="24">1 dia</option><option value="48" selected>2 dias</option><option value="72">3 dias</option><option value="168">1 semana</option></select></label>
+   <label style="flex:1 1 130px">Cor<select id="prCor"><option value="verde">Verde</option><option value="amarelo">Amarelo</option><option value="vermelho">Vermelho</option><option value="azul">Azul</option></select></label>
+  </div>
+  <div class="acao-l"><button class="b prin" id="btPromo">Publicar promoção</button><button class="b l" id="btPromoTirar">Tirar promoção</button></div>
+  <div class="msg" id="msgPromo"></div>
+ </div>
+ <div class="card">
   <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-aviso"/></svg></span><h2>Aviso para todos no app</h2></div>
   <div class="card-d">Aparece no topo da tela inicial do app de todo mundo, em até 30 minutos.</div>
   <label>Texto<input id="aTxt" maxlength="240" placeholder="Ex.: Promoção de Natal: 20% com o cupom NATAL"></label>
   <label style="margin-top:12px">Link ao tocar (opcional, começando com https://)<input id="aLink" placeholder="https://..." inputmode="url" autocapitalize="off"></label>
   <div class="acao-l"><button class="b prin" id="btAviso">Publicar aviso</button><button class="b l" id="btTirar">Tirar aviso</button></div>
   <div class="msg" id="msgAviso"></div>
+ </div>
+</section>
+
+<section class="aba" id="aba-erros">
+ <div class="card">
+  <div class="card-t"><span class="ic vm"><svg class="i"><use href="#ic-erro"/></svg></span><h2>Relatório de erros</h2></div>
+  <div class="card-d">O app avisa sozinho quando algo falha no celular de um cliente. Erros iguais ficam juntos; os que atingiram mais celulares aparecem primeiro.</div>
+  <div class="linha"><label style="flex:1 1 180px">Mês<select id="erMes"></select></label></div>
+  <div class="er-nums" id="erNums"></div>
+  <div id="erLista"><div class="vazio">Carregando…</div></div>
  </div>
 </section>
 </main>
@@ -350,7 +403,7 @@ tr:last-child td{border-bottom:0}
       var pq=r.pesquisa||{}, tot=Object.keys(pq).reduce(function(t,k){return t+pq[k]},0);
       $('pesq').innerHTML=tot?Object.keys(pq).sort(function(a,b){return pq[b]-pq[a]}).map(function(k){return '<div>'+esc(k)+' <b>'+pq[k]+'</b></div><div class="barra-motivo" style="width:'+Math.round(pq[k]*100/tot)+'%"></div>'}).join(''):'<p class="vazio">Ninguém respondeu ainda. A pergunta aparece no app quando o Pro comprado vence.</p>';
       if(r.aviso&&r.aviso.texto){$('aTxt').value=r.aviso.texto;$('aLink').value=r.aviso.link||'';msg($('msgAviso'),'Aviso no ar.','ok')}
-      cortesias();
+      cortesias(); funil(); erros(); promoAtual();
       api('GET','/admin/vencendo').then(function(v){
         $('tVence').innerHTML=v.vencendo.length?v.vencendo.map(function(x){return '<tr><td>'+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.validade)+' ('+(x.dias<0?'venceu':x.dias===0?'hoje':'em '+x.dias+' dia(s)')+')</td><td>'+(x.email?'<a class="b l" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.email)+'?subject='+encodeURIComponent('Seu SerpyraToolkit Pro está vencendo')+'&body='+encodeURIComponent('Oi! Seu Pro vence em '+x.validade+'. Renovando pelo app agora você ganha 10% com o cupom RENOVA10.')+'">Mandar e-mail</a>':'')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="vazio">Ninguém vencendo nos próximos dias.</td></tr>';
       }).catch(function(){});
@@ -436,6 +489,35 @@ tr:last-child td{border-bottom:0}
     }).catch(function(e){msg($('cliRes'),e.message,'erro')});
   };
   $('cliQ').onkeydown=function(e){if(e.key==='Enter')$('btCli').click()};
+  function funil(){
+    api('GET','/admin/funil').then(function(f){
+      var t=f.total,mx=Math.max(t.pro,t.pix,t.pagos,1);
+      var et=function(n,v){return '<div class="et"><span>'+n+'</span><div class="tr"><i style="width:'+Math.max(2,Math.round(v*100/mx))+'%"></i></div><b>'+v+'</b></div>'};
+      var pc=function(a,b){return b?Math.round(a*100/b)+'%':'–'};
+      $('funil').innerHTML=et('Abriram o Pro',t.pro)+et('Geraram Pix',t.pix)+et('Pagaram',t.pagos)+
+        '<div class="conv">'+pc(t.pix,t.pro)+' de quem abriu gerou Pix · '+pc(t.pagos,t.pix)+' de quem gerou pagou'+(t.pix>=5&&t.pagos===0?' · <b style="color:var(--verm)">ninguém pagou: confira se o pagamento está funcionando</b>':'')+'</div>';
+    }).catch(function(){$('funil').innerHTML='<div class="vazio">Não deu para carregar o funil.</div>'});
+  }
+  function dataHora(ms){var d=new Date(ms);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+  function erros(mes){
+    api('GET','/admin/erros'+(mes?'?mes='+mes:'')).then(function(r){
+      var sel=$('erMes'); if(!sel.options.length||mes===undefined){sel.innerHTML=r.meses.map(function(m){return '<option value="'+esc(m)+'"'+(m===r.mes?' selected':'')+'>'+esc(m.slice(5,7)+'/'+m.slice(0,4))+'</option>'}).join('')}
+      $('erNums').innerHTML='<div><b>'+r.total+'</b>ocorrências</div><div><b>'+r.celulares+'</b>celulares afetados</div><div><b>'+r.crashes+'</b>travamentos</div>';
+      $('erLista').innerHTML=r.erros.length?r.erros.map(function(e){
+        var mods=Object.keys(e.modelos).sort(function(a,b){return e.modelos[b]-e.modelos[a]}).slice(0,3).join(', ');
+        var vers=Object.keys(e.versoes).sort().reverse().join(', ');
+        return '<div class="er"><div class="top"><span class="tag '+(e.tipo==='crash'?'':'a')+'"'+(e.tipo==='crash'?' style="background:#FDE7E8;color:var(--verm)"':'')+'>'+(e.tipo==='crash'?'travou o app':'falha')+'</span><b>'+esc(e.onde)+'</b><span class="tag">'+e.n+'x · '+e.celulares+' celular(es)</span></div>'+
+          '<div class="msg2">'+esc(e.msg||'(sem mensagem)')+'</div><small>Versões: '+esc(vers)+' · Celulares: '+esc(mods)+' · Última vez: '+esc(dataHora(e.ultimo))+'</small>'+
+          (e.pilha?'<details><summary>Detalhes técnicos</summary><pre>'+esc(e.pilha)+'</pre></details>':'')+'</div>'}).join('')
+        :'<div class="vazio">Nenhum erro registrado neste mês. 🎉</div>';
+    }).catch(function(e){$('erLista').innerHTML='<div class="vazio">'+esc(e.message)+'</div>'});
+  }
+  $('erMes').onchange=function(){erros(this.value)};
+  function previa(){var t=$('prTxt').value.trim()||'Sua promoção aparece assim, correndo na tela',c=$('prCupom').value.trim().toUpperCase();$('prPreviaTxt').textContent='🔥  '+t+(c?'  ·  cupom '+c:'');var cores={verde:['#E3F8EE','#9ADDBE'],amarelo:['#FFF3D1','#F2D27A'],vermelho:['#FDE7E8','#F3A9AC'],azul:['#E8ECFF','#AEBBFF']}[$('prCor').value];$('prPrevia').style.background=cores[0];$('prPrevia').style.borderColor=cores[1]}
+  ['prTxt','prCupom','prCor'].forEach(function(i){$(i).addEventListener('input',previa);$(i).addEventListener('change',previa)});
+  $('btPromo').onclick=function(){var b=this;if(!$('prTxt').value.trim()){msg($('msgPromo'),'Escreva o texto da promoção.','erro');return}b.disabled=true;api('POST','/admin/promo',{texto:$('prTxt').value,cupom:$('prCupom').value,horas:$('prHoras').value,cor:$('prCor').value}).then(function(){msg($('msgPromo'),'Promoção no ar. Aparece no app de todo mundo em até 5 minutos.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')}).finally(function(){b.disabled=false})};
+  $('btPromoTirar').onclick=function(){api('POST','/admin/promo',{texto:''}).then(function(){$('prTxt').value='';previa();msg($('msgPromo'),'Promoção tirada do app.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')})};
+  function promoAtual(){api('GET','/admin/promo').then(function(p){if(p&&p.texto){$('prTxt').value=p.texto;$('prCupom').value=p.cupom||'';$('prCor').value=p.cor||'verde';previa();msg($('msgPromo'),'No ar'+(p.ate?' até '+dataHora(p.ate):' até você tirar')+'.','ok')}}).catch(function(){})}
   $('btTesteEmail').onclick=function(){var b=this;b.disabled=true;msg($('msgTesteEmail'),'Enviando…');api('POST','/admin/testar-aviso').then(function(r){msg($('msgTesteEmail'),'Enviado para '+r.para+'. Confira a caixa de entrada (e Promoções/Spam).','ok')}).catch(function(e){msg($('msgTesteEmail'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btAtualizar').onclick=function(){var b=this;b.classList.add('girando');carregar().catch(function(){}).finally(function(){setTimeout(function(){b.classList.remove('girando')},300)})};
   $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};

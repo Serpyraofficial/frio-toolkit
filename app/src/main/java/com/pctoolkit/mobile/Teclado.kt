@@ -934,7 +934,9 @@ class TecladoService : Service() {
             "Apagar todos os botões",
             "Teclado ou controle físico: " + if (Mapeador.ativo()) "ligado" else "desligado",
             "Avançado: botão de tecla (jogos que aceitam teclado)",
-            "Avançado: macro (sequência de teclas)"
+            "Avançado: macro (sequência de teclas)",
+            "Compartilhar meus botões com um amigo",
+            "Usar botões que um amigo mandou"
         )
         mostrarDialogo(dialogo().setItems(ops) { _, i ->
             when (i) {
@@ -964,6 +966,20 @@ class TecladoService : Service() {
                 5 -> { val c = Controle(tipo = "tecla", x = 0.5f, y = 0.5f, tecla = KeyEvent.KEYCODE_SPACE); lista.add(c); edSel = c; depois()
                     toast("Botão de tecla: só funciona em jogos que aceitam teclado. Para Free Fire, PUBG e afins, use “+ Botão”.") }
                 6 -> { val c = Controle(tipo = "macro", x = 0.5f, y = 0.4f); lista.add(c); edSel = c; editarControle(c, lista, true, depois) }
+                7 -> {
+                    if (lista.isEmpty()) { toast("Crie pelo menos um botão antes de compartilhar."); return@setItems }
+                    val cod = CompartilharBotoes.codigo(lista)
+                    try { (getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("botoes", cod)) } catch (e: Exception) { }
+                    try { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, "Meus botões do SerpyraToolkit para ${Jogos.nome(this, pkg)}. No app: Teclado e controles > editar > Mais > Usar botões que um amigo mandou, e cole:\n\n$cod"), "Compartilhar botões").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+                    toast("Código copiado. Mande para o seu amigo.")
+                }
+                8 -> {
+                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    val txt = try { cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: "" } catch (e: Exception) { "" }
+                    val novos = CompartilharBotoes.ler(txt)
+                    if (novos == null) mostrarDialogo(dialogo().setTitle("Usar botões de um amigo").setMessage("Copie a mensagem inteira que o seu amigo mandou (começa com SERPYRA-BOTOES:) e toque aqui de novo.").setPositiveButton("OK", null).create())
+                    else mostrarDialogo(dialogo().setTitle("Usar ${novos.size} botões do seu amigo?").setMessage("Os botões atuais deste jogo serão trocados.").setPositiveButton("Usar") { _, _ -> lista.clear(); lista.addAll(novos); edSel = null; depois(); toast("Botões do amigo colocados. Toque em Salvar.") }.setNegativeButton("Cancelar", null).create())
+                }
             }
         }.create())
     }

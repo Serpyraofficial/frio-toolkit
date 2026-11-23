@@ -202,7 +202,14 @@ async function validadeAtual(env, codigo) {
   return parseInt((await env.PCT.get("lic:" + codigo)) || "0", 10) || 0;
 }
 
-async function avisarDono(env, p, plano) { try { const ti = (p.presente ? "🎁 Presente vendido: " : "💰 Nova venda: ") + reais(p.valor) + " · " + plano; const linhas = [["Plano", plano + (p.presente ? " (presente para " + p.presente + ")" : "")], ["Valor", reais(p.valor)], ["Cliente", p.email], ["Celular", p.codigo ? p.codigo.slice(0, 4) + "-" + p.codigo.slice(4) : "—"], ["Cupom", p.cupom || "—"], ["Pedido", p.numero], ["Quando", agoraBr()]]; const html = moldura(ti, "Pix confirmado. O cliente já recebeu a chave por e-mail.", `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">` + linhas.map(([a, b]) => `<tr><td style="color:#9AA8BA">${a}</td><td align="right">${esc(b)}</td></tr>`).join("") + `</table></div><a href="https://serpyratoolkit.pages.dev/painel" style="color:#3DDC97">Abrir o painel de vendas</a>`); await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, ti, html, ti + "\n" + linhas.map(l => l.join(": ")).join("\n")); } catch (e) { } }
+async function guardarRecente(env, p, plano) {
+  try {
+    const l = (await lerJson(env, "vendas:recentes")) || [];
+    l.unshift({ em: Date.now(), valor: reais(p.valor), plano, presente: !!p.presente, cupom: p.cupom || "", numero: p.numero });
+    await env.PCT.put("vendas:recentes", JSON.stringify(l.slice(0, 30)));
+  } catch (e) { }
+}
+async function avisarDono(env, p, plano) { await guardarRecente(env, p, plano); try { const ti = (p.presente ? "🎁 Presente vendido: " : "💰 Nova venda: ") + reais(p.valor) + " · " + plano; const linhas = [["Plano", plano + (p.presente ? " (presente para " + p.presente + ")" : "")], ["Valor", reais(p.valor)], ["Cliente", p.email], ["Celular", p.codigo ? p.codigo.slice(0, 4) + "-" + p.codigo.slice(4) : "—"], ["Cupom", p.cupom || "—"], ["Pedido", p.numero], ["Quando", agoraBr()]]; const html = moldura(ti, "Pix confirmado. O cliente já recebeu a chave por e-mail.", `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">` + linhas.map(([a, b]) => `<tr><td style="color:#9AA8BA">${a}</td><td align="right">${esc(b)}</td></tr>`).join("") + `</table></div><a href="https://serpyratoolkit.pages.dev/painel" style="color:#3DDC97">Abrir o painel de vendas</a>`); await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, ti, html, ti + "\n" + linhas.map(l => l.join(": ")).join("\n")); } catch (e) { } }
 async function liberar(env, id, valorPago) {
   const p = await lerJson(env, "pedido:" + id);
   if (!p) return null;
@@ -284,6 +291,62 @@ async function resgatarPresente(req, env) {
     if (emailValido(g.para)) await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
   }
   return json({ ok: true, chave, validade: validadeTxt(dia) });
+}
+
+/* ---------------- erros do app, funil e promocao ---------------- */
+function mesAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 7); }
+function diaAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10); }
+
+async function registrarErro(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
+  const codigo = limpaCodigo(b.codigo);
+  if (!codigoValido(codigo)) return json({ ok: true });
+  if (!(await limitar("erro:" + codigo, 10)) || !(await limitar("erros-total", 300))) return json({ ok: true });
+  const lista = Array.isArray(b.erros) ? b.erros.slice(0, 10) : [b];
+  const k = "erros:" + mesAtual();
+  const m = (await lerJson(env, k)) || {};
+  for (const e of lista) {
+    const onde = String(e.onde || "app").slice(0, 60), msg = String(e.msg || "").slice(0, 200), tipo = e.tipo === "crash" ? "crash" : "falha";
+    const sig = (tipo + "|" + onde + "|" + msg.replace(/\d+/g, "#")).slice(0, 180);
+    const x = m[sig] || { tipo, onde, msg, n: 0, celulares: [], modelos: {}, versoes: {}, primeiro: Date.now(), pilha: String(e.pilha || "").slice(0, 1500) };
+    x.n++; x.ultimo = Date.now();
+    if (!x.celulares.includes(codigo) && x.celulares.length < 50) x.celulares.push(codigo);
+    const mod = String(b.modelo || "?").slice(0, 40), ver = String(b.versao || "?").slice(0, 12);
+    x.modelos[mod] = (x.modelos[mod] || 0) + 1; x.versoes[ver] = (x.versoes[ver] || 0) + 1;
+    m[sig] = x;
+  }
+  const chaves = Object.keys(m);
+  if (chaves.length > 200) chaves.sort((a, b) => m[a].ultimo - m[b].ultimo).slice(0, chaves.length - 200).forEach(c => delete m[c]);
+  await env.PCT.put(k, JSON.stringify(m), { expirationTtl: 60 * 60 * 24 * 400 });
+  return json({ ok: true });
+}
+
+async function evento(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
+  const codigo = limpaCodigo(b.codigo), tipo = b.tipo === "pro" ? "pro" : "";
+  if (!codigoValido(codigo) || !tipo) return json({ ok: true });
+  // uma vez por celular por dia, e no maximo 400 gravacoes por dia no total
+  if (!(await limitar("ev:" + tipo + ":" + codigo + ":" + diaAtual(), 1)) || !(await limitar("ev-total:" + diaAtual(), 400))) return json({ ok: true });
+  const k = "funil:" + diaAtual();
+  const f = (await lerJson(env, k)) || {};
+  f[tipo] = (f[tipo] || 0) + 1;
+  await env.PCT.put(k, JSON.stringify(f), { expirationTtl: 60 * 60 * 24 * 120 });
+  return json({ ok: true });
+}
+
+async function promoAtual(env) {
+  const cache = caches.default;
+  const req = new Request("https://promo.local/atual");
+  const r = await cache.match(req);
+  let corpo = r ? await r.text() : null;
+  if (corpo === null) {
+    const p = (await lerJson(env, "promo")) || {};
+    corpo = JSON.stringify(p);
+    await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=300" } }));
+  }
+  const p = JSON.parse(corpo || "{}");
+  if (!p.texto || (p.ate && Date.now() > p.ate)) return json({});
+  return json(p);
 }
 
 /* ---------------- avisos e pesquisa ---------------- */
@@ -558,6 +621,44 @@ async function admin(req, url, env) {
     const st = await mandarEmail(env, c.email, "Sua chave do SerpyraToolkit Pro", m.html, m.texto);
     return st === "enviado" ? json({ ok: true }) : json({ erro: "Falhou: " + st }, 502);
   }
+  if (rota === "erros" && req.method === "GET") {
+    const mes = /^\d{4}-\d{2}$/.test(url.searchParams.get("mes") || "") ? url.searchParams.get("mes") : mesAtual();
+    const m = (await lerJson(env, "erros:" + mes)) || {};
+    const l = Object.values(m).sort((a, b) => b.celulares.length - a.celulares.length || b.n - a.n);
+    const meses = (await listar(env, "erros:", 50)).map(n => n.slice(6)).sort().reverse();
+    return json({ mes, meses: meses.length ? meses : [mes], total: l.reduce((t, x) => t + x.n, 0), celulares: new Set(l.flatMap(x => x.celulares)).size, crashes: l.filter(x => x.tipo === "crash").reduce((t, x) => t + x.n, 0),
+      erros: l.slice(0, 100).map(x => ({ tipo: x.tipo, onde: x.onde, msg: x.msg, n: x.n, celulares: x.celulares.length, modelos: x.modelos, versoes: x.versoes, primeiro: x.primeiro, ultimo: x.ultimo, pilha: x.pilha })) });
+  }
+  if (rota === "funil" && req.method === "GET") {
+    const nomes = await listar(env, "pedido:", 3000);
+    const pedidos = (await Promise.all(nomes.map(n => lerJson(env, n)))).filter(Boolean);
+    const dias = [];
+    for (let d = 29; d >= 0; d--) {
+      const dd = new Date(Date.now() - 3 * 3600000 - d * DIA).toISOString().slice(0, 10);
+      const f = (await lerJson(env, "funil:" + dd)) || {};
+      const doDia = pedidos.filter(p => new Date(Date.parse(p.criado || p.pagoEm || 0) - 3 * 3600000).toISOString().slice(0, 10) === dd);
+      dias.push({ dia: dd.slice(8, 10) + "/" + dd.slice(5, 7), pro: f.pro || 0, pix: doDia.length, pagos: doDia.filter(p => p.status === "pago").length });
+    }
+    const t = dias.reduce((a, x) => ({ pro: a.pro + x.pro, pix: a.pix + x.pix, pagos: a.pagos + x.pagos }), { pro: 0, pix: 0, pagos: 0 });
+    return json({ dias, total: t });
+  }
+  if (rota === "promo" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const texto = String(b.texto || "").trim().slice(0, 200);
+    if (!texto) await env.PCT.delete("promo");
+    else {
+      const horas = Math.min(24 * 60, Math.max(0, parseInt(b.horas, 10) || 0));
+      await env.PCT.put("promo", JSON.stringify({ id: Date.now(), texto, cupom: limpaCupom(b.cupom), cor: /^(verde|amarelo|vermelho|azul)$/.test(b.cor) ? b.cor : "verde", ate: horas ? Date.now() + horas * 3600000 : 0 }));
+    }
+    try { await caches.default.delete(new Request("https://promo.local/atual")); } catch (e) { }
+    return json({ ok: true });
+  }
+  if (rota === "promo" && req.method === "GET") return json((await lerJson(env, "promo")) || {});
+  if (rota === "novas" && req.method === "GET") {
+    const desde = parseInt(url.searchParams.get("desde") || "0", 10) || 0;
+    const l = (await lerJson(env, "vendas:recentes")) || [];
+    return json({ agora: Date.now(), vendas: l.filter(v => v.em > desde) });
+  }
   if (rota === "testar-aviso" && req.method === "POST") {
     const para = env.AVISO_EMAIL || env.REMETENTE_EMAIL;
     const html = moldura("✅ Teste: aviso de venda funcionando", "É assim que você vai ser avisado a cada Pix pago.", `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4"><tr><td style="color:#9AA8BA">Plano</td><td align="right">1 mês (exemplo)</td></tr><tr><td style="color:#9AA8BA">Valor</td><td align="right">R$ 15,00</td></tr><tr><td style="color:#9AA8BA">Quando</td><td align="right">${agoraBr()}</td></tr></table></div><a href="https://serpyratoolkit.pages.dev/painel" style="color:#3DDC97">Abrir o painel de vendas</a>`);
@@ -604,6 +705,32 @@ async function reenviarEmails(env) {
 }
 
 /* ---------------- atualização do app e site ---------------- */
+/* copia de seguranca diaria das vendas, clientes, cupons e codigos (1 e-mail por dia para o dono) */
+async function backupDiario(env) {
+  try {
+    const dados = { data: new Date().toISOString() };
+    for (const pre of ["pedido:", "chave:", "cupom:", "presente:", "email:"]) {
+      const nomes = await listar(env, pre, 5000);
+      const obj = {};
+      for (const n of nomes) obj[n] = await env.PCT.get(n);
+      dados[pre.slice(0, -1)] = obj;
+    }
+    const txt = JSON.stringify(dados);
+    const bytes = new TextEncoder().encode(txt);
+    let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    const b64 = btoa(bin);
+    const para = env.AVISO_EMAIL || env.REMETENTE_EMAIL;
+    if (!env.BREVO_KEY || !para) return;
+    const nome = "serpyratoolkit-backup-" + diaAtual() + ".json";
+    await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST", headers: { "api-key": env.BREVO_KEY, "content-type": "application/json", "accept": "application/json" },
+      body: JSON.stringify({ sender: { name: env.REMETENTE_NOME || "SerpyraToolkit", email: env.REMETENTE_EMAIL }, to: [{ email: para }],
+        subject: "Cópia de segurança das vendas · " + agoraBr().slice(0, 10), htmlContent: moldura("Cópia de segurança do dia", "Guarde este e-mail. O arquivo anexo tem todas as vendas, clientes, cupons e códigos.", `<div style="${CAIXA}">${Object.keys(dados.pedido || {}).length} pedidos · ${Object.keys(dados.chave || {}).length} clientes · ${Object.keys(dados.cupom || {}).length} cupons · ${Object.keys(dados.presente || {}).length} códigos de presente/cortesia</div>`),
+        attachment: [{ name: nome, content: b64 }] })
+    });
+  } catch (e) { }
+}
+
 const RAW = "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/";
 function github(env, arquivo) {
   const h = { "user-agent": "serpyratoolkit" };
@@ -651,6 +778,9 @@ export default {
       if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
       if (m === "POST" && p === "/registrar") return await registrar(req, env);
       if (m === "GET" && p === "/aviso") return await avisoAtual(env);
+      if (m === "GET" && p === "/promo") return await promoAtual(env);
+      if (m === "POST" && p === "/erro") return await registrarErro(req, env);
+      if (m === "POST" && p === "/evento") return await evento(req, env);
       if (m === "POST" && p === "/pesquisa") return await pesquisa(req, env);
       if (m === "GET" && p === "/versao") return await versao(env);
       if (m === "GET" && (p === "/apk" || p === "/baixar")) return await baixarApk(env);
@@ -664,5 +794,5 @@ export default {
       return json({ erro: "Erro interno: " + e.message }, 500);
     }
   },
-  async scheduled(event, env, ctx) { ctx.waitUntil(reenviarEmails(env)); }
+  async scheduled(event, env, ctx) { ctx.waitUntil(reenviarEmails(env).then(() => backupDiario(env))); }
 };

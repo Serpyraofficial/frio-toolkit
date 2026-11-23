@@ -13,6 +13,7 @@ class PcApp : Application() {
     override fun onCreate() {
         super.onCreate()
         ctx = applicationContext
+        Relatorio.instalar()
     }
 
     companion object {

@@ -226,7 +226,12 @@ class AtualizacaoReceiver : BroadcastReceiver() {
 /** Confere a versao em segundo plano. */
 class AtualizacaoJob : android.app.job.JobService() {
     override fun onStartJob(p: android.app.job.JobParameters?): Boolean {
-        Thread { try { Atualizador.verificar()?.let { Atualizador.notificar(applicationContext, it) } } catch (e: Throwable) { }; jobFinished(p, false) }.start()
+        Thread {
+            try { Atualizador.verificar()?.let { Atualizador.notificar(applicationContext, it) } } catch (e: Throwable) { }
+            try { PixAbandonado.conferir(applicationContext) } catch (e: Throwable) { }
+            try { Relatorio.enviar() } catch (e: Throwable) { }
+            jobFinished(p, false)
+        }.start()
         return true
     }
     override fun onStopJob(p: android.app.job.JobParameters?): Boolean = true

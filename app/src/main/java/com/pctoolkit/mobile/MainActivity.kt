@@ -48,6 +48,7 @@ class Menu(val titulo: String, val subtitulo: String, val icone: Int, val cor: I
 class Console(private val act: MainActivity, private val tv: TextView, private val scroll: ScrollView) {
     private val buf = SpannableStringBuilder()
     @Volatile var cancelado = false
+    var tarefa = ""
     val ctx: Context get() = act
 
     private fun add(t: String, cor: Int, negrito: Boolean = false) {
@@ -67,7 +68,7 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
     fun subtitulo(t: String) { add("", T.texto); add(t, T.azul, true) }
     fun ok(t: String) = add("✓  $t", T.verde)
     fun aviso(t: String) = add("!  $t", T.amarelo)
-    fun erro(t: String) = add("✕  $t", T.vermelho)
+    fun erro(t: String) { add("✕  $t", T.vermelho); try { Relatorio.falha(tarefa.ifEmpty { "tela" }, t) } catch (e: Throwable) { } }
     fun info(t: String) = add("   $t", T.texto2)
     fun item(t: String, cor: Int = T.texto) = add("•  $t", cor)
 
@@ -214,7 +215,14 @@ class MainActivity : Activity() {
             "memoria" -> executar("Liberar memória") { Fps.liberarRam(it) }
             "relatorio" -> executar("Histórico do Modo Jogo") { ModoJogo.historico(it) }
             "atualizar" -> executar("Atualizar o app") { Atualizador.procurar(it) }
+            "pro" -> abrirTela { telaPro() }
         }
+        Dono.agendar(this)
+        Thread {
+            Relatorio.enviar()
+            if (Promo.atualizar()) runOnUiThread { atualizarInicio() }
+            if (Dono.ligado()) Dono.conferir(this)
+        }.start()
         Atualizador.agendar(this)
         Automatico.agendar(this)
         Thread { Conquistas.conferir() }.start()
@@ -283,6 +291,7 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent?.getStringExtra("acao") == "atualizar" && !naTarefa) executar("Atualizar o app") { Atualizador.procurar(it) }
+        if (intent?.getStringExtra("acao") == "pro" && !naTarefa) abrirTela { telaPro() }
     }
 
     override fun onResume() {
@@ -418,6 +427,9 @@ class MainActivity : Activity() {
         cab.addView(chip)
         col.addView(cab)
         col.addView(Ui.espaco(this, 1, 14))
+
+        // faixa de promocao (o dono muda pelo painel)
+        Promo.faixa(this)?.let { col.addView(it, Ui.linhaLp(this, 0, 14)) }
 
         // aviso fixo de atualizacao
         Atualizador.pendente()?.let { up ->
@@ -696,6 +708,7 @@ class MainActivity : Activity() {
         col.addView(card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         col.addView(Ui.espaco(this, 1, 12))
         val con = Console(this, tv, sv)
+        con.tarefa = titulo
         val barra = FrameLayout(this)
         val parar = Ui.botao(this, "Parar", T.vermelho, false) {
             con.cancelado = true
@@ -706,7 +719,7 @@ class MainActivity : Activity() {
         tarefaRodando = true
         Thread {
             var erro = false
-            try { acao(con) } catch (e: Throwable) { erro = true; con.erro("Erro inesperado: " + (e.message ?: e.javaClass.simpleName)); Log2.registrar("erro em $titulo: $e") }
+            try { acao(con) } catch (e: Throwable) { erro = true; Relatorio.falha(titulo, e); con.linha("✕  Algo deu errado aqui. Já mandamos o aviso para corrigir; tente de novo.", T.vermelho); Log2.registrar("erro em $titulo: $e") }
             runOnUiThread {
                 tarefaRodando = false
                 pb.isIndeterminate = false
