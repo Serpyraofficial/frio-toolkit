@@ -1,8 +1,8 @@
 {
- "versionCode": 58,
- "versionName": "5.7",
- "notas": "- Modelos prontos de botões para Free Fire, PUBG, COD, Roblox e MOBA: escolha o jogo e só ajuste\n- Modo campeonato: bloqueia chamadas e notificações, trava o brilho e avisa se a internet oscilar\n- Relatório da partida com ping e comparação com a partida anterior, e resumo por jogo no histórico\n- Internet para jogos: descubra se o lag vem do Wi-Fi ou da internet\n- Modo bateria para jogar longe da tomada\n- Backup das configurações: leve seus botões e perfis para outro celular\n- Cuidados automáticos: limpeza semanal e alertas de calor e de app pesado\n- Mira com imagem sua, gravar a tela, conquistas, letra maior e ajuda em cada tela",
- "sha256": "a887c1f6c84b445eea065013a3036c59c7f70958453d1f9c6d0de02d81341c22",
- "tamanho": 1171617,
- "arquivo": "SerpyraToolkit-5.7-a887c1f6c8.apk"
+ "versionCode": 59,
+ "versionName": "5.8",
+ "notas": "- Pro vitalício: paga uma vez e não vence mais\n- Dê o Pro de presente: a pessoa recebe um código por e-mail\n- Indique e ganhe: seu amigo ganha 10% e você ganha 15 dias de Pro a cada compra dele\n- 10% de desconto para renovar quando o Pro está perto de vencer\n- Avisos e promoções aparecem na tela inicial\n- Tudo da 5.7: modelos prontos de botões, Modo campeonato, relatório da partida, backup e mais",
+ "sha256": "0a0afaa4445134415a70eb8541f6630dd5c223539286cb30f9ccc3721cfb04ce",
+ "tamanho": 1179025,
+ "arquivo": "SerpyraToolkit-5.8-0a0afaa444.apk"
 }
