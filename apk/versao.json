@@ -1,8 +1,8 @@
 {
- "versionCode": 68,
- "versionName": "5.13.1",
- "notas": "- Aba SHIZUKU agora abre ao tocar: vídeo tutorial, foto do que ativar e passo a passo",
- "sha256": "b5b20656e38254453f89184761fb1ca3bff17bcdc79dc3d88fee29a8830a586f",
- "tamanho": 1334569,
- "arquivo": "SerpyraToolkit-5.13.1-b5b20656e3.apk"
+ "versionCode": 69,
+ "versionName": "5.14",
+ "notas": "- Atualização sozinha mais rápida: instala segundos depois que você sai do app\n- Xiaomi/Redmi/Poco: o tutorial do Shizuku agora mostra o “Instalar via USB”, necessário para atualizar sozinho\n- Em Menu > Atualizar sozinho aparece o resultado da última tentativa",
+ "sha256": "5e7cb7982b061ff5c360049eb31905ee9862ba4ee41444b1b6ff8be7b1752e2a",
+ "tamanho": 1341229,
+ "arquivo": "SerpyraToolkit-5.14-5e7cb7982b.apk"
 }
