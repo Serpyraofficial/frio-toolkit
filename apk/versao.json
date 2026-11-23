@@ -1,8 +1,8 @@
 {
- "versionCode": 67,
- "versionName": "5.13",
- "notas": "- Nova aba SHIZUKU na tela inicial: vídeo tutorial, foto do que ativar e passo a passo\n- Atalhos para abrir as Opções do desenvolvedor e o Shizuku direto\n- Esta versão também testa a atualização sozinha",
- "sha256": "35291c7f5a4f0e0559d3938970e3be688efc190fb92775d9668295cbe7573c7e",
- "tamanho": 1334557,
- "arquivo": "SerpyraToolkit-5.13-35291c7f5a.apk"
+ "versionCode": 68,
+ "versionName": "5.13.1",
+ "notas": "- Aba SHIZUKU agora abre ao tocar: vídeo tutorial, foto do que ativar e passo a passo",
+ "sha256": "b5b20656e38254453f89184761fb1ca3bff17bcdc79dc3d88fee29a8830a586f",
+ "tamanho": 1334569,
+ "arquivo": "SerpyraToolkit-5.13.1-b5b20656e3.apk"
 }
