@@ -14,6 +14,7 @@
 <style>
 :root{--noite:#0B111B;--noite2:#121B29;--noite3:#1B2738;--papel:#EEF1F5;--branco:#fff;--tinta:#0E1726;--t2:#4A5568;--t3:#8A94A6;--linha:#E1E6EC;--menta:#3DDC97;--menta-esc:#0C8A55;--menta-claro:#E3F8EE;--azul:#3B5BFF;--verm:#D93F44;--amar:#9A6E00;--r:20px;--sombra:0 1px 2px rgba(14,23,38,.05),0 8px 24px -12px rgba(14,23,38,.14)}
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:120px}
 body{background:var(--papel);color:var(--tinta);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:15.5px;line-height:1.5;font-variation-settings:"opsz" 14;-webkit-tap-highlight-color:transparent}
 .w{max-width:1040px;margin:0 auto;padding:0 20px}
@@ -130,11 +131,11 @@ tr:last-child td{border-bottom:0}
  .aba-b.on{background:transparent;color:var(--menta)}
  .aba-b.on svg.i{background:rgba(61,220,151,.16);border-radius:10px;padding:3px;width:34px;height:28px}
  .hero{padding:14px 0 56px}
- .hero-g{grid-template-columns:1fr 1fr;gap:10px}
+ .hero-g{grid-template-columns:repeat(3,1fr);gap:8px}
  .num{padding:13px 14px;border-radius:16px}
  .num.dest{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
  .num.dest b{font-size:36px;order:2;margin:0}.num.dest small{width:100%}.num.dest i{order:3}
- .num b{font-size:21px}
+ .num{padding:11px 11px}.num b{font-size:16.5px;letter-spacing:-.01em}.num small{font-size:12px}.num i{font-size:12px}
  main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
  .duas{grid-template-columns:1fr}
  .card{padding:16px;border-radius:18px}
