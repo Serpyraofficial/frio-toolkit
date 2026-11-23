@@ -1,8 +1,8 @@
 {
- "versionCode": 74,
- "versionName": "5.14.5",
- "notas": "- Novo e-mail de suporte: serpyrasuporte@gmail.com",
- "sha256": "85a1204edc580390960fd116e998eaa39e0b49af905ac03aaecf466f14a4ecac",
- "tamanho": 1331049,
- "arquivo": "SerpyraToolkit-5.14.5-85a1204edc.apk"
+ "versionCode": 75,
+ "versionName": "5.15",
+ "notas": "- Teste grátis do Pro agora é de 1 hora (uma vez por celular e por internet)\n- Comandos pelo Shizuku que demoravam não falham mais",
+ "sha256": "6bf8da06a0bbd5f6223767952fec9d5502da0b16378ec006be3c74ebfd025b23",
+ "tamanho": 1331005,
+ "arquivo": "SerpyraToolkit-5.15-6bf8da06a0.apk"
 }
