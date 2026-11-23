@@ -282,6 +282,7 @@ async function resgatarPresente(req, env) {
   const g = await lerJson(env, "presente:" + v);
   if (!g) return json({ erro: "Código de presente não encontrado. Confira as letras." }, 404);
   if (g.usado && g.usado !== codigo) return json({ erro: "Esse presente já foi usado em outro celular." }, 409);
+  if (!g.usado && !g.vitalicio) { const atual = await validadeAtual(env, codigo); if (atual >= hoje()) return json({ erro: "Você já tem o Pro ativo até " + validadeTxt(atual) + ". Use este código quando ele acabar: ele continua guardado para você." }, 409); }
   const dia = g.vitalicio ? DIA_VITALICIO : (g.usado ? g.dia : Math.max(hoje(), await validadeAtual(env, codigo)) + (g.dias || 30));
   const chave = await assinarChave(env, codigo, dia);
   if (!g.usado) {
