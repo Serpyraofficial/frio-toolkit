@@ -44,6 +44,7 @@ object Menus {
         Item("Ajustes para um jogo", "Bateria sem restrição e gráficos ideais", J, T.azul, acao = { Fps.porJogo(it) }),
         Item("Liberar memória", "Encerra apps em segundo plano", F, T.roxo, acao = { Fps.liberarRam(it) }),
         Item("Apps em segundo plano", "Quem inicia sozinho e gasta recursos", F, T.roxo, acao = { Fps.segundoPlano(it) }),
+        Item("Teste da tela de toque", "Quantos dedos a tela aceita e a velocidade do toque", F, T.ciano, "Novo", T.ciano, tela = { it.abrirTela { it.telaTesteToque() } }),
         Item("Medidor de FPS", "FPS real durante o jogo", F, T.cinza, selo(!Sh.privOk(), "Automático"), T.cinza, acao = { Fps.medidor(it) }),
         Item("Histórico do Modo Jogo", "Sessões, temperatura e bateria", J, T.cinza, acao = { ModoJogo.historico(it) })
     ))

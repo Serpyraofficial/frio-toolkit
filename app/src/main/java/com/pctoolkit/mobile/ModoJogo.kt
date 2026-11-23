@@ -42,6 +42,7 @@ object ModoJogo {
             return
         }
         val jogo = (if (pkgFixo != null) Jogo(pkgFixo, Jogos.nome(ctx, pkgFixo), "tuner") else Jogos.escolher(con)) ?: run { con.linha("Cancelado."); return }
+        CentralJogos.usado(jogo.pkg)
         val perfil = Tuner.perfil(jogo.pkg)
         if (perfil.aplicado) con.info("Perfil do Tuner: " + perfil.resumo())
         con.linha("Jogo: ${jogo.nome}", T.verde)
@@ -58,6 +59,7 @@ object ModoJogo {
         else con.info("Modo Frio, Turbo e abrir os seus botões junto com o jogo fazem parte do SerpyraToolkit Pro.")
         if (Pro.ativo() && PerfisControle.tem(jogo.pkg)) { nomes.add("Abrir os meus botões do teclado junto com o jogo"); chaves.add("mj_botoes") }
         nomes.add("Mostrar o ping no painel (atraso da internet)"); chaves.add("mj_ping")
+        nomes.add("Lembrar de fazer uma pausa a cada 1 hora de jogo"); chaves.add("mj_pausa")
         val sel = con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
@@ -359,7 +361,7 @@ class GameService : Service() {
     private fun paraJson(it: Intent): JSONObject {
         val o = JSONObject().put("pkg", it.getStringExtra("pkg")).put("nome", it.getStringExtra("nome") ?: it.getStringExtra("pkg"))
             .put("limite", it.getIntExtra("limite", 43)).put("res", it.getIntExtra("res", 0))
-        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio", "mj_ping")) o.put(k, it.getBooleanExtra(k, false))
+        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio", "mj_ping", "mj_pausa")) o.put(k, it.getBooleanExtra(k, false))
         val b = Sensores.bateria(this)
         o.put("inicio", System.currentTimeMillis()).put("tIni", b.tempC).put("nIni", b.nivel)
         return o
@@ -479,7 +481,7 @@ class GameService : Service() {
         var shizukuCaiu = false
         var nivelFrioMax = 0
         val fpsLista = ArrayList<Double>()
-        var pingTxt = ""; var voltas = 0
+        var pingTxt = ""; var voltas = 0; var horasAvisadas = 0
         var qAnt = Sensores.contadorQuadros(); var tAnt = System.nanoTime()
         val pmw = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         Thread.sleep(3000)
@@ -521,6 +523,7 @@ class GameService : Service() {
             // ping a cada ~6 s (conexao TCP rapida; nao usa dados de verdade)
             if (d.optBoolean("mj_ping") && voltas++ % 3 == 0) { val ms = medirPing(); pingTxt = if (ms >= 0) " · $ms ms" else " · sem internet" }
             val min = ((agora - inicio) / 60000).toInt()
+            if (d.optBoolean("mj_pausa") && min >= 60 && min / 60 > horasAvisadas) { horasAvisadas = min / 60; avisarPausa(horasAvisadas) }
             val frioTxt = if (d.optBoolean("mj_frio") && Frio.nivel > 0) " · Frio ${Frio.nivel}" else ""
             status = "${fpsTxt}${f1(b.tempC)} °C$pingTxt · ${b.nivel}% · RAM ${fmtTam(mem)} · $min min$frioTxt" + if (st >= 2) " · CALOR" else ""
             atualizar("Modo Jogo · $nome", status)
@@ -564,6 +567,16 @@ class GameService : Service() {
             getSystemService(NotificationManager::class.java).notify(ID + 2, notif("Sessão encerrada: $nome", "$dur min · bateria até ${f1(tMax)} °C · ${(nIni - b1.nivel).coerceAtLeast(0)}% de carga" + if (o.has("fps")) " · ${o.optInt("fps")} FPS médio" else "", CANAL, false))
         } catch (e: Exception) { }
         status = ""
+    }
+
+    private fun avisarPausa(horas: Int) {
+        try {
+            val nm = getSystemService(android.app.NotificationManager::class.java)
+            nm.createNotificationChannel(android.app.NotificationChannel("pausa", "Lembrete de pausa", android.app.NotificationManager.IMPORTANCE_HIGH))
+            val txt = "Você está jogando há $horas hora(s). Que tal uma pausa de 5 minutos para descansar os olhos e esfriar o celular?"
+            nm.notify(7171, android.app.Notification.Builder(this, "pausa").setSmallIcon(R.drawable.ic_jogo).setContentTitle("Hora de uma pausa")
+                .setContentText(txt).setStyle(android.app.Notification.BigTextStyle().bigText(txt)).setAutoCancel(true).setColor(T.verde).build())
+        } catch (e: Exception) { }
     }
 
     private fun medirPing(): Int {

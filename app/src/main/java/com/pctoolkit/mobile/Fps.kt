@@ -215,10 +215,10 @@ object Fps {
     }
 
     // ---------------- por jogo ----------------
-    fun porJogo(con: Console) {
+    fun porJogo(con: Console, fixo: Jogo? = null) {
         val ctx = con.ctx
         con.titulo("Ajustes para um jogo")
-        val j = Jogos.escolher(con) ?: return
+        val j = fixo ?: Jogos.escolher(con) ?: return
         con.linha(j.nome, T.verde)
         Jogos.tamanho(ctx, j.pkg)?.let { con.info("Ocupa ${fmtTam(it.total)} (cache ${fmtTam(it.cache)})") }
         val op = con.varios("O que fazer?", listOf(

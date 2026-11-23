@@ -1,6 +1,5 @@
-- Teclado e controles refeito, bem mais fácil:
-- Toque em “+ Botão” e depois no lugar do jogo que ele deve apertar. Pronto!
-- Funciona em qualquer jogo, inclusive Free Fire, PUBG e COD
-- Linha mostrando qual ponto do jogo cada botão aperta
-- Ajustes rápidos ao tocar no botão: Turbo, Liga/desliga, tamanho e tecla do controle físico
-- Pergunta antes de sair sem salvar
+- Atualização automática: o app confere ao abrir e mostra um aviso fixo na tela inicial quando sai versão nova
+- Depois de atualizar, o app mostra o que mudou
+- Novo "Meus jogos" na tela inicial: toque no jogo e escolha Modo Jogo, botões, Tuner ou mira
+- Novo Teste da tela de toque: quantos dedos a tela aceita e a velocidade do toque (Hz)
+- Modo Jogo: lembrete opcional de pausa a cada 1 hora de jogo

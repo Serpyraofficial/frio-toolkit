@@ -211,6 +211,7 @@ class MainActivity : Activity() {
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         Atualizador.aoAbrir(this)
+        Atualizador.novidadesSeAtualizou(this)
         if (!GameService.rodando && Sessao.pendente() && Store.str("sessao_cfg").isNotEmpty()) {
             // o Android encerrou o Modo Jogo no meio da partida: retoma a sessao de onde parou
             try { startForegroundService(android.content.Intent(this, GameService::class.java)) } catch (e: Exception) { Sessao.restaurar(this) }
@@ -261,6 +262,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         Atualizador.tela = java.lang.ref.WeakReference(this)
+        if (Modo.definido()) Atualizador.aoAbrir(this)
         voltaLatch?.countDown()
         if (!naTarefa && pilha.isNotEmpty()) mostrar()
     }
@@ -271,6 +273,9 @@ class MainActivity : Activity() {
         val render: () -> Unit = pilha[pilha.size - 1]
         render()
     }
+
+    /** Redesenha a tela inicial se ela estiver aberta (ex.: chegou aviso de atualizacao). */
+    fun atualizarInicio() { if (!naTarefa && pilha.size == 1 && !isFinishing) mostrar() }
 
     fun abrirMenu(gerador: () -> Menu) { pilha.add { telaMenu(gerador()) }; mostrar() }
     fun abrirTela(render: () -> Unit) { pilha.add(render); mostrar() }
@@ -367,7 +372,7 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         val tcol = Ui.vertical(this)
         tcol.addView(Ui.titulo1(this, "SerpyraToolkit"))
-        tcol.addView(Ui.texto(this, "Versão 5.1  ·  desempenho, jogos e segurança", 13f, T.texto2))
+        tcol.addView(Ui.texto(this, "Versão ${BuildConfig.VERSION_NAME}  ·  desempenho, jogos e segurança", 13f, T.texto2))
         cab.addView(tcol, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
@@ -375,7 +380,22 @@ class MainActivity : Activity() {
         chip.setOnClickListener { abrirTela { telaPermissoes() } }
         cab.addView(chip)
         col.addView(cab)
-        col.addView(Ui.espaco(this, 1, 18))
+        col.addView(Ui.espaco(this, 1, 14))
+
+        // aviso fixo de atualizacao
+        Atualizador.pendente()?.let { up ->
+            val av = Ui.horizontal(this)
+            av.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 12), Ui.dp(this, 12))
+            av.background = Ui.clicavel(this, Ui.forma(this, Ui.alpha(T.azul, 0x26), 18, T.azul), 18)
+            val tx = Ui.vertical(this)
+            tx.addView(Ui.texto(this, "Atualização disponível: versão ${up.nome}", 14.5f, T.texto, Ui.negrito))
+            tx.addView(Ui.texto(this, up.notas.lines().firstOrNull { it.isNotBlank() }?.removePrefix("- ") ?: "Toque para ver as novidades", 12f, T.texto2))
+            av.addView(tx, Ui.peso())
+            av.addView(Ui.chip(this, "Atualizar", T.azul))
+            av.isClickable = true
+            av.setOnClickListener { Atualizador.oferecer(this, up) }
+            col.addView(av, Ui.linhaLp(this, 0, 14))
+        }
 
         // destaque: nota
         val nota = Store.int("nota_fps", -1)
@@ -419,6 +439,12 @@ class MainActivity : Activity() {
         stats.addView(cartaoStat("Memória", fmtTam(m.availMem), "livres de " + fmtTam(m.totalMem), usoRam, if (usoRam > 0.85f) T.amarelo else T.roxo) { executar("Liberar memória") { Fps.liberarRam(it) } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         col.addView(stats)
 
+        // meus jogos
+        CentralJogos.faixa(this)?.let { fx ->
+            col.addView(Ui.secao(this, "Meus jogos"))
+            col.addView(fx)
+        }
+
         // acoes rapidas
         col.addView(Ui.secao(this, "Ações rápidas"))
         val ac = Ui.horizontal(this)
@@ -429,7 +455,7 @@ class MainActivity : Activity() {
         col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
 
         // assinatura
-        if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "SerpyraToolkit Pro", "Teclado e controles, Tuner, Modo Frio e Turbo · ${Vendedor.PRECO_TXT}/mês", "Assinar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
+        if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "SerpyraToolkit Pro", "Botões no jogo, Tuner, mira e Modo Frio · teste grátis", "Testar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
         else if (Licenca.diasRestantes() <= 3) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Seu Pro vence em ${Licenca.diasRestantes()} dia(s)", "Renove para não perder as funções", "Renovar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
 
         // ferramentas

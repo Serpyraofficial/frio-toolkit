@@ -24,7 +24,7 @@ import java.security.MessageDigest
 object Atualizador {
     class Info(val codigo: Int, val nome: String, val notas: String, val sha256: String, val tamanho: Long)
 
-    private const val INTERVALO = 6 * 3_600_000L
+    private const val INTERVALO = 10 * 60_000L   // confere a cada abertura do app (no maximo 1x a cada 10 min)
     @Volatile var tela: WeakReference<Activity>? = null
 
     fun atual(): Int = BuildConfig.VERSION_CODE
@@ -39,18 +39,51 @@ object Atualizador {
             val o = org.json.JSONObject(c.inputStream.bufferedReader().readText()); c.disconnect()
             Store.putStr("upd_ultima", System.currentTimeMillis().toString())
             val i = Info(o.optInt("versionCode"), o.optString("versionName"), o.optString("notas"), o.optString("sha256"), o.optLong("tamanho"))
-            if (i.codigo > atual()) i else null
+            if (i.codigo == atual()) Store.putStr("upd_notas_atual", i.notas)
+            if (i.codigo > atual()) { guardar(i); i } else { Store.putStr("upd_codigo", ""); null }
         } catch (e: Exception) { null }
     }
 
-    /** Ao abrir o app: confere no maximo a cada 6 horas e oferece a atualizacao. */
+    private fun guardar(i: Info) {
+        Store.putStr("upd_codigo", i.codigo.toString()); Store.putStr("upd_nome", i.nome); Store.putStr("upd_notas", i.notas)
+        Store.putStr("upd_sha", i.sha256); Store.putStr("upd_tam", i.tamanho.toString())
+    }
+
+    /** Versao nova ja conhecida (para o aviso fixo na tela inicial), sem usar a internet. */
+    fun pendente(): Info? {
+        val c = Store.str("upd_codigo").toIntOrNull() ?: return null
+        if (c <= atual()) return null
+        return Info(c, Store.str("upd_nome"), Store.str("upd_notas"), Store.str("upd_sha"), Store.str("upd_tam").toLongOrNull() ?: 0L)
+    }
+
+    /** Ao abrir ou voltar para o app: confere (no maximo a cada 10 min). Mostra a janela uma vez por versao; o aviso fixo fica na tela inicial. */
     fun aoAbrir(act: MainActivity) {
         val ultima = Store.str("upd_ultima").toLongOrNull() ?: 0L
         if (System.currentTimeMillis() - ultima < INTERVALO) return
+        Store.putStr("upd_ultima", System.currentTimeMillis().toString())
         Thread {
             val i = verificar() ?: return@Thread
-            if (Store.str("upd_adiada") == i.codigo.toString() && System.currentTimeMillis() - (Store.str("upd_adiada_em").toLongOrNull() ?: 0L) < 86_400_000L) return@Thread
-            act.runOnUiThread { oferecer(act, i) }
+            act.runOnUiThread {
+                act.atualizarInicio()
+                if (Store.str("upd_avisada") != i.codigo.toString()) { Store.putStr("upd_avisada", i.codigo.toString()); oferecer(act, i) }
+            }
+        }.start()
+    }
+
+    /** Primeira abertura depois de atualizar: mostra o que mudou. */
+    fun novidadesSeAtualizou(act: MainActivity) {
+        val vista = Store.int("versao_vista", 0)
+        if (vista == atual()) return
+        Store.putInt("versao_vista", atual())
+        Thread {
+            var notas = Store.str("upd_notas").takeIf { Store.str("upd_codigo") == atual().toString() } ?: ""
+            if (notas.isBlank()) { verificar(); notas = Store.str("upd_notas_atual") }
+            act.runOnUiThread {
+                if (act.isFinishing) return@runOnUiThread
+                AlertDialog.Builder(act).setTitle("Atualizado para a versão ${BuildConfig.VERSION_NAME} ✓")
+                    .setMessage((if (notas.isNotBlank()) "O que tem de novo:\n\n" + notas.trim() + "\n\n" else "") + "Suas configurações e o Pro continuam valendo.")
+                    .setPositiveButton("Legal", null).show()
+            }
         }.start()
     }
 
@@ -61,7 +94,7 @@ object Atualizador {
             "\n\nSuas configurações e o Pro continuam valendo."
         AlertDialog.Builder(act).setTitle("Atualização disponível").setMessage(msg)
             .setPositiveButton("Atualizar") { _, _ -> act.executar("Atualizar o app") { atualizar(it, i) } }
-            .setNegativeButton("Depois") { _, _ -> Store.putStr("upd_adiada", i.codigo.toString()); Store.putStr("upd_adiada_em", System.currentTimeMillis().toString()) }
+            .setNegativeButton("Depois") { _, _ -> act.atualizarInicio() }
             .show()
     }
 
