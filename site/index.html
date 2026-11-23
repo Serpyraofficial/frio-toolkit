@@ -243,6 +243,14 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 .c-l{background:#FFEBDB;color:#D9701B}.c-c{background:#DAF5F8;color:#1596A6}.c-m{background:#FFF3C7;color:#A57A00}
 .dest{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
 @media(max-width:860px){.dest{grid-template-columns:1fr}}
+.novidades{padding:0 0 90px}
+.nov-caixa{background:#0E1726;color:#E8EEF5;border-radius:24px;padding:34px 36px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 40px;align-items:start}
+.nov-caixa h2{font-weight:600;font-size:30px;line-height:1.15;letter-spacing:-.02em;margin:0}
+.nov-caixa .quando{color:#9AA8BA;font-size:14.5px;margin-top:6px}
+.nov-caixa ul{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:9px;grid-column:1/-1}
+.nov-caixa li{display:flex;gap:10px;font-size:15.5px;color:#C9D2DE}
+.nov-caixa li:before{content:"";width:8px;height:8px;flex:none;margin-top:9px;border-radius:50%;background:#3DDC97}
+@media(max-width:700px){.nov-caixa{grid-template-columns:1fr;padding:26px 22px}.nov-caixa h2{font-size:25px}}
 .big{border-radius:24px;padding:36px;position:relative;overflow:hidden;color:#E8EEF5}
 .big.frio{background:linear-gradient(150deg,#0d2230,#0A0E14)}
 .big.tec{background:linear-gradient(150deg,#1c1530,#0A0E14)}
@@ -340,7 +348,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 
 <main id="topo">
 <div class="topo-escuro">
-<div class="aviso"><span class="av-l">Novo na 5.7: modelos prontos de botões, Modo campeonato e Pro vitalício. Teste grátis por 3 dias.</span><span class="av-c">Novo na 5.7 · Pro grátis por 3 dias.</span> <a href="#planos">Ver planos</a></div>
+<div class="aviso"><span class="av-l" id="avL">Teste o Pro grátis por 3 dias.</span><span class="av-c" id="avC">Pro grátis por 3 dias.</span> <a href="#planos">Ver planos</a></div>
 
 <header class="nav">
  <div class="nav-in">
@@ -572,10 +580,20 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
    <p>O app é instalado direto pelo arquivo, sem passar pela loja.</p>
   </div>
   <div class="inst-g">
-   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar grátis aqui no celular. O arquivo se chama SerpyraToolkit.apk.</p></div>
+   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar grátis aqui no celular. O arquivo se chama SerpyraToolkit, com o número da versão.</p></div>
    <div><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
    <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
    <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="novidades" id="novidades" hidden>
+ <div class="w">
+  <div class="nov-caixa">
+   <div><h2 id="novTit">Novidades</h2><div class="quando" id="novSub"></div></div>
+   <a class="b b-menta b-grande" href="/apk" id="novBaixar">Baixar a versão nova</a>
+   <ul id="novLista"></ul>
   </div>
  </div>
 </section>
@@ -629,6 +647,21 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     if(!v||!v.versionName) return;
     var mb=v.tamanho?' com '+(v.tamanho/1048576).toFixed(1).replace('.',',')+' MB':'';
     var e=document.getElementById("versao"); if(e) e.textContent='Versão '+v.versionName+mb+', para Android 8 ou mais novo';
+    var notas=String(v.notas||'').split('\n').map(function(l){return l.replace(/^[-•]\s*/,'').trim()}).filter(function(l){return l&&!/^Tudo d/i.test(l)});
+    var curta=function(l){return l.split(/[:(]/)[0].trim()};
+    var aL=document.getElementById('avL'), aC=document.getElementById('avC');
+    if(aL&&notas.length) aL.textContent='Novo na '+v.versionName+': '+notas.slice(0,3).map(curta).join(', ').replace(/^./,function(c){return c.toLowerCase()})+'. Teste grátis por 3 dias.';
+    if(aC) aC.textContent='Novo na '+v.versionName+' · Pro grátis por 3 dias.';
+    var sec=document.getElementById('novidades'), ul=document.getElementById('novLista');
+    if(sec&&ul&&notas.length){
+      ul.innerHTML='';
+      notas.forEach(function(l){var li=document.createElement('li');li.textContent=l;ul.appendChild(li)});
+      document.getElementById('novTit').textContent='Novidades da versão '+v.versionName;
+      document.getElementById('novSub').textContent='Quem já tem o app recebe sozinho: o app avisa e atualiza por cima, sem perder nada.';
+      document.getElementById('novBaixar').textContent='Baixar a versão '+v.versionName;
+      sec.hidden=false;
+    }
+    document.querySelectorAll('a[href="/apk"]').forEach(function(b){b.setAttribute('download','SerpyraToolkit-'+v.versionName+'.apk')});
   }).catch(function(){});
   var passos=document.querySelectorAll('.passo'), telas=document.querySelectorAll('.trilha .tela');
   passos.forEach(function(p){
