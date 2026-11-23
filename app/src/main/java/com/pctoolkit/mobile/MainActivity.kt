@@ -294,8 +294,20 @@ class MainActivity : Activity() {
         if (intent?.getStringExtra("acao") == "pro" && !naTarefa) abrirTela { telaPro() }
     }
 
+    override fun onPause() {
+        super.onPause()
+        Atualizador.visivel = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // saiu do app com versao nova esperando: atualiza sozinho daqui a pouco, sem atrapalhar
+        if (!isChangingConfigurations) Atualizador.agendarLogo(this)
+    }
+
     override fun onResume() {
         super.onResume()
+        Atualizador.visivel = true
         Atualizador.tela = java.lang.ref.WeakReference(this)
         if (Modo.definido()) Atualizador.aoAbrir(this)
         voltaLatch?.countDown()
@@ -438,9 +450,11 @@ class MainActivity : Activity() {
             av.background = Ui.clicavel(this, Ui.forma(this, Ui.alpha(T.azul, 0x26), 18, T.azul), 18)
             val tx = Ui.vertical(this)
             tx.addView(Ui.texto(this, "Atualização disponível: versão ${up.nome}", 14.5f, T.texto, Ui.negrito))
-            tx.addView(Ui.texto(this, up.notas.lines().firstOrNull { it.isNotBlank() }?.removePrefix("- ") ?: "Toque para ver as novidades", 12f, T.texto2))
+            val sozinho = Atualizador.automatica() && Store.bool("upd_sozinho_ok", false)
+            tx.addView(Ui.texto(this, if (sozinho) "Instala sozinha quando você sair do app, sem perder nada. Toque para atualizar agora."
+                else up.notas.lines().firstOrNull { it.isNotBlank() }?.removePrefix("- ") ?: "Toque para ver as novidades", 12f, T.texto2))
             av.addView(tx, Ui.peso())
-            av.addView(Ui.chip(this, "Atualizar", T.azul))
+            av.addView(Ui.chip(this, if (sozinho) "Agora" else "Atualizar", T.azul))
             av.isClickable = true
             av.setOnClickListener { Atualizador.oferecer(this, up) }
             col.addView(av, Ui.linhaLp(this, 0, 14))

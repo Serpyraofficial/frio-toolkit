@@ -1,5 +1,3 @@
-- Faixa de promoções no topo do app: toque para ir ao Pro com o cupom já colocado
-- Quando algo falha, o app avisa sozinho para a gente corrigir rápido
-- Lembrete quando o seu Pix expira sem pagar
-- Compartilhe seus botões com um amigo (e use os dele) por um código
-- Pagamento e cupom corrigidos
+- O app agora se atualiza sozinho quando você não está usando: ao abrir, já está na versão nova
+- Suas configurações, botões e Pro continuam iguais depois de atualizar
+- Dá para ligar ou desligar em Menu > Atualizar sozinho

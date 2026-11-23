@@ -53,6 +53,115 @@ object Atualizador {
         } catch (e: Exception) { }
     }
     @Volatile var tela: WeakReference<Activity>? = null
+    /** O app esta aberto na tela agora? (nao atualiza enquanto a pessoa usa) */
+    @Volatile var visivel = false
+    private const val JOB_LOGO = 4344
+
+    // ---------------- atualizacao sozinha (sem a pessoa instalar) ----------------
+
+    fun automatica(): Boolean = Store.bool("upd_auto", true)
+
+    /** Pede uma tentativa daqui a ~1 minuto (ex.: a pessoa acabou de sair do app e ha versao nova). */
+    fun agendarLogo(ctx: Context) {
+        if (!automatica() || pendente() == null) return
+        try {
+            val js = ctx.getSystemService(android.app.job.JobScheduler::class.java)
+            js.schedule(android.app.job.JobInfo.Builder(JOB_LOGO, android.content.ComponentName(ctx, AtualizacaoJob::class.java))
+                .setRequiredNetworkType(android.app.job.JobInfo.NETWORK_TYPE_ANY).setMinimumLatency(60_000L).setOverrideDeadline(15 * 60_000L).build())
+        } catch (e: Exception) { }
+    }
+
+    /** Algo do app esta rodando por cima de um jogo (botoes, mira, modo jogo)? Entao nao fecha o app agora. */
+    @Suppress("DEPRECATION")
+    fun emUso(ctx: Context): Boolean {
+        if (visivel) return true
+        return try {
+            val am = ctx.getSystemService(android.app.ActivityManager::class.java)
+            am.getRunningServices(60).any { it.service.packageName == ctx.packageName && it.foreground }
+        } catch (e: Exception) { false }
+    }
+
+    /** Pode instalar sem perguntar nada a pessoa? */
+    fun podeSilencioso(ctx: Context): Boolean =
+        Sh.rootConhecido() || esperarShizuku() || (Build.VERSION.SDK_INT >= 31 && ctx.packageManager.canRequestPackageInstalls())
+
+    private fun esperarShizuku(): Boolean {
+        for (i in 0 until 15) { if (Priv.pronto()) return true; if (!Priv.rodando() && i > 4) return false; Thread.sleep(200) }
+        return Priv.pronto()
+    }
+
+    /** Baixa (se ainda nao baixou) e confere o APK. Devolve o arquivo pronto ou null. */
+    fun baixarSilencioso(ctx: Context, i: Info): File? {
+        val arq = File(ctx.filesDir, "atualizacao-${i.codigo}.apk")
+        if (arq.exists() && (i.sha256.isBlank() || sha256(arq).equals(i.sha256, true))) return arq
+        ctx.filesDir.listFiles()?.filter { it.name.startsWith("atualizacao-") }?.forEach { it.delete() }
+        return try {
+            val c = URL(Vendedor.SERVIDOR.trimEnd('/') + "/apk").openConnection() as HttpURLConnection
+            c.connectTimeout = 15000; c.readTimeout = 30000
+            if (c.responseCode != 200) { c.disconnect(); return null }
+            val tmp = File(ctx.filesDir, "atualizacao-${i.codigo}.parte")
+            c.inputStream.use { inp -> tmp.outputStream().use { inp.copyTo(it, 64 * 1024) } }
+            c.disconnect()
+            if (i.sha256.isNotBlank() && !sha256(tmp).equals(i.sha256, true)) { tmp.delete(); return null }
+            val pkg = ctx.packageManager.getPackageArchiveInfo(tmp.path, 0)
+            if (pkg == null || pkg.packageName != ctx.packageName) { tmp.delete(); return null }
+            if (!tmp.renameTo(arq)) { tmp.delete(); return null }
+            arq
+        } catch (e: Exception) { null }
+    }
+
+    /**
+     * Instala por cima sem pedir confirmacao. Configuracoes, botoes e Pro continuam (mesma assinatura).
+     * reabrir = abre o app de novo no fim (quando a pessoa pediu a atualizacao com o app aberto).
+     * Devolve true se a instalacao foi feita (ou entregue ao Android para fazer sozinho).
+     */
+    fun instalarSilencioso(ctx: Context, arq: File, reabrir: Boolean = false): Boolean {
+        val pkg = ctx.packageName
+        val depois = if (reabrir) " && am start -n $pkg/${MainActivity::class.java.name} >/dev/null 2>&1" else ""
+        if (Sh.rootConhecido() || esperarShizuku()) {
+            Store.putBool("upd_silenciosa", true)
+            val tam = arq.length()
+            // o APK vai pela entrada do comando: o shell do Shizuku/root nao enxerga a pasta privada do app
+            for (cmd in listOf("pm install -r -i $pkg -S $tam$depois", "pm install -r -S $tam$depois")) {
+                val r = comEntrada(cmd, arq)
+                if (r.ok && r.out.contains("Success")) return true
+                Log2.registrar("pm install: ${r.code} ${r.out.take(120)} ${r.err.take(120)}")
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 31 && ctx.packageManager.canRequestPackageInstalls()) {
+            // por aqui o Android nao reabre o app: se a pessoa pediu com o app aberto, avisa com notificacao no fim
+            Store.putBool("upd_silenciosa", !reabrir)
+            return try { sessao(ctx, arq, silencioso = true); true } catch (e: Exception) { Log2.registrar("sessao silenciosa: $e"); false }
+        }
+        Store.putBool("upd_silenciosa", false)
+        return false
+    }
+
+    /** Roda um comando privilegiado (Shizuku ou root) mandando o arquivo pela entrada padrao. */
+    private fun comEntrada(cmd: String, arq: File): Sh.R {
+        return try {
+            val p: Process = if (!Sh.rootConhecido()) Priv.processoComEntrada(cmd) ?: return Sh.R(-1, "", "sem Shizuku")
+                else ProcessBuilder("su", "-c", cmd).start()
+            val o = StringBuilder(); val e = StringBuilder()
+            val to = Thread { try { p.inputStream.bufferedReader().forEachLine { synchronized(o) { o.append(it).append('\n') } } } catch (x: Exception) { } }
+            val te = Thread { try { p.errorStream.bufferedReader().forEachLine { synchronized(e) { e.append(it).append('\n') } } } catch (x: Exception) { } }
+            to.start(); te.start()
+            try { p.outputStream.use { out -> arq.inputStream().use { it.copyTo(out, 64 * 1024) } } } catch (x: Exception) { }
+            val fim = p.waitFor(120, java.util.concurrent.TimeUnit.SECONDS)
+            if (!fim) p.destroy()
+            to.join(2000); te.join(2000)
+            Sh.R(if (fim) p.exitValue() else -2, synchronized(o) { o.toString().trim() }, synchronized(e) { e.toString().trim() })
+        } catch (x: Throwable) { Sh.R(-1, "", x.message ?: "erro") }
+    }
+
+    /** Tentativa em segundo plano: chamada pelo job. So instala se a pessoa nao estiver usando o app. */
+    fun tentarSozinho(ctx: Context) {
+        val i = verificar() ?: pendente() ?: return
+        if (!automatica() || !podeSilencioso(ctx)) { notificar(ctx, i); return }
+        val arq = baixarSilencioso(ctx, i) ?: return
+        if (emUso(ctx)) return   // usando agora (botoes no jogo ou app aberto): tenta quando sair / na proxima conferencia
+        if (!instalarSilencioso(ctx, arq)) notificar(ctx, i)
+    }
 
     fun atual(): Int = BuildConfig.VERSION_CODE
 
@@ -90,6 +199,14 @@ object Atualizador {
         Store.putStr("upd_ultima", System.currentTimeMillis().toString())
         Thread {
             val i = verificar() ?: return@Thread
+            val sozinho = automatica() && podeSilencioso(act)
+            Store.putBool("upd_sozinho_ok", sozinho)
+            if (sozinho) {
+                // baixa agora em silencio; instala quando a pessoa sair do app (onStop agenda)
+                baixarSilencioso(act.applicationContext, i)
+                act.runOnUiThread { act.atualizarInicio() }
+                return@Thread
+            }
             act.runOnUiThread {
                 act.atualizarInicio()
                 if (Store.str("upd_avisada") != i.codigo.toString()) { Store.putStr("upd_avisada", i.codigo.toString()); oferecer(act, i) }
@@ -130,6 +247,32 @@ object Atualizador {
             .show()
     }
 
+    /** Liga/desliga a atualizacao sozinha e explica como esta neste celular. */
+    fun configurar(con: Console) {
+        con.titulo("Atualizar sozinho")
+        val ctx = con.ctx
+        con.info("Ligado, o app baixa as versões novas e instala sozinho quando você não está usando. Ao abrir, já está atualizado. Configurações, botões e Pro continuam iguais.")
+        con.linha("")
+        val pode = podeSilencioso(ctx)
+        when {
+            Sh.rootConhecido() || Priv.pronto() -> con.ok("Este celular atualiza sozinho (pelo modo automático).")
+            pode -> con.ok("Este celular atualiza sozinho (Android ${Build.VERSION.RELEASE}).")
+            Build.VERSION.SDK_INT >= 31 -> {
+                con.aviso("Falta uma autorização do Android para o app se atualizar.")
+                if (con.ask("Abrir a tela para permitir agora?", "Permitir", "Depois")) {
+                    con.abrirEEsperar(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.packageName)))
+                    if (ctx.packageManager.canRequestPackageInstalls()) con.ok("Pronto. Agora atualiza sozinho.") else con.aviso("Ainda sem a autorização. Você recebe um aviso quando sair versão nova.")
+                }
+            }
+            else -> con.aviso("No Android ${Build.VERSION.RELEASE}, atualizar sozinho precisa do modo automático (Shizuku) ligado. Sem ele, você recebe um aviso quando sair versão nova.")
+        }
+        con.linha("")
+        val ligado = automatica()
+        val novo = con.ask("Atualização automática está ${if (ligado) "LIGADA" else "DESLIGADA"}. O que prefere?", "Ligada", "Desligada")
+        Store.putBool("upd_auto", novo)
+        con.ok(if (novo) "Atualização automática ligada." else "Atualização automática desligada. Você será avisado das versões novas.")
+    }
+
     /** Tela "Procurar atualização" (menu Sobre). */
     fun procurar(con: Console) {
         con.titulo("Atualização do app")
@@ -159,6 +302,15 @@ object Atualizador {
         val pkg = ctx.packageManager.getPackageArchiveInfo(arq.path, 0)
         if (pkg == null || pkg.packageName != ctx.packageName) { con.erro("O arquivo baixado não é o SerpyraToolkit."); arq.delete(); return }
         con.ok("Download concluído")
+        if (podeSilencioso(ctx)) {
+            con.linha("")
+            con.ok("Instalando sozinho. O app fecha e abre de novo já na versão ${i.nome}. Suas configurações e o Pro continuam.")
+            con.sleep(1500)
+            val fixo = File(ctx.filesDir, "atualizacao-${i.codigo}.apk"); arq.copyTo(fixo, true); arq.delete()
+            if (instalarSilencioso(ctx, fixo, reabrir = true)) return
+            con.aviso("Não deu para instalar sozinho desta vez. Vamos pelo instalador do Android.")
+            fixo.copyTo(arq, true)
+        }
         con.linha("")
         con.linha("Agora o Android vai pedir para você confirmar. Toque em Atualizar/Instalar.", T.amarelo)
         con.info("O app fecha sozinho para instalar. Depois aparece a notificação \"Atualizado\": toque nela (ou abra o app) para ver as novidades. Seu Pro continua ativo.")
@@ -184,21 +336,24 @@ object Atualizador {
         if (total > 0 && lido < total && !con.cancelado) throw IllegalStateException("download incompleto")
     }
 
-    private fun sha256(f: File): String {
+    fun sha256(f: File): String {
         val md = MessageDigest.getInstance("SHA-256")
         f.inputStream().use { val b = ByteArray(64 * 1024); while (true) { val n = it.read(b); if (n < 0) break; md.update(b, 0, n) } }
         return md.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun instalar(ctx: Context, arq: File) {
+    private fun instalar(ctx: Context, arq: File) { Store.putBool("upd_silenciosa", false); sessao(ctx, arq, silencioso = false) }
+
+    private fun sessao(ctx: Context, arq: File, silencioso: Boolean) {
         val pi = ctx.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(ctx.packageName)
+        if (silencioso && Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         val id = pi.createSession(params)
         pi.openSession(id).use { s ->
             s.openWrite("SerpyraToolkit.apk", 0, arq.length()).use { out -> arq.inputStream().use { it.copyTo(out) }; s.fsync(out) }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
-            val pend = PendingIntent.getBroadcast(ctx, id, Intent(ctx, AtualizacaoReceiver::class.java).setPackage(ctx.packageName), flags)
+            val pend = PendingIntent.getBroadcast(ctx, id, Intent(ctx, AtualizacaoReceiver::class.java).setPackage(ctx.packageName).putExtra("silencioso", silencioso), flags)
             s.commit(pend.intentSender)
         }
     }
@@ -209,6 +364,12 @@ class AtualizacaoReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         when (i.getIntExtra(PackageInstaller.EXTRA_STATUS, -999)) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                if (i.getBooleanExtra("silencioso", false)) {
+                    // o Android quis confirmacao: nao abre nada por cima do que a pessoa esta fazendo; avisa
+                    Store.putBool("upd_silenciosa", false)
+                    Atualizador.pendente()?.let { Store.putStr("upd_notificada", ""); Atualizador.notificar(c, it) }
+                    return
+                }
                 @Suppress("DEPRECATION")
                 val conf = (if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java) else i.getParcelableExtra(Intent.EXTRA_INTENT)) ?: return
                 val act = Atualizador.tela?.get()
@@ -218,7 +379,7 @@ class AtualizacaoReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> { }
             PackageInstaller.STATUS_FAILURE_ABORTED -> Toast.makeText(c, "Atualização cancelada.", Toast.LENGTH_SHORT).show()
-            else -> Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
+            else -> if (!i.getBooleanExtra("silencioso", false)) Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
         }
     }
 }
@@ -227,7 +388,7 @@ class AtualizacaoReceiver : BroadcastReceiver() {
 class AtualizacaoJob : android.app.job.JobService() {
     override fun onStartJob(p: android.app.job.JobParameters?): Boolean {
         Thread {
-            try { Atualizador.verificar()?.let { Atualizador.notificar(applicationContext, it) } } catch (e: Throwable) { }
+            try { Atualizador.tentarSozinho(applicationContext) } catch (e: Throwable) { }
             try { PixAbandonado.conferir(applicationContext) } catch (e: Throwable) { }
             try { Relatorio.enviar() } catch (e: Throwable) { }
             jobFinished(p, false)
@@ -241,6 +402,10 @@ class AtualizacaoJob : android.app.job.JobService() {
 class AtualizadoReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         if (i.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        c.filesDir.listFiles()?.filter { it.name.startsWith("atualizacao-") }?.forEach { it.delete() }
+        Atualizador.agendar(c)
+        // atualizou sozinho: sem notificacao; as novidades aparecem quando a pessoa abrir o app
+        if (Store.bool("upd_silenciosa", false)) { Store.putBool("upd_silenciosa", false); return }
         try {
             val nm = c.getSystemService(android.app.NotificationManager::class.java)
             nm.createNotificationChannel(android.app.NotificationChannel("atualizacao", "Atualizações do app", android.app.NotificationManager.IMPORTANCE_DEFAULT))

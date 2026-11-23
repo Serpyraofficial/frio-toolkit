@@ -71,6 +71,13 @@ object Priv {
         return try { val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process; p.outputStream.close(); p } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
     }
 
+    /** Processo com o poder do ADB cuja entrada fica aberta (para mandar um arquivo, ex.: pm install -S). */
+    fun processoComEntrada(cmd: String): Process? {
+        if (!pronto()) return null
+        val m = metodo ?: return null
+        return try { m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
+    }
+
     fun exec(cmd: String, timeoutS: Long = 60): Sh.R {
         if (!pronto()) return Sh.R(-1, "", "Shizuku indisponível")
         val m = metodo ?: return Sh.R(-1, "", "Shizuku sem newProcess")
