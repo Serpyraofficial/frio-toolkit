@@ -1,8 +1,8 @@
 {
- "versionCode": 53,
- "versionName": "5.3",
- "notas": "- Teste o Pro grátis por 3 dias\n- Planos de 1, 3 e 6 meses, com desconto nos maiores\n- Cupons de desconto na hora de assinar\n- Trocou de celular? Passe o Pro pelo e-mail da compra\n- Mira na tela para jogos de tiro (Pro)\n- Ping no painel do Modo Jogo\n- O Modo Jogo pode abrir os seus botões do teclado junto com o jogo (Pro)\n- Atalhos: segure o ícone do app para abrir Modo Jogo, Botões, Mira ou Raio-X\n- Aviso 2 dias antes do Pro vencer",
- "sha256": "dc758cc2c75cf9245febda3efb910e1d920dfcfd22e7fdc7e0dc99c097ea20bf",
- "tamanho": 1135953,
- "arquivo": "SerpyraToolkit-5.3-dc758cc2c7.apk"
+ "versionCode": 54,
+ "versionName": "5.4",
+ "notas": "- Novos preços do Pro: R$ 15 por mês, R$ 39 por 3 meses e R$ 69 por 6 meses\n- Continua: teste grátis de 3 dias, cupons de desconto e troca de celular pelo e-mail",
+ "sha256": "9379ec4e05bf8c15959e345f1c33d55523f8dbc76baafd69fdd095e63f090a89",
+ "tamanho": 1135957,
+ "arquivo": "SerpyraToolkit-5.4-9379ec4e05.apk"
 }
