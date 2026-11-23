@@ -643,7 +643,7 @@ async function admin(req, url, env) {
     const nDias = (x, ds) => ds.reduce((t, d) => t + ((x.dias || {})[d] || 0), 0);
     const todos = Object.entries(m).map(([sig, x]) => ({ sig, ...x }));
     const abertos = todos.filter(x => !x.resolvido);
-    const l = todos.sort((a, b) => (!!a.resolvido - !!b.resolvido) || b.celulares.length - a.celulares.length || b.n - a.n);
+    const l = todos.sort((a, b) => ((a.resolvido ? 1 : 0) - (b.resolvido ? 1 : 0)) || b.celulares.length - a.celulares.length || b.n - a.n);
     const meses = (await listar(env, "erros:", 50)).map(n => n.slice(6)).sort().reverse();
     return json({ mes, meses: meses.length ? meses : [mes], total: l.reduce((t, x) => t + x.n, 0), celulares: new Set(l.flatMap(x => x.celulares)).size, crashes: l.filter(x => x.tipo === "crash").reduce((t, x) => t + x.n, 0),
       hoje: abertos.reduce((t, x) => t + nDias(x, [hojeD]), 0), semana: abertos.reduce((t, x) => t + nDias(x, semana), 0), abertos: abertos.length, novosHoje: abertos.filter(x => x.primeiro > Date.now() - DIA).length,
