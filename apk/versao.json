@@ -1,8 +1,8 @@
 {
- "versionCode": 75,
- "versionName": "5.15",
- "notas": "- Teste grátis do Pro agora é de 1 hora (uma vez por celular e por internet)\n- Comandos pelo Shizuku que demoravam não falham mais",
- "sha256": "6bf8da06a0bbd5f6223767952fec9d5502da0b16378ec006be3c74ebfd025b23",
- "tamanho": 1331005,
- "arquivo": "SerpyraToolkit-5.15-6bf8da06a0.apk"
+ "versionCode": 76,
+ "versionName": "5.15.1",
+ "notas": "- Chave do Pro colada do e-mail agora sempre funciona, mesmo com espaços invisíveis ou texto copiado junto",
+ "sha256": "1c816bb5f562dc8e2e23be24dcf76c1bfbd45efa88ae74452436399e4a9d15e8",
+ "tamanho": 1331505,
+ "arquivo": "SerpyraToolkit-5.15.1-1c816bb5f5.apk"
 }
