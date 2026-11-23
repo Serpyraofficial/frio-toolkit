@@ -1,8 +1,8 @@
 {
- "versionCode": 71,
- "versionName": "5.14.2",
- "notas": "- Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou\n- Faixa de promoção mostra a frase inteira, mesmo quando é maior que a tela\n- Botões de um amigo: se o celular não deixar colar sozinho, aparece um campo para colar o código",
- "sha256": "26d46e0d7e72a8975427e068d191c932ee168e518417c57bb71a28a4dda51ea9",
- "tamanho": 1330757,
- "arquivo": "SerpyraToolkit-5.14.2-26d46e0d7e.apk"
+ "versionCode": 72,
+ "versionName": "5.14.3",
+ "notas": "- Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou\n- Código copiado (chave ou presente): ao tocar em Usar, a tela do Pro agora atualiza e mostra o resultado\n- Faixa de promoção mostra a frase inteira; botões de um amigo podem ser colados à mão",
+ "sha256": "50351b13e5ad0ae22a23cf6fc7c2c9e58e9566aa94a1184217a9d0d07f95a32b",
+ "tamanho": 1330945,
+ "arquivo": "SerpyraToolkit-5.14.3-50351b13e5.apk"
 }
