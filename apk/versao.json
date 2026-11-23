@@ -1,8 +1,8 @@
 {
- "versionCode": 77,
- "versionName": "5.15.2",
- "notas": "- Indique e ganhe: seu amigo ganha 10% de desconto e você ganha de 5 a 30 dias por compra dele (até 15 dias por mês)\n- Chave do Pro colada do e-mail sempre funciona, mesmo com espaços invisíveis",
- "sha256": "8a7cfdf515100a4e86048e0faef20cb98f71bbd9f93abcd717ea1e76a7cee057",
- "tamanho": 1331597,
- "arquivo": "SerpyraToolkit-5.15.2-8a7cfdf515.apk"
+ "versionCode": 78,
+ "versionName": "5.16",
+ "notas": "- Pro agora inclui Modo Jogo ilimitado, Modo campeonato, Medidor de FPS, monitor de temperatura e gravação de tela\n- Pro inclui também Internet para jogos, DNS mais rápido, limpeza avançada e Blindagem\n- Versão grátis: Raio-X, Modo Jogo 2 vezes por dia, limpeza rápida e verificação de segurança",
+ "sha256": "39ea85ffafc8302cbd52b3e2405db73b064400b5eb67d50a6810ccea4f0ac6ad",
+ "tamanho": 1332485,
+ "arquivo": "SerpyraToolkit-5.16-39ea85ffaf.apk"
 }
