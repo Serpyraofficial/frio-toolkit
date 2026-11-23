@@ -143,6 +143,7 @@ object Priv {
                 con.item("3. Volte ao Shizuku e toque em “Iniciar”")
                 con.info("Precisa estar conectado a um Wi-Fi (não precisa de internet). Se não tiver Opções do desenvolvedor: Sobre o telefone > toque 7 vezes em “Número da versão”.")
             } else con.item("Android 10 ou anterior: o Shizuku precisa ser iniciado uma vez pelo PC (o próprio app mostra o comando).")
+            con.info("Vídeo, foto do que ativar e passo a passo: na tela inicial, toque em SHIZUKU.")
             con.abrirEEsperar(ctx.packageManager.getLaunchIntentForPackage(PKG) ?: Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
             var t = 0
             while (!rodando() && t < 10) { con.sleep(500); t++ }

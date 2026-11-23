@@ -476,6 +476,9 @@ class MainActivity : Activity() {
             col.addView(av, Ui.linhaLp(this, 0, 14))
         }
 
+        // aba SHIZUKU (sempre visivel)
+        col.addView(TutorialShizuku.cartao(this), Ui.linhaLp(this, 0, 14))
+
         // destaque: nota
         val nota = Store.int("nota_fps", -1)
         val hero = Ui.horizontal(this)
@@ -601,6 +604,8 @@ class MainActivity : Activity() {
         szD.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12))
         sz.addView(szD)
         sz.addView(Ui.botao(this, if (est == "Ativo") "Liberar tudo de novo" else "Ativar modo automático", T.verde, true) { executar("Modo automático") { Priv.ativar(it) } })
+        sz.addView(Ui.espaco(this, 1, 8))
+        sz.addView(Ui.botao(this, "Vídeo e passo a passo do Shizuku", T.azul, false) { abrirTela { TutorialShizuku.tela(this) } })
         col.addView(sz, Ui.linhaLp(this, 0, 6))
 
         col.addView(Ui.secao(this, "Preferências"))

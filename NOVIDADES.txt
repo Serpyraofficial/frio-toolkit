@@ -1,3 +1,3 @@
-- O app agora se atualiza sozinho quando você não está usando: ao abrir, já está na versão nova
-- Suas configurações, botões e Pro continuam iguais depois de atualizar
-- Dá para ligar ou desligar em Menu > Atualizar sozinho
+- Nova aba SHIZUKU na tela inicial: vídeo tutorial, foto do que ativar e passo a passo
+- Atalhos para abrir as Opções do desenvolvedor e o Shizuku direto
+- Esta versão também testa a atualização sozinha
