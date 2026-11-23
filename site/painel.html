@@ -381,6 +381,8 @@ tr:last-child td{border-bottom:0}
    <label style="flex:2 1 200px">Buscar<input id="erBusca" placeholder="Tela, mensagem ou modelo de celular"></label>
   </div>
   <label class="chk"><input type="checkbox" id="erResolv"> Mostrar também os que já marquei como resolvidos</label>
+  <div class="acao-l"><button class="b prin" id="btRelErros">Relatório geral</button></div>
+  <div class="msg" id="msgRelErros"></div>
   <div class="er-nums" id="erNums"></div>
   <div id="erLista"><div class="vazio">Carregando…</div></div>
  </div>
@@ -528,6 +530,7 @@ tr:last-child td{border-bottom:0}
       if(q&&(e.onde+' '+e.msg+' '+Object.keys(e.modelos).join(' ')).toLowerCase().indexOf(q)<0) return false;
       return contaPer(e,per)>0||e.resolvido;
     });
+    ER.lista=l; ER.per=per; ER.ver=ver; ER.q=q;
     var ab=l.filter(function(e){return !e.resolvido});
     $('erNums').innerHTML='<div><b>'+ab.reduce(function(t,e){return t+contaPer(e,per)},0)+'</b>ocorrências</div><div><b>'+ab.length+'</b>tipos de erro abertos</div><div><b>'+ab.filter(function(e){return e.tipo==='crash'}).length+'</b>travamentos</div><div><b>'+ER.celulares+'</b>celulares no mês</div>';
     var d14=diasAtras(14).reverse();
@@ -565,6 +568,39 @@ tr:last-child td{border-bottom:0}
   ['erPer','erVer','erResolv'].forEach(function(i){$(i).onchange=desenharErros});
   $('erBusca').oninput=desenharErros;
   $('btVerErros').onclick=function(){irAba('erros')};
+  function relatorioGeral(){
+    var l=ER.lista||[], per={hoje:'hoje','7':'últimos 7 dias',mes:'mês inteiro'}[ER.per]||'mês inteiro';
+    var ab=l.filter(function(e){return !e.resolvido});
+    var linhas=['RELATÓRIO DE ERROS · SerpyraToolkit','Mês: '+ER.mes.slice(5,7)+'/'+ER.mes.slice(0,4)+' · Período: '+per+(ER.ver?' · Versão: '+ER.ver:'')+(ER.q?' · Busca: '+ER.q:''),
+      'Gerado em: '+new Date().toLocaleString('pt-BR'),'',
+      'RESUMO','- Tipos de erro: '+l.length+' ('+ab.length+' abertos, '+(l.length-ab.length)+' resolvidos)',
+      '- Ocorrências no período: '+ab.reduce(function(t,e){return t+contaPer(e,ER.per)},0),
+      '- Travamentos (o app fechou): '+ab.filter(function(e){return e.tipo==='crash'}).length+' tipo(s)',
+      '- Celulares afetados no mês: '+ER.celulares,''];
+    l.forEach(function(e,i){
+      var st=e.resolvido?'RESOLVIDO':(e.reaberto?'VOLTOU':(e.primeiro>Date.now()-86400000?'NOVO':'ABERTO'));
+      linhas.push('────────────────────────────────');
+      linhas.push('#'+(i+1)+' · '+(e.tipo==='crash'?'TRAVOU O APP':'FALHA')+' · '+st);
+      linhas.push('Onde: '+e.onde);
+      linhas.push('Mensagem: '+(e.msg||'(sem mensagem)'));
+      linhas.push('Vezes: '+contaPer(e,ER.per)+' no período ('+e.n+' no mês) · Celulares: '+e.celulares);
+      linhas.push('Versões do app: '+Object.keys(e.versoes).sort().reverse().map(function(v){return v+' ('+e.versoes[v]+'x)'}).join(', '));
+      var an=Object.keys(e.androids||{}); if(an.length) linhas.push('Android (SDK): '+an.sort().reverse().map(function(v){return v+' ('+e.androids[v]+'x)'}).join(', '));
+      linhas.push('Celulares: '+Object.keys(e.modelos).sort(function(a,b){return e.modelos[b]-e.modelos[a]}).map(function(m){return m+' ('+e.modelos[m]+'x)'}).join(', '));
+      linhas.push('Primeira vez: '+dataHora(e.primeiro)+' · Última vez: '+dataHora(e.ultimo));
+      if(e.pilha) linhas.push('Detalhes técnicos:\n'+e.pilha);
+    });
+    if(!l.length) linhas.push('Nenhum erro com esses filtros. 🎉');
+    return linhas.join('\n');
+  }
+  $('btRelErros').onclick=function(){
+    if(!ER){msg($('msgRelErros'),'Espere carregar os erros.','erro');return}
+    var t=relatorioGeral(), b=this, n=(ER.lista||[]).length;
+    var ok=function(){b.textContent='Copiado ✓';msg($('msgRelErros'),n+' erro(s) copiados. É só colar onde quiser.','ok');setTimeout(function(){b.textContent='Relatório geral'},2500)};
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok).catch(function(){copiarAntigo(t)?ok():msg($('msgRelErros'),'Não deu para copiar. Tente de novo.','erro')});
+    else copiarAntigo(t)?ok():msg($('msgRelErros'),'Não deu para copiar. Tente de novo.','erro');
+  };
+  function copiarAntigo(t){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();var r=false;try{r=document.execCommand('copy')}catch(x){}a.remove();return r}
   $('erMes').onchange=function(){erros(this.value)};
   function previa(){var t=$('prTxt').value.trim()||'Sua promoção aparece assim, correndo na tela',c=$('prCupom').value.trim().toUpperCase();$('prPreviaTxt').textContent='🔥  '+t+(c?'  ·  cupom '+c:'');var cores={verde:['#E3F8EE','#9ADDBE'],amarelo:['#FFF3D1','#F2D27A'],vermelho:['#FDE7E8','#F3A9AC'],azul:['#E8ECFF','#AEBBFF']}[$('prCor').value];$('prPrevia').style.background=cores[0];$('prPrevia').style.borderColor=cores[1]}
   ['prTxt','prCupom','prCor'].forEach(function(i){$(i).addEventListener('input',previa);$(i).addEventListener('change',previa)});
