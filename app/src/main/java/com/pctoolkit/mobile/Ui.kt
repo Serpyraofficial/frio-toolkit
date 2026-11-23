@@ -53,7 +53,7 @@ object Ui {
     fun texto(ctx: Context, t: String, tamSp: Float, cor: Int = T.texto, tf: Typeface = normal): TextView {
         val v = TextView(ctx)
         v.text = t
-        v.textSize = tamSp
+        v.textSize = tamSp * Letra.escala
         v.setTextColor(cor)
         v.typeface = tf
         v.includeFontPadding = true

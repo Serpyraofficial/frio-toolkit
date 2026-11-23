@@ -19,7 +19,7 @@ import android.view.WindowManager
 
 /** Mira na tela: desenhada por cima do jogo, sem tocar em nada (os toques passam direto para o jogo). */
 object MiraTela {
-    val ESTILOS = listOf("cruz" to "Cruz", "ponto" to "Ponto", "cruzponto" to "Cruz com ponto", "circulo" to "Círculo com ponto", "t" to "T (sem a parte de cima)", "x" to "X")
+    val ESTILOS = listOf("cruz" to "Cruz", "ponto" to "Ponto", "cruzponto" to "Cruz com ponto", "circulo" to "Círculo com ponto", "t" to "T (sem a parte de cima)", "x" to "X", "imagem" to "Imagem sua (da galeria)")
     val CORES = listOf(0xFF3DDC97.toInt() to "Verde", 0xFFFF3B4E.toInt() to "Vermelho", 0xFF38D6E8.toInt() to "Ciano", 0xFFF5E642.toInt() to "Amarelo", 0xFFFFFFFF.toInt() to "Branco", 0xFFFF4FD8.toInt() to "Rosa")
     val TAMANHOS = listOf(14 to "Pequena", 22 to "Média", 32 to "Grande")
 
@@ -52,7 +52,20 @@ object MiraTela {
     }
 
     private fun configurar(con: Console) {
-        val e = con.escolher("Estilo da mira", ESTILOS.map { it.second }); if (e >= 0) Store.putStr("mira_estilo", ESTILOS[e].first)
+        val e = con.escolher("Estilo da mira", ESTILOS.map { it.second })
+        if (e >= 0 && ESTILOS[e].first == "imagem") {
+            con.info("Escolha uma imagem de mira, de preferência PNG com fundo transparente.")
+            val uri = con.escolherArquivo()
+            val bmp = try { uri?.let { u -> con.ctx.contentResolver.openInputStream(u)?.use { android.graphics.BitmapFactory.decodeStream(it) } } } catch (ex: Exception) { null }
+            if (bmp == null) { con.erro("Não consegui abrir essa imagem. Mantive a mira anterior."); return }
+            val lado = 256
+            val esc = android.graphics.Bitmap.createScaledBitmap(bmp, lado, (lado * bmp.height / bmp.width.coerceAtLeast(1)).coerceIn(16, 512), true)
+            java.io.File(con.ctx.filesDir, "mira.png").outputStream().use { esc.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            Store.putStr("mira_estilo", "imagem")
+            val t = con.escolher("Tamanho", TAMANHOS.map { it.second }); if (t >= 0) Store.putInt("mira_tam", TAMANHOS[t].first)
+            return
+        }
+        if (e >= 0) Store.putStr("mira_estilo", ESTILOS[e].first)
         val c = con.escolher("Cor", CORES.map { it.second }); if (c >= 0) Store.putInt("mira_cor", CORES[c].first)
         val t = con.escolher("Tamanho", TAMANHOS.map { it.second }); if (t >= 0) Store.putInt("mira_tam", TAMANHOS[t].first)
     }
@@ -115,9 +128,21 @@ class MiraService : Service() {
         private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND }
         private val sombra = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND; color = 0x99000000.toInt() }
 
+        private var img: android.graphics.Bitmap? = null
+        private var imgEm = 0L
+
         override fun onDraw(c: Canvas) {
             val cx = width / 2f + MiraTela.dx() * dens
             val cy = height / 2f + MiraTela.dy() * dens
+            if (MiraTela.estilo() == "imagem") {
+                val f = java.io.File(context.filesDir, "mira.png")
+                if (img == null || f.lastModified() != imgEm) { img = try { android.graphics.BitmapFactory.decodeFile(f.path) } catch (e: Exception) { null }; imgEm = f.lastModified() }
+                val b = img ?: return
+                val meio = MiraTela.tamanho() * dens * 1.5f
+                val alt = meio * b.height / b.width.coerceAtLeast(1)
+                c.drawBitmap(b, null, android.graphics.RectF(cx - meio, cy - alt, cx + meio, cy + alt), null)
+                return
+            }
             val r = MiraTela.tamanho() * dens / 2f
             val gap = r * 0.35f
             val esp = (1.6f + MiraTela.tamanho() / 14f) * dens

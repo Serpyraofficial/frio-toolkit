@@ -44,6 +44,11 @@ object Menus {
         Item("Ajustes para um jogo", "Bateria sem restrição e gráficos ideais", J, T.azul, acao = { Fps.porJogo(it) }),
         Item("Liberar memória", "Encerra apps em segundo plano", F, T.roxo, acao = { Fps.liberarRam(it) }),
         Item("Apps em segundo plano", "Quem inicia sozinho e gasta recursos", F, T.roxo, acao = { Fps.segundoPlano(it) }),
+        Item("Modo campeonato", "Tudo no máximo para uma partida importante", J, T.amarelo, "Novo", T.amarelo, acao = { ModoJogo.executar(it, null, true) }),
+        Item("Internet para jogos", "Ping, oscilação e perda: o lag é do Wi-Fi ou da internet?", F, T.azul, "Novo", T.azul, acao = { InternetJogos.executar(it) }),
+        Item("Modo bateria (longe da tomada)", "Brilho menor e tela em 60 Hz para a partida durar mais", F, T.verde, "Novo", T.verde, acao = { Economia.executar(it) }),
+        Item("Gravar a tela", "Grava a partida com o painel de FPS aparecendo", F, T.roxo, "Novo", T.roxo, acao = { Gravador.executar(it) }),
+        Item("Conquistas", "Pequenas metas do app", F, T.amarelo, acao = { Conquistas.executar(it) }),
         Item("Teste da tela de toque", "Quantos dedos a tela aceita e a velocidade do toque", F, T.ciano, "Novo", T.ciano, tela = { it.abrirTela { it.telaTesteToque() } }),
         Item("Medidor de FPS", "FPS real durante o jogo", F, T.cinza, selo(!Sh.privOk(), "Automático"), T.cinza, acao = { Fps.medidor(it) }),
         Item("Histórico do Modo Jogo", "Sessões, temperatura e bateria", J, T.cinza, acao = { ModoJogo.historico(it) })
@@ -103,6 +108,11 @@ object Menus {
         Item("Restauração de fábrica", "Checklist seguro antes de apagar tudo", B, T.vermelho, acao = { Sistema.restaurarFabrica(it) }),
         Item("Desfazer alterações", Ajuste.quantos().toString() + " configuração(ões) alteradas", D, T.texto2, acao = { Sistema.desfazer(it) }),
         Item("Reiniciar", "Resolve lentidão acumulada", M, T.cinza, acao = { Sistema.reiniciar(it) }),
+        Item("Salvar backup das configurações", "Botões, perfis do Tuner, mira e histórico num arquivo", B, T.verde, "Novo", T.verde, acao = { Backup.exportar(it) }),
+        Item("Restaurar backup das configurações", "Traz tudo de volta neste ou em outro celular", B, T.verde, acao = { Backup.importar(it) }),
+        Item("Cuidados automáticos", listOfNotNull(if (Automatico.limpezaLigada()) "limpeza semanal" else null, if (Automatico.calorLigado()) "alerta de calor" else null, if (Automatico.pesadoLigado()) "app pesado" else null).joinToString(", ").ifEmpty { "Limpeza semanal e alertas de calor e app pesado" }, M, T.verde, "Novo", T.verde, acao = { Automatico.executar(it) }),
+        Item("Tamanho da letra", "Deixe o texto do app maior", M, T.cinza, acao = { Letra.executar(it) }),
+        Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })
     ))

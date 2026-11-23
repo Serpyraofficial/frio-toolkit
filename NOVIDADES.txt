@@ -1,3 +1,8 @@
-- Depois de atualizar, aparece a notificação "Atualizado": toque para abrir e ver as novidades
-- O aviso de novidades não aparece mais para quem acabou de instalar
-- Tudo da 5.6: aviso fixo de atualização na tela inicial, Meus jogos, teste da tela de toque e lembrete de pausa
+- Modelos prontos de botões para Free Fire, PUBG, COD, Roblox e MOBA: escolha o jogo e só ajuste
+- Modo campeonato: bloqueia chamadas e notificações, trava o brilho e avisa se a internet oscilar
+- Relatório da partida com ping e comparação com a partida anterior, e resumo por jogo no histórico
+- Internet para jogos: descubra se o lag vem do Wi-Fi ou da internet
+- Modo bateria para jogar longe da tomada
+- Backup das configurações: leve seus botões e perfis para outro celular
+- Cuidados automáticos: limpeza semanal e alertas de calor e de app pesado
+- Mira com imagem sua, gravar a tela, conquistas, letra maior e ajuda em cada tela

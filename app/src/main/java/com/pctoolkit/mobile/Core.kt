@@ -188,6 +188,9 @@ object Store {
     fun putInt(k: String, v: Int) = prefs.edit().putInt(k, v).apply()
     fun bool(k: String, def: Boolean): Boolean = prefs.getBoolean(k, def)
     fun putBool(k: String, v: Boolean) = prefs.edit().putBoolean(k, v).apply()
+    fun putLong(k: String, v: Long) = prefs.edit().putLong(k, v).apply()
+    fun putFloat(k: String, v: Float) = prefs.edit().putFloat(k, v).apply()
+    fun tudo(): Map<String, *> = prefs.all
     fun conjunto(k: String): MutableSet<String> = HashSet(prefs.getStringSet(k, emptySet()) ?: emptySet())
     fun putConjunto(k: String, v: Set<String>) = prefs.edit().putStringSet(k, v).apply()
 }

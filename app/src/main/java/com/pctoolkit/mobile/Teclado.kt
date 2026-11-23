@@ -1007,7 +1007,11 @@ object TecladoJogo {
         val tem = PerfisControle.tem(jogo.pkg)
         val opcoes = arrayListOf<String>()
         if (tem) opcoes.add("Jogar com meus botões (${PerfisControle.carregar(jogo.pkg).size})")
-        opcoes.add(if (tem) "Editar meus botões" else "Criar meus botões")
+        val sug = Modelos.sugerido(jogo.nome, jogo.pkg)
+        val txtModelo = "Usar um modelo pronto" + (if (sug >= 0) " de ${Modelos.LISTA[sug].nome}" else " (Free Fire, PUBG, COD...)") + if (!tem) "  (recomendado)" else ""
+        if (!tem) opcoes.add(txtModelo)
+        opcoes.add(if (tem) "Editar meus botões" else "Criar meus botões do zero")
+        if (tem) opcoes.add(txtModelo)
         opcoes.add("Teclado ou controle físico (Bluetooth/USB): " + if (Mapeador.ativo()) "ligado" else "desligado")
         val i = con.escolher(jogo.nome, opcoes)
         if (i < 0) return
@@ -1016,6 +1020,7 @@ object TecladoJogo {
             else Mapeador.ativar(con)
             return
         }
+        if (opcoes[i].startsWith("Usar um modelo") && !Modelos.escolherEAplicar(con, jogo)) return
         val editar = !opcoes[i].startsWith("Jogar")
         ctx.startForegroundService(Intent(ctx, TecladoService::class.java).putExtra("pkg", jogo.pkg).putExtra("abrir", true).putExtra("editar", editar))
         con.linha("")

@@ -32,10 +32,10 @@ import java.util.Locale
 
 /** MODO JOGO sem root: prepara o celular, abre o jogo, vigia o calor e restaura tudo no fim. */
 object ModoJogo {
-    fun executar(con: Console, pkgFixo: String? = null) {
+    fun executar(con: Console, pkgFixo: String? = null, campeonato: Boolean = false) {
         val ctx = con.ctx
-        con.titulo("Modo Jogo")
-        con.linha("Prepara o celular, abre o jogo, mostra um painel com temperatura e memória e, quando você terminar, devolve tudo ao normal.", T.texto2)
+        con.titulo(if (campeonato) "Modo campeonato" else "Modo Jogo")
+        con.linha(if (campeonato) "Tudo no máximo para uma partida importante: bloqueia notificações e chamadas, trava o brilho, libera memória, mostra o ping e avisa se a internet oscilar." else "Prepara o celular, abre o jogo, mostra um painel com temperatura e memória e, quando você terminar, devolve tudo ao normal.", T.texto2)
         if (GameService.rodando) {
             con.aviso("Já existe uma sessão em andamento: ${Store.str("sessao_nome")}")
             if (con.ask("Encerrar a sessão agora?", "Encerrar", "Continuar", importante = true)) { ctx.startService(Intent(ctx, GameService::class.java).setAction("parar")); con.ok("Encerrando...") }
@@ -59,12 +59,18 @@ object ModoJogo {
         else con.info("Modo Frio, Turbo e abrir os seus botões junto com o jogo fazem parte do SerpyraToolkit Pro.")
         if (Pro.ativo() && PerfisControle.tem(jogo.pkg)) { nomes.add("Abrir os meus botões do teclado junto com o jogo"); chaves.add("mj_botoes") }
         nomes.add("Mostrar o ping no painel (atraso da internet)"); chaves.add("mj_ping")
-        nomes.add("Lembrar de fazer uma pausa a cada 1 hora de jogo"); chaves.add("mj_pausa")
-        val sel = con.varios("O que ativar nesta sessão?", nomes, true)
+        if (!campeonato) {
+            nomes.add("Lembrar de fazer uma pausa a cada 1 hora de jogo"); chaves.add("mj_pausa")
+            nomes.add("Modo bateria: brilho menor e tela em 60 Hz (longe da tomada)"); chaves.add("mj_eco")
+        }
+        val sel = if (campeonato) chaves.indices.toList() else con.varios("O que ativar nesta sessão?", nomes, true)
         if (sel.isEmpty() && !con.ask("Nada marcado. Abrir o jogo mesmo assim, só com o monitoramento?")) return
         val op = HashMap<String, Boolean>()
         for (i in chaves.indices) op[chaves[i]] = sel.contains(i)
-        op["mj_turbo"] = Pro.ativo() && Sh.privOk() && (perfil.turbo || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
+        if (op["mj_eco"] == true) op["mj_eco"] = false   // aplicado abaixo, fora do servico
+        val querEco = chaves.indexOf("mj_eco").let { it >= 0 && sel.contains(it) }
+        op["mj_camp"] = campeonato
+        op["mj_turbo"] = Pro.ativo() && Sh.privOk() && (perfil.turbo || campeonato || con.ask("Ativar o Turbo? Trava o Android no desempenho máximo durante o jogo (mais FPS estável, mas esquenta e gasta mais bateria).", "Ativar", "Não", importante = true))
         if (op["mj_dnd"] == true && !Sh.privOk() && !con.garantirNome("Não perturbe")) op["mj_dnd"] = false
         if (op["mj_painel"] == true && !con.garantirNome("Sobrepor a outros apps")) op["mj_painel"] = false
         if (op["mj_botoes"] == true) {
@@ -94,6 +100,15 @@ object ModoJogo {
         }
         if (Build.VERSION.SDK_INT >= 31 && Build.MANUFACTURER.equals("samsung", true).not()) con.info("Dica: se o seu Android tiver “Modo de jogo/Desempenho” nas configurações do jogo, deixe em Desempenho.")
 
+        if (querEco) {
+            val r = Economia.ligar(ctx, jogo.pkg)
+            if (r.isEmpty()) { Store.putBool("eco_sessao", true); con.ok("Modo bateria ligado durante a partida") } else con.aviso("Modo bateria: $r")
+        }
+        if (campeonato && Ajuste.pode() && Store.str("camp_brilho").isEmpty()) {
+            Store.putStr("camp_brilho", Ajuste.ler("system", "screen_brightness_mode").ifEmpty { "-" })
+            Ajuste.gravar("system", "screen_brightness_mode", "0")
+            con.ok("Brilho travado (o automático não vai escurecer a tela no meio da partida)")
+        }
         val i = Intent(ctx, GameService::class.java).putExtra("pkg", jogo.pkg).putExtra("nome", jogo.nome).putExtra("limite", limite)
         for ((k, v) in op) i.putExtra(k, v)
         if (perfil.aplicado && perfil.resGlobal in 40..99 && Sh.privOk()) i.putExtra("res", perfil.resGlobal)
@@ -127,6 +142,19 @@ object ModoJogo {
         val st = o.optInt("termMax", -1)
         if (st >= 0) con.linha("Estado térmico mais alto: " + Sensores.nomeStatusTermico(st), if (st >= 2) T.amarelo else T.texto)
         if (o.has("fps")) con.linha("FPS médio: ${o.optInt("fps")}" + if (o.has("fps1")) " · 1% pior: ${o.optInt("fps1")}" else "", T.verde)
+        if (o.has("ping")) con.linha("Ping médio: ${o.optInt("ping")} ms · pior: ${o.optInt("pingMax")} ms", if (o.optInt("ping") <= 60) T.verde else if (o.optInt("ping") <= 120) T.amarelo else T.vermelho)
+        // comparacao com a partida anterior do mesmo jogo
+        val todas = Store.lerArr("sessoes.json")
+        var ant: JSONObject? = null
+        for (k in todas.length() - 1 downTo 0) { val x = todas.getJSONObject(k); if (x.optString("pkg") == o.optString("pkg") && x.optString("data") != o.optString("data") && x.optInt("dur") > 0) { ant = x; break } }
+        ant?.let { a ->
+            val p = ArrayList<String>()
+            if (o.has("fps") && a.has("fps")) { val dif = o.optInt("fps") - a.optInt("fps"); p.add("FPS " + (if (dif >= 0) "+$dif" else "$dif")) }
+            val dt = o.optDouble("tMax") - a.optDouble("tMax"); p.add("temperatura " + (if (dt <= 0) "${f1(dt)} °C" else "+${f1(dt)} °C"))
+            val gh = o.optInt("gasto") * 60 / o.optInt("dur").coerceAtLeast(1); val ga = a.optInt("gasto") * 60 / a.optInt("dur").coerceAtLeast(1)
+            p.add("bateria ${gh}%/h (antes ${ga}%/h)")
+            con.linha("Comparado com a partida anterior: " + p.joinToString(" · "), T.azul)
+        }
         val fr = o.optInt("frio", 0)
         if (fr > 0) con.linha("Modo Frio chegou ao nível $fr (${Frio.descricao(fr)}) para segurar a temperatura", T.ciano)
         con.linha("")
@@ -143,6 +171,14 @@ object ModoJogo {
         con.titulo("Histórico do Modo Jogo")
         val a = Store.lerArr("sessoes.json")
         if (a.length() == 0) { con.linha("Nenhuma sessão ainda."); return }
+        // resumo por jogo
+        val por = LinkedHashMap<String, IntArray>()   // min, sessoes, somaFps, nFps
+        val nomes = HashMap<String, String>()
+        for (k in 0 until a.length()) { val o = a.getJSONObject(k); val v = por.getOrPut(o.optString("pkg")) { IntArray(4) }; nomes[o.optString("pkg")] = o.optString("nome")
+            v[0] += o.optInt("dur"); v[1]++; if (o.has("fps")) { v[2] += o.optInt("fps"); v[3]++ } }
+        con.subtitulo("Por jogo")
+        for ((pk, v) in por.entries.sortedByDescending { it.value[0] }) con.item("${nomes[pk]}: ${v[0] / 60}h${"%02d".format(v[0] % 60)} em ${v[1]} partida(s)" + if (v[3] > 0) " · ${v[2] / v[3]} FPS médio" else "", T.verde)
+        con.subtitulo("Partidas")
         for (i in a.length() - 1 downTo 0) {
             val o = a.getJSONObject(i)
             con.item("${o.optString("data")} · ${o.optString("nome")} · ${o.optInt("dur")} min · máx ${f1(o.optDouble("tMax"))} °C · ${o.optInt("gasto")}%", Sensores.corBateria(o.optDouble("tMax")))
@@ -170,6 +206,8 @@ object Sessao {
         if (Store.bool("dnd_cmd", false)) { Sh.root("cmd notification set_dnd off", 10); Store.putBool("dnd_cmd", false) }
         Tuner.restaurarResolucao()
         Frio.restaurarTela()
+        if (Store.bool("eco_sessao", false)) Economia.desligar()
+        Store.str("camp_brilho").let { if (it.isNotEmpty()) { Ajuste.gravar("system", "screen_brightness_mode", if (it == "-") null else it); Store.putStr("camp_brilho", "") } }
         if (Store.bool("frio_fps", false)) {
             val pk = try { JSONObject(Store.str("sessao_cfg")).optString("pkg") } catch (e: Exception) { "" }
             if (pk.isNotEmpty() && Build.VERSION.SDK_INT >= 33) { val p = Tuner.perfil(pk); Sh.root("cmd game set --mode 2 --downscale ${if (p.aplicado && p.escala < 0.999) String.format(Locale.US, "%.2f", p.escala) else "disable"} --fps ${if (p.aplicado && p.fps > 0) p.fps.toString() else "disable"} $pk 2>/dev/null", 10) }
@@ -361,7 +399,7 @@ class GameService : Service() {
     private fun paraJson(it: Intent): JSONObject {
         val o = JSONObject().put("pkg", it.getStringExtra("pkg")).put("nome", it.getStringExtra("nome") ?: it.getStringExtra("pkg"))
             .put("limite", it.getIntExtra("limite", 43)).put("res", it.getIntExtra("res", 0))
-        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio", "mj_ping", "mj_pausa")) o.put(k, it.getBooleanExtra(k, false))
+        for (k in listOf("mj_dnd", "mj_ram", "mj_sync", "mj_painel", "mj_alerta", "mj_turbo", "mj_frio", "mj_ping", "mj_pausa", "mj_camp")) o.put(k, it.getBooleanExtra(k, false))
         val b = Sensores.bateria(this)
         o.put("inicio", System.currentTimeMillis()).put("tIni", b.tempC).put("nIni", b.nivel)
         return o
@@ -421,8 +459,9 @@ class GameService : Service() {
         if (d.optBoolean("mj_dnd")) {
             if (nm.isNotificationPolicyAccessGranted) {
                 if (primeira && Store.int("dnd_antes", -1) <= 0) Store.putInt("dnd_antes", nm.currentInterruptionFilter)
-                if (nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_PRIORITY) nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-            } else if (Sh.privOk()) { if (Sh.root("cmd notification set_dnd priority", 10).ok) Store.putBool("dnd_cmd", true) }
+                val alvo = if (d.optBoolean("mj_camp")) NotificationManager.INTERRUPTION_FILTER_ALARMS else NotificationManager.INTERRUPTION_FILTER_PRIORITY
+                if (nm.currentInterruptionFilter != alvo) nm.setInterruptionFilter(alvo)
+            } else if (Sh.privOk()) { if (Sh.root("cmd notification set_dnd " + (if (d.optBoolean("mj_camp")) "alarms" else "priority"), 10).ok) Store.putBool("dnd_cmd", true) }
         }
         if (Sh.privOk()) {
             val self = packageName
@@ -482,6 +521,7 @@ class GameService : Service() {
         var nivelFrioMax = 0
         val fpsLista = ArrayList<Double>()
         var pingTxt = ""; var voltas = 0; var horasAvisadas = 0
+        var pingSoma = 0L; var pingN = 0; var pingMax = 0; var pingRuim = 0; var pingAvisoEm = 0L
         var qAnt = Sensores.contadorQuadros(); var tAnt = System.nanoTime()
         val pmw = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         Thread.sleep(3000)
@@ -521,7 +561,15 @@ class GameService : Service() {
             }
 
             // ping a cada ~6 s (conexao TCP rapida; nao usa dados de verdade)
-            if (d.optBoolean("mj_ping") && voltas++ % 3 == 0) { val ms = medirPing(); pingTxt = if (ms >= 0) " · $ms ms" else " · sem internet" }
+            if ((d.optBoolean("mj_ping") || d.optBoolean("mj_camp")) && voltas++ % 3 == 0) {
+                val ms = medirPing(); pingTxt = if (ms >= 0) " · $ms ms" else " · sem internet"
+                if (ms >= 0) { pingSoma += ms; pingN++; if (ms > pingMax) pingMax = ms }
+                if (ms < 0 || ms > 150) pingRuim++ else pingRuim = 0
+                if (d.optBoolean("mj_camp") && pingRuim >= 2 && agora - pingAvisoEm > 120_000L) {
+                    pingAvisoEm = agora
+                    avisar(ID + 5, "Internet oscilando", if (ms < 0) "A conexão caiu. Confira o Wi-Fi." else "Ping alto: $ms ms. Feche downloads ou chegue mais perto do roteador.")
+                }
+            }
             val min = ((agora - inicio) / 60000).toInt()
             if (d.optBoolean("mj_pausa") && min >= 60 && min / 60 > horasAvisadas) { horasAvisadas = min / 60; avisarPausa(horasAvisadas) }
             val frioTxt = if (d.optBoolean("mj_frio") && Frio.nivel > 0) " · Frio ${Frio.nivel}" else ""
@@ -554,13 +602,15 @@ class GameService : Service() {
         val o = JSONObject().put("data", agora()).put("pkg", pkg).put("nome", nome).put("dur", dur)
             .put("tIni", tIni).put("tMax", tMax).put("tMed", if (n > 0) tSoma / n else b1.tempC)
             .put("gasto", (nIni - b1.nivel).coerceAtLeast(0)).put("ramMin", if (ramMin == Long.MAX_VALUE) 0L else ramMin).put("termMax", termMax)
-            .put("frio", nivelFrioMax)
+            .put("frio", nivelFrioMax).put("campeonato", d.optBoolean("mj_camp"))
+        if (pingN > 0) o.put("ping", (pingSoma / pingN).toInt()).put("pingMax", pingMax)
         if (fpsLista.size > 5) {
             o.put("fps", fpsLista.average().toInt())
             val ord = fpsLista.sorted()
             o.put("fps1", ord[(ord.size / 100).coerceAtMost(ord.size - 1)].toInt())
         }
         Store.adicionar("sessoes.json", o, 100)
+        try { Conquistas.conferir() } catch (e: Exception) { }
         Store.putStr("sessao_tmax", "")
         Store.putInt("frio_nivel", 0)
         try {

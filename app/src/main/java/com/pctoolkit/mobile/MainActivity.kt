@@ -139,6 +139,7 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
     }
 
     fun escolherArquivo(): Uri? = act.pedirResultado(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"))?.data
+    fun criarArquivo(nome: String, tipo: String): Uri? = act.pedirResultado(Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(tipo).putExtra(Intent.EXTRA_TITLE, nome))?.data
     fun escolherPasta(): Uri? = act.pedirResultado(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))?.data
 
     /** Abre uma tela do Android e espera o usuario voltar para o app. */
@@ -190,6 +191,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Letra.carregar()
         window.decorView.setBackgroundColor(T.bg)
         pilha.add { telaInicio() }
         mostrar()
@@ -206,7 +208,13 @@ class MainActivity : Activity() {
             "mira" -> executar("Mira na tela") { MiraTela.executar(it) }
             "raiox" -> executar("Raio-X de desempenho") { RaioX.executar(it) }
             "teclado" -> executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
+            "campeonato" -> executar("Modo campeonato") { ModoJogo.executar(it, null, true) }
+            "temperatura" -> abrirMenu { Menus.temperatura() }
+            "memoria" -> executar("Liberar memória") { Fps.liberarRam(it) }
+            "relatorio" -> executar("Histórico do Modo Jogo") { ModoJogo.historico(it) }
         }
+        Automatico.agendar(this)
+        Thread { Conquistas.conferir() }.start()
         AvisoPro.agendar(this)
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
@@ -615,6 +623,12 @@ class MainActivity : Activity() {
         stBox.addView(status)
         tt.addView(stBox)
         topo.addView(tt, Ui.peso())
+        Ajuda.de(titulo)?.let { txt ->
+            val aj = Ui.chip(this, "  ?  ", T.azul)
+            aj.isClickable = true
+            aj.setOnClickListener { AlertDialog.Builder(this).setTitle(titulo).setMessage(txt).setPositiveButton("Entendi", null).show() }
+            topo.addView(aj)
+        }
         col.addView(topo)
         val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
         pb.isIndeterminate = true
@@ -628,7 +642,7 @@ class MainActivity : Activity() {
         sv.isVerticalScrollBarEnabled = false
         val tv = TextView(this)
         tv.setTextColor(T.texto)
-        tv.textSize = 13.5f
+        tv.textSize = 13.5f * Letra.escala
         tv.typeface = Ui.normal
         tv.setLineSpacing(0f, 1.18f)
         tv.setTextIsSelectable(true)
