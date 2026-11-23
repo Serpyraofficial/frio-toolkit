@@ -1,8 +1,8 @@
 {
- "versionCode": 57,
- "versionName": "5.6.1",
- "notas": "- Depois de atualizar, aparece a notificação \"Atualizado\": toque para abrir e ver as novidades\n- O aviso de novidades não aparece mais para quem acabou de instalar\n- Tudo da 5.6: aviso fixo de atualização na tela inicial, Meus jogos, teste da tela de toque e lembrete de pausa",
- "sha256": "df18c1d6200f457808eb4d4500f3a5cc8084d0b587ff171766ce080fd51b1e77",
- "tamanho": 1149773,
- "arquivo": "SerpyraToolkit-5.6.1-df18c1d620.apk"
+ "versionCode": 58,
+ "versionName": "5.7",
+ "notas": "- Modelos prontos de botões para Free Fire, PUBG, COD, Roblox e MOBA: escolha o jogo e só ajuste\n- Modo campeonato: bloqueia chamadas e notificações, trava o brilho e avisa se a internet oscilar\n- Relatório da partida com ping e comparação com a partida anterior, e resumo por jogo no histórico\n- Internet para jogos: descubra se o lag vem do Wi-Fi ou da internet\n- Modo bateria para jogar longe da tomada\n- Backup das configurações: leve seus botões e perfis para outro celular\n- Cuidados automáticos: limpeza semanal e alertas de calor e de app pesado\n- Mira com imagem sua, gravar a tela, conquistas, letra maior e ajuda em cada tela",
+ "sha256": "a887c1f6c84b445eea065013a3036c59c7f70958453d1f9c6d0de02d81341c22",
+ "tamanho": 1171617,
+ "arquivo": "SerpyraToolkit-5.7-a887c1f6c8.apk"
 }
