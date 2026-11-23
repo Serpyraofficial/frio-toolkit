@@ -695,7 +695,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     var notas=String(v.notas||'').split('\n').map(function(l){return l.replace(/^[-•]\s*/,'').trim()}).filter(function(l){return l&&!/^Tudo d/i.test(l)});
     var curta=function(l){return l.split(/[:(]/)[0].trim()};
     var aL=document.getElementById('avL'), aC=document.getElementById('avC');
-    if(aL&&notas.length) aL.textContent='Novo na '+v.versionName+': '+notas.slice(0,3).map(curta).join(' · ')+' · Teste grátis por 3 dias.';
+    if(aL&&notas.length) aL.textContent='Novo na '+v.versionName+': '+notas.slice(0,2).map(curta).join(' · ')+' · Teste grátis por 3 dias.';
     if(aC) aC.textContent='Novo na '+v.versionName+' · Pro grátis por 3 dias.';
     var sec=document.getElementById('novidades'), ul=document.getElementById('novLista');
     if(sec&&ul&&notas.length){
