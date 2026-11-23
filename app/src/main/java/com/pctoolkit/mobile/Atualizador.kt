@@ -75,6 +75,11 @@ object Atualizador {
         val vista = Store.int("versao_vista", 0)
         if (vista == atual()) return
         Store.putInt("versao_vista", atual())
+        if (vista == 0) {
+            // instalacao nova (nao foi atualizacao): nao mostra novidades
+            val pi = try { act.packageManager.getPackageInfo(act.packageName, 0) } catch (e: Exception) { null }
+            if (pi == null || pi.firstInstallTime == pi.lastUpdateTime) return
+        }
         Thread {
             var notas = Store.str("upd_notas").takeIf { Store.str("upd_codigo") == atual().toString() } ?: ""
             if (notas.isBlank()) { verificar(); notas = Store.str("upd_notas_atual") }
@@ -129,7 +134,7 @@ object Atualizador {
         con.ok("Download concluído")
         con.linha("")
         con.linha("Agora o Android vai pedir para você confirmar. Toque em Atualizar/Instalar.", T.amarelo)
-        con.info("O app fecha e abre de novo já na versão nova. Seu Pro continua ativo.")
+        con.info("O app fecha sozinho para instalar. Depois aparece a notificação \"Atualizado\": toque nela (ou abra o app) para ver as novidades. Seu Pro continua ativo.")
         try { instalar(ctx, arq) } catch (e: Exception) { con.erro("Não consegui abrir o instalador: " + e.message) }
     }
 
@@ -188,5 +193,21 @@ class AtualizacaoReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_FAILURE_ABORTED -> Toast.makeText(c, "Atualização cancelada.", Toast.LENGTH_SHORT).show()
             else -> Toast.makeText(c, "A atualização não foi instalada: " + (i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "erro"), Toast.LENGTH_LONG).show()
         }
+    }
+}
+
+/** Depois que a atualizacao instala: o Android nao deixa reabrir sozinho, entao avisa com uma notificacao. */
+class AtualizadoReceiver : BroadcastReceiver() {
+    override fun onReceive(c: Context, i: Intent) {
+        if (i.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        try {
+            val nm = c.getSystemService(android.app.NotificationManager::class.java)
+            nm.createNotificationChannel(android.app.NotificationChannel("atualizacao", "Atualizações do app", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+            val abrir = android.app.PendingIntent.getActivity(c, 0, Intent(c, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
+            nm.notify(7272, android.app.Notification.Builder(c, "atualizacao").setSmallIcon(R.drawable.ic_jogo)
+                .setContentTitle("SerpyraToolkit atualizado para a ${BuildConfig.VERSION_NAME} ✓")
+                .setContentText("Toque para abrir e ver as novidades. Seu Pro continua ativo.")
+                .setContentIntent(abrir).setAutoCancel(true).setColor(T.verde).build())
+        } catch (e: Exception) { }
     }
 }

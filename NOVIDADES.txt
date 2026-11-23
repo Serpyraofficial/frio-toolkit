@@ -1,5 +1,3 @@
-- Atualização automática: o app confere ao abrir e mostra um aviso fixo na tela inicial quando sai versão nova
-- Depois de atualizar, o app mostra o que mudou
-- Novo "Meus jogos" na tela inicial: toque no jogo e escolha Modo Jogo, botões, Tuner ou mira
-- Novo Teste da tela de toque: quantos dedos a tela aceita e a velocidade do toque (Hz)
-- Modo Jogo: lembrete opcional de pausa a cada 1 hora de jogo
+- Depois de atualizar, aparece a notificação "Atualizado": toque para abrir e ver as novidades
+- O aviso de novidades não aparece mais para quem acabou de instalar
+- Tudo da 5.6: aviso fixo de atualização na tela inicial, Meus jogos, teste da tela de toque e lembrete de pausa
