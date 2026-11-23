@@ -1,8 +1,8 @@
 {
- "versionCode": 56,
- "versionName": "5.6",
- "notas": "- Atualização automática: o app confere ao abrir e mostra um aviso fixo na tela inicial quando sai versão nova\n- Depois de atualizar, o app mostra o que mudou\n- Novo \"Meus jogos\" na tela inicial: toque no jogo e escolha Modo Jogo, botões, Tuner ou mira\n- Novo Teste da tela de toque: quantos dedos a tela aceita e a velocidade do toque (Hz)\n- Modo Jogo: lembrete opcional de pausa a cada 1 hora de jogo",
- "sha256": "dbdbdf71dbb4202584182c6a29dd7a11fb787c7e665c2fb909b1ef823486d3c4",
- "tamanho": 1149285,
- "arquivo": "SerpyraToolkit-5.6-dbdbdf71db.apk"
+ "versionCode": 57,
+ "versionName": "5.6.1",
+ "notas": "- Depois de atualizar, aparece a notificação \"Atualizado\": toque para abrir e ver as novidades\n- O aviso de novidades não aparece mais para quem acabou de instalar\n- Tudo da 5.6: aviso fixo de atualização na tela inicial, Meus jogos, teste da tela de toque e lembrete de pausa",
+ "sha256": "df18c1d6200f457808eb4d4500f3a5cc8084d0b587ff171766ce080fd51b1e77",
+ "tamanho": 1149773,
+ "arquivo": "SerpyraToolkit-5.6.1-df18c1d620.apk"
 }
