@@ -23,12 +23,17 @@ const TROCA_INTERVALO = 30;
 const PLANOS = {
   m1: { nome: "1 mês", dias: 30, centavos: 1500 },
   m3: { nome: "3 meses", dias: 90, centavos: 3900 },
-  m6: { nome: "6 meses", dias: 180, centavos: 6900 }
+  m6: { nome: "6 meses", dias: 180, centavos: 6900 },
+  vida: { nome: "Vitalício", dias: 0, centavos: 14900, vitalicio: true }
 };
+const DIA_VITALICIO = 99999;
+const IND_PCT = 10, IND_DIAS = 15, RENOVA_PCT = 10;
+const MOTIVOS = ["Caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro"];
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
 function reais(c) { return "R$ " + (c / 100).toFixed(2).replace(".", ","); }
+function validadeTxt(dia) { return dia >= 99999 ? "Vitalício (não vence)" : dataBr(dia); }
 function hoje() { return Math.floor(Date.now() / DIA); }
 function dataBr(dia) { const d = new Date(dia * DIA); return String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear(); }
 function agoraBr() { const a = new Date(Date.now() - 3 * 3600000); return String(a.getUTCDate()).padStart(2, "0") + "/" + String(a.getUTCMonth() + 1).padStart(2, "0") + "/" + a.getUTCFullYear() + " " + String(a.getUTCHours()).padStart(2, "0") + ":" + String(a.getUTCMinutes()).padStart(2, "0"); }
@@ -98,8 +103,20 @@ function emailCompra(p) {
 }
 
 /* ---------------- planos e cupons ---------------- */
-async function cupomValido(env, cod) {
+async function cupomValido(env, cod, codigo) {
   if (!cod) return null;
+  if (/^IND[A-Z2-9]{8}$/.test(cod)) {
+    const ref = cod.slice(3);
+    if (!codigoValido(ref) || ref === codigo) return null;
+    const c = await lerJson(env, "chave:" + ref);
+    return c ? { pct: IND_PCT, ativo: true, especial: "indicacao", ref } : null;
+  }
+  if (cod === "RENOVA10") {
+    if (!codigoValido(codigo)) return null;
+    const c = await lerJson(env, "chave:" + codigo);
+    if (!c || c.dia >= DIA_VITALICIO || c.dia > hoje() + 7 || c.dia < hoje() - 7) return null;
+    return { pct: RENOVA_PCT, ativo: true, especial: "renovacao" };
+  }
   const c = await lerJson(env, "cupom:" + cod);
   if (!c || !c.ativo) return null;
   if (c.limite && (c.usos || 0) >= c.limite) return null;
@@ -107,17 +124,19 @@ async function cupomValido(env, cod) {
 }
 function comDesconto(centavos, c) { return c ? Math.max(100, Math.round(centavos * (100 - c.pct) / 100)) : centavos; }
 
-function planos() {
-  return json({ teste: TESTE_DIAS, planos: Object.entries(PLANOS).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos) })) });
+function planos(url) {
+  // apps antigos (sem ?v=2) nao sabem mostrar o vitalicio (dias = 0): so os planos mensais para eles
+  const novo = parseInt(url.searchParams.get("v") || "0", 10) >= 2;
+  return json({ teste: TESTE_DIAS, indicacao: { pct: IND_PCT, dias: IND_DIAS }, renova: RENOVA_PCT, planos: Object.entries(PLANOS).filter(([id, p]) => novo || !p.vitalicio).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos), vitalicio: !!p.vitalicio })) });
 }
 
 async function verCupom(url, env) {
   const cod = limpaCupom(url.searchParams.get("c"));
   const plano = PLANOS[url.searchParams.get("plano")] ? url.searchParams.get("plano") : "m1";
-  const c = await cupomValido(env, cod);
+  const c = await cupomValido(env, cod, limpaCodigo(url.searchParams.get("codigo")));
   if (!c) return json({ ok: false, erro: "Cupom inválido ou esgotado." }, 404);
   const final = comDesconto(PLANOS[plano].centavos, c);
-  return json({ ok: true, cupom: cod, pct: c.pct, centavos: final, preco: reais(final) });
+  return json({ ok: true, cupom: cod, pct: c.pct, centavos: final, preco: reais(final), tipo: c.especial || "cupom" });
 }
 
 /* ---------------- compra ---------------- */
@@ -142,19 +161,22 @@ async function criarPedido(req, env, base) {
   if (!emailValido(email)) return json({ erro: "E-mail inválido." }, 400);
   if (!(await limitar("pix:" + codigo, 6))) return json({ erro: "Muitos pedidos seguidos. Tente de novo em alguns minutos." }, 429);
   const cupomCod = limpaCupom(b.cupom);
-  const cupom = cupomCod ? await cupomValido(env, cupomCod) : null;
+  const cupom = cupomCod ? await cupomValido(env, cupomCod, codigo) : null;
+  const presente = b.presente ? String(b.presente).trim().toLowerCase() : "";
+  if (presente && !emailValido(presente)) return json({ erro: "E-mail de quem vai ganhar o presente é inválido." }, 400);
+  if (presente && cupom && cupom.especial === "renovacao") return json({ erro: "Esse cupom é só para renovar o seu próprio Pro." }, 400);
   if (cupomCod && !cupom) return json({ erro: "Cupom inválido ou esgotado." }, 400);
   const valor = comDesconto(plano.centavos, cupom);
   const numero = "PCT-" + Date.now().toString(36).toUpperCase().slice(-6);
   let r;
   try {
     r = await purin(env, "POST", "/payments", {
-      valueCents: valor, description: "SerpyraToolkit Pro - " + plano.nome + " (" + numero + ")", callbackUrl: base + "/webhook",
+      valueCents: valor, description: "SerpyraToolkit Pro - " + plano.nome + (presente ? " (presente)" : "") + " (" + numero + ")", callbackUrl: base + "/webhook",
       customer: { email, externalId: codigo }, metadata: JSON.stringify({ numero, codigo, plano: planoId, cupom: cupomCod })
     });
   } catch (e) { return json({ erro: "Não consegui gerar o Pix agora. " + e.message }, 502); }
   const id = r.paymentId;
-  await env.PCT.put("pedido:" + id, JSON.stringify({ id, numero, codigo, email, atual, valor, plano: planoId, dias: plano.dias, cupom: cupom ? cupomCod : "", status: "pendente", criado: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 400 });
+  await env.PCT.put("pedido:" + id, JSON.stringify({ id, numero, codigo, email, atual, valor, plano: planoId, dias: plano.dias, cupom: cupom ? cupomCod : "", presente, status: "pendente", criado: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 400 });
   return json({ pedido: id, numero, valor: reais(valor), plano: plano.nome, brCode: r.pix && r.pix.brCode, qr: r.pix && r.pix.qrCodeImage, expira: r.expiresAt, teste: String(env.PURIN_KEY || "").startsWith("ps_test_") });
 }
 
@@ -169,22 +191,104 @@ async function liberar(env, id, valorPago) {
   if (!p) return null;
   if (p.status === "pago") return p;
   if (valorPago != null && valorPago < p.valor) { p.obs = "valor menor que o cobrado: " + valorPago; await env.PCT.put("pedido:" + id, JSON.stringify(p)); return p; }
+  const planoObj = PLANOS[p.plano] || PLANOS.m1;
+  if (p.presente) return await liberarPresente(env, id, p, planoObj);
   const dias = p.dias || 30;
-  const dia = Math.max(hoje(), p.atual || 0, await validadeAtual(env, p.codigo)) + dias;
+  const dia = planoObj.vitalicio ? DIA_VITALICIO : Math.max(hoje(), p.atual || 0, await validadeAtual(env, p.codigo)) + dias;
   p.chave = await assinarChave(env, p.codigo, dia);
   p.dia = dia; p.status = "pago"; p.pagoEm = new Date().toISOString();
   const plano = (PLANOS[p.plano] || PLANOS.m1).nome;
-  const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano, cupom: p.cupom, validade: dataBr(dia), dataPago: agoraBr() });
+  const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano, cupom: p.cupom, validade: validadeTxt(dia), dataPago: agoraBr() });
   p.email_status = await mandarEmail(env, p.email, m.assunto, m.html, m.texto);
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
   await env.PCT.put("chave:" + p.codigo, JSON.stringify({ chave: p.chave, dia, email: p.email }));
   const em = (await lerJson(env, "email:" + p.email)) || {};
   await env.PCT.put("email:" + p.email, JSON.stringify({ codigo: p.codigo, dia, troca: em.troca || 0, otp: "" }));
-  if (p.cupom) {
+  if (/^IND/.test(p.cupom || "")) await premiarIndicacao(env, p.cupom.slice(3), p.codigo);
+  else if (p.cupom && p.cupom !== "RENOVA10") {
     const c = await lerJson(env, "cupom:" + p.cupom);
     if (c) { c.usos = (c.usos || 0) + 1; c.receita = (c.receita || 0) + p.valor; await env.PCT.put("cupom:" + p.cupom, JSON.stringify(c)); }
   }
   return p;
+}
+
+/* ---------------- indicação e presente ---------------- */
+async function premiarIndicacao(env, ref, comprador) {
+  if (!codigoValido(ref) || ref === comprador) return;
+  const c = await lerJson(env, "chave:" + ref);
+  if (!c || c.dia >= DIA_VITALICIO) return;
+  const dia = Math.max(hoje(), c.dia) + IND_DIAS;
+  const chave = await assinarChave(env, ref, dia);
+  await env.PCT.put("chave:" + ref, JSON.stringify({ ...c, chave, dia, indicacoes: (c.indicacoes || 0) + 1 }));
+  if (c.email) {
+    const html = moldura("Você ganhou " + IND_DIAS + " dias de Pro 🎉", "Um amigo comprou o SerpyraToolkit Pro com o seu código de indicação.",
+      `<div style="${CAIXA}"><div style="${ROT}">Seu Pro agora vale até</div><div style="font-size:22px;font-weight:bold;color:#3DDC97">${dataBr(dia)}</div><div style="color:#9AA8BA;font-size:13px;margin-top:12px">Os dias entram sozinhos ao abrir o app (tela do Pro &gt; Já comprei, se precisar). Se quiser colar à mão:</div><div style="${CHV};margin-top:10px">${esc(chave)}</div></div>`);
+    await mandarEmail(env, c.email, "Você ganhou " + IND_DIAS + " dias de SerpyraToolkit Pro", html, "Um amigo comprou com o seu código. Seu Pro agora vale até " + dataBr(dia) + ".\nChave: " + chave);
+  }
+}
+
+function novoVoucher() { const r = crypto.getRandomValues(new Uint8Array(9)); return "PRE" + [...r].map(x => B32[x % 32]).join(""); }
+
+function emailPresente(p, plano) {
+  const html = moldura("Você ganhou o SerpyraToolkit Pro 🎁", "Alguém (" + esc(p.email) + ") te deu de presente o SerpyraToolkit Pro · " + esc(plano.nome) + ".",
+    `<div style="${CAIXA}"><div style="${ROT}">Seu código de presente</div><div style="font-size:26px;font-weight:bold;letter-spacing:3px;color:#3DDC97">${esc(p.voucher)}</div>` +
+    `<div style="color:#9AA8BA;font-size:13px;margin-top:12px">1. Baixe o app em <a style="color:#3DDC97" href="https://serpyratoolkit.pages.dev">serpyratoolkit.pages.dev</a><br>2. Abra <b>SerpyraToolkit Pro</b> e toque em <b>Tenho um código de presente</b><br>3. Digite o código acima. Pronto!</div></div>`);
+  return { assunto: "Você ganhou um presente: SerpyraToolkit Pro", html, texto: "Você ganhou o SerpyraToolkit Pro (" + plano.nome + ") de " + p.email + ".\nCódigo de presente: " + p.voucher + "\nBaixe em serpyratoolkit.pages.dev, abra SerpyraToolkit Pro > Tenho um código de presente." };
+}
+
+async function liberarPresente(env, id, p, plano) {
+  p.voucher = p.voucher || novoVoucher();
+  p.status = "pago"; p.pagoEm = new Date().toISOString(); p.dia = 0;
+  await env.PCT.put("presente:" + p.voucher, JSON.stringify({ plano: p.plano, dias: p.dias, vitalicio: !!plano.vitalicio, de: p.email, para: p.presente, usado: "" }));
+  const m = emailPresente(p, plano);
+  p.email_status = await mandarEmail(env, p.presente, m.assunto, m.html, m.texto);
+  await mandarEmail(env, p.email, "Presente enviado: pedido " + p.numero, moldura("Presente enviado ✅", "Pagamento confirmado.", `<div style="${CAIXA}">Mandamos o código <b>${esc(p.voucher)}</b> para <b>${esc(p.presente)}</b>. Guarde este e-mail: se a pessoa não achar, repasse o código.</div>`), "Presente enviado para " + p.presente + ". Código: " + p.voucher);
+  await env.PCT.put("pedido:" + id, JSON.stringify(p));
+  return p;
+}
+
+async function resgatarPresente(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const codigo = limpaCodigo(b.codigo);
+  const v = limpaCupom(b.voucher);
+  if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
+  if (!(await limitar("presente:" + codigo, 8))) return json({ erro: "Muitas tentativas. Tente de novo em uma hora." }, 429);
+  const g = await lerJson(env, "presente:" + v);
+  if (!g) return json({ erro: "Código de presente não encontrado. Confira as letras." }, 404);
+  if (g.usado && g.usado !== codigo) return json({ erro: "Esse presente já foi usado em outro celular." }, 409);
+  const dia = g.vitalicio ? DIA_VITALICIO : (g.usado ? g.dia : Math.max(hoje(), await validadeAtual(env, codigo)) + (g.dias || 30));
+  const chave = await assinarChave(env, codigo, dia);
+  if (!g.usado) {
+    g.usado = codigo; g.dia = dia; g.em = new Date().toISOString();
+    await env.PCT.put("presente:" + v, JSON.stringify(g));
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, email: g.para }));
+    await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
+  }
+  return json({ ok: true, chave, validade: validadeTxt(dia) });
+}
+
+/* ---------------- avisos e pesquisa ---------------- */
+async function avisoAtual(env) {
+  const cache = caches.default;
+  const req = new Request("https://aviso.local/atual");
+  const r = await cache.match(req);
+  if (r) return new Response(r.body, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
+  const a = (await lerJson(env, "aviso")) || {};
+  const corpo = JSON.stringify(a);
+  await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=300" } }));
+  return new Response(corpo, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
+}
+
+async function pesquisa(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const codigo = limpaCodigo(b.codigo);
+  const m = parseInt(b.motivo, 10);
+  if (!codigoValido(codigo) || !(m >= 0 && m < MOTIVOS.length)) return json({ erro: "Resposta inválida." }, 400);
+  if (!(await limitar("pesquisa:" + codigo, 2))) return json({ ok: true });
+  const t = (await lerJson(env, "pesquisa")) || {};
+  t[MOTIVOS[m]] = (t[MOTIVOS[m]] || 0) + 1;
+  await env.PCT.put("pesquisa", JSON.stringify(t));
+  return json({ ok: true });
 }
 
 async function status(url, env) {
@@ -199,7 +303,8 @@ async function status(url, env) {
       else if (r.status && r.status !== "pending") return json({ status: r.status });
     } catch (e) { }
   }
-  if (p.status === "pago") return json({ status: "pago", chave: p.chave, numero: p.numero, validade: dataBr(p.dia), email: p.email_status === "enviado" });
+  if (p.status === "pago" && p.presente) return json({ status: "pago", presente: true, voucher: p.voucher, para: p.presente, numero: p.numero, email: p.email_status === "enviado" });
+  if (p.status === "pago") return json({ status: "pago", chave: p.chave, numero: p.numero, validade: validadeTxt(p.dia), email: p.email_status === "enviado" });
   return json({ status: "pendente" });
 }
 
@@ -228,7 +333,7 @@ async function testeGratis(req, env) {
   const dia = hoje() + TESTE_DIAS;
   const chave = await assinarChave(env, codigo, dia);
   await env.PCT.put("teste:" + codigo, String(dia));
-  return json({ chave, validade: dataBr(dia), dias: TESTE_DIAS });
+  return json({ chave, validade: validadeTxt(dia), dias: TESTE_DIAS });
 }
 
 async function licenca(url, env) {
@@ -236,8 +341,8 @@ async function licenca(url, env) {
   if (!codigoValido(codigo)) return json({ erro: "Código inválido." }, 400);
   const o = await lerJson(env, "chave:" + codigo);
   if (!o) return json({ status: "nenhuma" }, 404);
-  if (o.dia < hoje()) return json({ status: "vencida", validade: dataBr(o.dia) }, 404);
-  return json({ status: "ativa", chave: o.chave, validade: dataBr(o.dia) });
+  if (o.dia < hoje()) return json({ status: "vencida", validade: validadeTxt(o.dia) }, 404);
+  return json({ status: "ativa", chave: o.chave, validade: validadeTxt(o.dia) });
 }
 
 async function trocaPedir(req, env) {
@@ -277,7 +382,7 @@ async function trocaConfirmar(req, env) {
   const chave = await assinarChave(env, codigo, em.dia);
   await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia: em.dia, email }));
   await env.PCT.put("email:" + email, JSON.stringify({ codigo, dia: em.dia, troca: hoje(), otp: "" }));
-  return json({ ok: true, chave, validade: dataBr(em.dia) });
+  return json({ ok: true, chave, validade: validadeTxt(em.dia) });
 }
 
 /* ---------------- painel do dono ---------------- */
@@ -300,14 +405,16 @@ async function admin(req, url, env) {
     const pagos = pedidos.filter(p => p.status === "pago").sort((a, b) => String(b.pagoEm).localeCompare(String(a.pagoEm)));
     const desde = d => pagos.filter(p => Date.parse(p.pagoEm) >= Date.now() - d * DIA);
     const soma = l => l.reduce((t, p) => t + (p.valor || 0), 0);
-    const porPlano = {}; for (const p of pagos) { const k = (PLANOS[p.plano] || PLANOS.m1).nome; porPlano[k] = (porPlano[k] || 0) + 1; }
+    const porPlano = {}; for (const p of pagos) { const k = (PLANOS[p.plano] || PLANOS.m1).nome + (p.presente ? " (presente)" : ""); porPlano[k] = (porPlano[k] || 0) + 1; }
+    const dias30 = []; for (let d = 29; d >= 0; d--) { const ini = Date.now() - 3 * 3600000; const dd = new Date(ini - d * DIA).toISOString().slice(0, 10); const l = pagos.filter(p => new Date(Date.parse(p.pagoEm) - 3 * 3600000).toISOString().slice(0, 10) === dd); dias30.push({ dia: dd.slice(8, 10) + "/" + dd.slice(5, 7), vendas: l.length, centavos: soma(l) }); }
+    const indicacoes = pagos.filter(p => /^IND/.test(p.cupom || "")).length;
     return json({
       hoje: { vendas: desde(1).length, total: reais(soma(desde(1))) },
       semana: { vendas: desde(7).length, total: reais(soma(desde(7))) },
       mes: { vendas: desde(30).length, total: reais(soma(desde(30))) },
       tudo: { vendas: pagos.length, total: reais(soma(pagos)) },
-      pendentes: pedidos.length - pagos.length, porPlano, emailsPendentes: pagos.filter(p => p.email_status !== "enviado").length,
-      ultimas: pagos.slice(0, 60).map(p => ({ numero: p.numero, data: p.pagoEm, email: p.email, codigo: p.codigo, plano: (PLANOS[p.plano] || PLANOS.m1).nome, valor: reais(p.valor), cupom: p.cupom || "", validade: dataBr(p.dia), email_ok: p.email_status === "enviado" })),
+      pendentes: pedidos.length - pagos.length, porPlano, dias30, indicacoes, pesquisa: (await lerJson(env, "pesquisa")) || {}, aviso: (await lerJson(env, "aviso")) || {}, emailsPendentes: pagos.filter(p => p.email_status !== "enviado").length,
+      ultimas: pagos.slice(0, 60).map(p => ({ numero: p.numero, data: p.pagoEm, email: p.email, codigo: p.codigo, plano: (PLANOS[p.plano] || PLANOS.m1).nome + (p.presente ? " (presente p/ " + p.presente + ")" : ""), valor: reais(p.valor), cupom: p.cupom || "", validade: p.presente ? "código " + (p.voucher || "") : (p.dia >= DIA_VITALICIO ? "vitalício" : dataBr(p.dia)), email_ok: p.email_status === "enviado" })),
       modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção"
     });
   }
@@ -320,7 +427,7 @@ async function admin(req, url, env) {
     const dia = (b.somar ? Math.max(hoje(), await validadeAtual(env, codigo)) : hoje()) + dias;
     const chave = await assinarChave(env, codigo, dia);
     if (b.guardar !== false) await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, email: String(b.email || "").toLowerCase() }));
-    return json({ chave, validade: dataBr(dia) });
+    return json({ chave, validade: validadeTxt(dia) });
   }
   if (rota === "cupons" && req.method === "GET") {
     const nomes = await listar(env, "cupom:", 500);
@@ -343,6 +450,19 @@ async function admin(req, url, env) {
     return json({ ok: true });
   }
   if (rota === "reenviar" && req.method === "POST") return json(await reenviarEmails(env));
+  if (rota === "vencendo") {
+    const nomes = await listar(env, "chave:", 2000);
+    const l = (await Promise.all(nomes.map(async n => ({ codigo: n.slice(6), ...(await lerJson(env, n)) })))).filter(c => c.dia && c.dia < DIA_VITALICIO && c.dia >= hoje() - 3 && c.dia <= hoje() + 7);
+    return json({ vencendo: l.sort((a, b) => a.dia - b.dia).map(c => ({ codigo: c.codigo, email: c.email || "", validade: dataBr(c.dia), dias: c.dia - hoje() })) });
+  }
+  if (rota === "aviso" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const texto = String(b.texto || "").trim().slice(0, 240);
+    if (!texto) { await env.PCT.delete("aviso"); }
+    else await env.PCT.put("aviso", JSON.stringify({ id: Date.now(), texto, link: String(b.link || "").slice(0, 200) }));
+    try { await caches.default.delete(new Request("https://aviso.local/atual")); } catch (e) { }
+    return json({ ok: true });
+  }
   return json({ erro: "Não encontrado" }, 404);
 }
 
@@ -352,9 +472,16 @@ async function reenviarEmails(env) {
   let enviados = 0, faltam = 0;
   for (const n of nomes) {
     const p = await lerJson(env, n);
-    if (!p || p.status !== "pago" || p.email_status === "enviado" || !p.chave) continue;
+    if (!p || p.status !== "pago" || p.email_status === "enviado") continue;
+    if (p.presente && p.voucher) {
+      const pm = emailPresente(p, PLANOS[p.plano] || PLANOS.m1);
+      p.email_status = await mandarEmail(env, p.presente, pm.assunto, pm.html, pm.texto);
+      if (p.email_status === "enviado") { enviados++; await env.PCT.put(n, JSON.stringify(p)); } else faltam++;
+      continue;
+    }
+    if (!p.chave) continue;
     if (Date.parse(p.pagoEm) < Date.now() - 7 * DIA) continue;
-    const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano: (PLANOS[p.plano] || PLANOS.m1).nome, cupom: p.cupom, validade: dataBr(p.dia), dataPago: agoraBr() });
+    const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano: (PLANOS[p.plano] || PLANOS.m1).nome, cupom: p.cupom, validade: validadeTxt(p.dia), dataPago: agoraBr() });
     p.email_status = await mandarEmail(env, p.email, m.assunto, m.html, m.texto);
     if (p.email_status === "enviado") { enviados++; await env.PCT.put(n, JSON.stringify(p)); } else faltam++;
     if (faltam > 3) break;
@@ -397,7 +524,7 @@ export default {
     if (m === "OPTIONS") return new Response(null, { headers: CORS });
     try {
       if (p.startsWith("/admin/")) return await admin(req, url, env);
-      if (m === "GET" && p === "/planos") return planos();
+      if (m === "GET" && p === "/planos") return planos(url);
       if (m === "GET" && p === "/cupom") return await verCupom(url, env);
       if (m === "POST" && p === "/pedido") return await criarPedido(req, env, url.origin);
       if (m === "GET" && p === "/status") return await status(url, env);
@@ -407,6 +534,9 @@ export default {
       if (m === "POST" && p === "/troca/pedir") return await trocaPedir(req, env);
       if (m === "POST" && p === "/troca/confirmar") return await trocaConfirmar(req, env);
       if (m === "POST" && p === "/simular") return await simular(url, env);
+      if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
+      if (m === "GET" && p === "/aviso") return await avisoAtual(env);
+      if (m === "POST" && p === "/pesquisa") return await pesquisa(req, env);
       if (m === "GET" && p === "/versao") return await versao(env);
       if (m === "GET" && (p === "/apk" || p === "/baixar")) return await baixarApk(env);
       if (m === "GET" && (p === "/" || p === "/index.html")) return Response.redirect("https://serpyratoolkit.pages.dev/", 302);

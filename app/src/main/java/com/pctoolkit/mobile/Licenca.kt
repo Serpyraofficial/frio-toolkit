@@ -45,7 +45,7 @@ object Vendedor {
 /** Compra automatica: Pix pela PurinCash, chave por e-mail e ativacao sozinha. */
 object Compra {
     class Pedido(val id: String, val numero: String, val brCode: String, val qr: String, val teste: Boolean, val valor: String = "")
-    class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String)
+    class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String, val voucher: String = "", val para: String = "")
 
     private fun http(metodo: String, caminho: String, corpo: String?): Pair<Int, String> {
         val c = URL(Vendedor.SERVIDOR.trimEnd('/') + caminho).openConnection() as HttpURLConnection
@@ -57,24 +57,24 @@ object Compra {
         return Pair(code, t)
     }
 
-    class Plano(val id: String, val nome: String, val dias: Int, val centavos: Int) {
+    class Plano(val id: String, val nome: String, val dias: Int, val centavos: Int, val vitalicio: Boolean = false) {
         fun preco(c: Int = centavos) = "R$ " + String.format(Locale("pt", "BR"), "%.2f", c / 100.0).replace(".00", "").replace(",00", "")
-        fun porMes() = centavos * 30 / dias
+        fun porMes() = if (dias > 0) centavos * 30 / dias else centavos
     }
     val PLANOS_PADRAO = listOf(Plano("m1", "1 mês", 30, 1500), Plano("m3", "3 meses", 90, 3900), Plano("m6", "6 meses", 180, 6900))
 
     /** Planos do servidor (com os precos atuais); sem internet usa os padroes. */
     fun planos(): List<Plano> = try {
-        val (code, t) = http("GET", "/planos", null)
+        val (code, t) = http("GET", "/planos?v=2", null)
         if (code != 200) PLANOS_PADRAO else {
             val a = org.json.JSONObject(t).getJSONArray("planos")
-            (0 until a.length()).map { a.getJSONObject(it) }.map { Plano(it.getString("id"), it.getString("nome"), it.getInt("dias"), it.getInt("centavos")) }.ifEmpty { PLANOS_PADRAO }
+            (0 until a.length()).map { a.getJSONObject(it) }.map { Plano(it.getString("id"), it.getString("nome"), it.getInt("dias"), it.getInt("centavos"), it.optBoolean("vitalicio")) }.ifEmpty { PLANOS_PADRAO }
         }
     } catch (e: Exception) { PLANOS_PADRAO }
 
     /** Confere um cupom. Devolve o preco final em centavos, ou lanca erro com a mensagem. */
     fun cupom(codigo: String, plano: String): Int {
-        val (code, t) = http("GET", "/cupom?c=" + Uri.encode(codigo) + "&plano=" + plano, null)
+        val (code, t) = http("GET", "/cupom?c=" + Uri.encode(codigo) + "&plano=" + plano + "&codigo=" + Licenca.codigo(), null)
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
         if (code != 200 || !o.optBoolean("ok")) throw IllegalStateException(o.optString("erro", "Cupom inválido."))
         return o.getInt("centavos")
@@ -107,9 +107,9 @@ object Compra {
     }
 
     /** Cria o Pix. Devolve o pedido ou lanca erro com a mensagem para o usuario. */
-    fun criar(email: String, plano: String = "m1", cupom: String = ""): Pedido {
-        val atual = if (Licenca.ativo()) Licenca.diaValidade() else 0
-        val corpo = org.json.JSONObject().put("codigo", Licenca.codigo()).put("email", email).put("atual", atual).put("plano", plano).put("cupom", cupom).toString()
+    fun criar(email: String, plano: String = "m1", cupom: String = "", presente: String = ""): Pedido {
+        val atual = if (Licenca.ativo() && presente.isEmpty()) Licenca.diaValidade() else 0
+        val corpo = org.json.JSONObject().put("codigo", Licenca.codigo()).put("email", email).put("atual", atual).put("plano", plano).put("cupom", cupom).put("presente", presente).toString()
         val (code, t) = http("POST", "/pedido", corpo)
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
         if (code !in 200..299) throw IllegalStateException(o.optString("erro", "Não consegui gerar o Pix (erro $code)."))
@@ -126,7 +126,7 @@ object Compra {
             val (code, t) = http("GET", "/status?pedido=" + Uri.encode(id), null)
             if (code == 404) return Status(false, "", "", false, "desconhecido")
             val o = org.json.JSONObject(t)
-            Status(o.optString("status") == "pago", o.optString("chave"), o.optString("validade"), o.optBoolean("email"), o.optString("status"))
+            Status(o.optString("status") == "pago", o.optString("chave"), o.optString("validade"), o.optBoolean("email"), o.optString("status"), o.optString("voucher"), o.optString("para"))
         } catch (e: Exception) { null }
     }
 
@@ -137,7 +137,8 @@ object Compra {
         if (id.isEmpty()) return false
         val desde = Store.str("lic_pedido_em").toLongOrNull() ?: 0L
         val st = consultar(id) ?: return false
-        if (st.pago && st.chave.isNotEmpty()) { Licenca.ativar(st.chave); limpar(); return true }
+        if (st.pago && st.voucher.isNotEmpty()) { Store.putStr("ultimo_presente", st.voucher + " → " + st.para); limpar(); return true }
+        if (st.pago && st.chave.isNotEmpty()) { Licenca.ativar(st.chave); Store.putBool("lic_comprou", true); limpar(); return true }
         if (st.outro == "expired" || st.outro == "cancelled" || st.outro == "desconhecido" || System.currentTimeMillis() - desde > 2 * 86_400_000L) limpar()
         return false
     }
@@ -147,7 +148,7 @@ object Compra {
      * A chave so funciona neste aparelho, entao o servidor pode devolve-la pelo codigo.
      */
     fun restaurar(forcar: Boolean = false): Boolean {
-        if (!Vendedor.automatico() || Licenca.ativo()) return false
+        if (!Vendedor.automatico() || Licenca.vitalicio()) return false
         val ultima = Store.str("lic_rest_em").toLongOrNull() ?: 0L
         if (!forcar && System.currentTimeMillis() - ultima < 12 * 3_600_000L) return false
         Store.putStr("lic_rest_em", System.currentTimeMillis().toString())
@@ -155,9 +156,33 @@ object Compra {
             val (code, t) = http("GET", "/licenca?codigo=" + Licenca.codigo(), null)
             if (code != 200) return false
             val ch = org.json.JSONObject(t).optString("chave")
-            ch.isNotEmpty() && Licenca.ativar(ch).first
+            // ja ativo: so troca se a chave do servidor vale ate mais tarde (dias ganhos por indicacao, presente...)
+            if (ch.isEmpty() || (Licenca.ativo() && Licenca.conferir(ch) <= Licenca.diaValidade())) return false
+            val ok = Licenca.ativar(ch).first
+            if (ok) Store.putBool("lic_comprou", true)
+            ok
         } catch (e: Exception) { false }
     }
+
+    /** Resgata um codigo de presente neste celular. */
+    fun resgatar(voucher: String): Pair<Boolean, String> {
+        val (code, t) = try { http("POST", "/presente", org.json.JSONObject().put("codigo", Licenca.codigo()).put("voucher", voucher).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        if (code != 200) return Pair(false, o.optString("erro", "Não deu certo."))
+        val (ok, m) = Licenca.ativar(o.optString("chave"))
+        if (ok) Store.putBool("lic_comprou", true)
+        return Pair(ok, if (ok) "Presente ativado! Pro válido até ${o.optString("validade")}." else m)
+    }
+
+    /** Pesquisa rapida quando o Pro vence sem renovar. */
+    fun pesquisa(motivo: Int) { try { http("POST", "/pesquisa", org.json.JSONObject().put("codigo", Licenca.codigo()).put("motivo", motivo).toString()) } catch (e: Exception) { } }
+
+    /** Aviso do dono para todos (promocao, novidade). Devolve id|texto|link ou null. */
+    fun aviso(): Triple<Long, String, String>? = try {
+        val (code, t) = http("GET", "/aviso", null)
+        val o = org.json.JSONObject(t)
+        if (code == 200 && o.optString("texto").isNotBlank()) Triple(o.optLong("id"), o.optString("texto"), o.optString("link")) else null
+    } catch (e: Exception) { null }
 
     fun limpar() { for (k in listOf("lic_pedido", "lic_pedido_num", "lic_pedido_br", "lic_pedido_qr", "lic_pedido_em")) Store.putStr(k, "") }
 
@@ -255,8 +280,11 @@ object Licenca {
 
     fun diasRestantes(): Int { val d = diaValidade(); if (d <= 0) return 0; return (((d + 1L) * DIA - agoraConfiavel()) / DIA).toInt().coerceAtLeast(0) }
 
+    fun vitalicio(): Boolean = diaValidade() >= 20000
+
     fun validadeTexto(): String {
         val d = diaValidade(); if (d <= 0) return ""
+        if (d >= 20000) return "sempre (vitalício)"
         val f = SimpleDateFormat("dd/MM/yyyy", Locale.US); f.timeZone = TimeZone.getTimeZone("UTC")
         return f.format(Date(d * DIA))
     }
@@ -271,7 +299,7 @@ object Licenca {
         if (agoraConfiavel() >= (d + 1L) * DIA) return Pair(false, "Esta chave já venceu.")
         Store.putStr("lic_chave", chave.trim())
         try { AvisoPro.agendar(PcApp.ctx) } catch (e: Exception) { }
-        return Pair(true, "Pro ativado até ${validadeTexto()}!")
+        return Pair(true, if (vitalicio()) "Pro vitalício ativado!" else "Pro ativado até ${validadeTexto()}!")
     }
 
     // ---------------- Pix copia e cola (BR Code estatico) ----------------
@@ -341,7 +369,7 @@ fun MainActivity.telaPro() {
     Thread { Licenca.sincronizarHora() }.start()
     val col = coluna()
     val ativo = Licenca.ativo()
-    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "Teste grátis ou a partir de ${Vendedor.PRECO_TXT} por mês"))
+    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo && Licenca.vitalicio()) "Vitalício: não vence" else if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "Teste grátis ou a partir de ${Vendedor.PRECO_TXT} por mês"))
 
     // status
     val st = Ui.vertical(this)
@@ -349,14 +377,14 @@ fun MainActivity.telaPro() {
     st.background = Ui.gradiente(this, 0xFF0F2A22.toInt(), 0xFF101C30.toInt(), 22)
     val topo = Ui.horizontal(this)
     topo.addView(Ui.texto(this, if (ativo) "Pro ativo" else "Versão grátis", 20f, T.texto, Ui.negrito), Ui.peso())
-    topo.addView(Ui.chip(this, if (ativo) "${Licenca.diasRestantes()} dias" else "Pro bloqueado", if (ativo) (if (Licenca.diasRestantes() <= 3) T.amarelo else T.verde) else T.texto3))
+    topo.addView(Ui.chip(this, if (ativo && Licenca.vitalicio()) "Vitalício" else if (ativo) "${Licenca.diasRestantes()} dias" else "Pro bloqueado", if (ativo) (if (Licenca.diasRestantes() <= 3) T.amarelo else T.verde) else T.texto3))
     st.addView(topo)
     for (r in Pro.recursos) {
         val v = Ui.texto(this, (if (ativo) "✓  " else "🔒  ") + r, 13f, if (ativo) T.texto else T.texto2)
         v.setPadding(0, Ui.dp(this, 8), 0, 0)
         st.addView(v)
     }
-    if (ativo && Licenca.diasRestantes() <= 3) {
+    if (ativo && !Licenca.vitalicio() && Licenca.diasRestantes() <= 3) {
         val a = Ui.texto(this, "Sua assinatura vence em breve. Renove para não perder as funções.", 12.5f, T.amarelo)
         a.setPadding(0, Ui.dp(this, 10), 0, 0); st.addView(a)
     }
@@ -435,7 +463,58 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         col.addView(ct, Ui.linhaLp(this, 10))
     }
 
-    col.addView(Ui.secao(this, if (ativo) "Renovar (os dias se somam)" else "Assinar com Pix"))
+    // indique e ganhe
+    if (ativo) {
+        val ci = Ui.vertical(this)
+        ci.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
+        ci.background = Ui.gradiente(this, 0xFF2A2210.toInt(), 0xFF121821.toInt(), 18)
+        ci.addView(Ui.texto(this, "Indique e ganhe", 16f, T.texto, Ui.negrito))
+        ci.addView(Ui.texto(this, "Seu amigo ganha 10% de desconto com o seu código e você ganha 15 dias de Pro a cada compra dele" + (if (Licenca.vitalicio()) " (você já é vitalício, mas seu amigo ainda ganha o desconto)." else "."), 12.5f, T.texto2))
+        val codInd = "IND" + Licenca.codigo()
+        val ct = Ui.texto(this, codInd, 22f, T.amarelo, Typeface.MONOSPACE)
+        ct.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 4)); ct.setTextIsSelectable(true)
+        ci.addView(ct)
+        val bi = Ui.horizontal(this)
+        bi.addView(Ui.botao(this, "Copiar", T.amarelo, false) { copiar("indicacao", codInd) }, Ui.peso())
+        bi.addView(Ui.espaco(this, 10, 1))
+        bi.addView(Ui.botao(this, "Compartilhar", T.amarelo, true) {
+            val txt = "Uso o SerpyraToolkit para jogar melhor no celular (Modo Jogo, botões na tela, Modo Frio). Baixe em https://serpyratoolkit.pages.dev e use o cupom $codInd para ganhar 10% no Pro."
+            try { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, txt), "Indicar o SerpyraToolkit")) } catch (e: Exception) { }
+        }, Ui.peso())
+        ci.addView(bi, Ui.linhaLp(this, 8, 0))
+        ci.addView(Ui.texto(this, "Vale para quem já comprou ou ganhou o Pro (não vale no teste grátis).", 11.5f, T.texto3), Ui.linhaLp(this, 6, 0))
+        col.addView(ci, Ui.linhaLp(this, 10))
+    }
+
+    // codigo de presente
+    run {
+        val cg = Ui.vertical(this)
+        cg.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 16), Ui.dp(this, 14))
+        cg.background = Ui.forma(this, T.surface, 18, T.outline)
+        cg.addView(Ui.texto(this, "Tenho um código de presente 🎁", 14.5f, T.texto, Ui.medio))
+        val eg = EditText(this)
+        eg.hint = "PRE…"
+        eg.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+        eg.setTextColor(T.texto); eg.setHintTextColor(T.texto3)
+        val lg = Ui.horizontal(this)
+        lg.addView(eg, Ui.peso())
+        val mg = Ui.texto(this, "", 12.5f, T.texto2)
+        lateinit var bg: LinearLayout
+        bg = Ui.botao(this, "Ativar", T.verde, false) {
+            val v = eg.text.toString().trim().uppercase()
+            if (v.length < 6) { mg.text = "Digite o código que chegou no e-mail."; mg.setTextColor(T.amarelo); return@botao }
+            bg.isEnabled = false; mg.text = "Conferindo…"; mg.setTextColor(T.texto2)
+            Thread { val (ok, m) = Compra.resgatar(v); runOnUiThread { bg.isEnabled = !ok; mg.text = m; mg.setTextColor(if (ok) T.verde else T.amarelo); if (ok) mg.postDelayed({ mostrar() }, 1800) } }.start()
+        }
+        lg.addView(bg, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        cg.addView(lg, Ui.linhaLp(this, 4, 0))
+        cg.addView(mg)
+        Store.str("ultimo_presente").takeIf { it.isNotEmpty() }?.let { cg.addView(Ui.texto(this, "Último presente que você deu: $it", 11.5f, T.texto3), Ui.linhaLp(this, 6, 0)) }
+        col.addView(cg, Ui.linhaLp(this, 10))
+    }
+
+    val sempre = ativo && Licenca.vitalicio()
+    col.addView(Ui.secao(this, if (sempre) "Dar o Pro de presente" else if (ativo) "Renovar (os dias se somam)" else "Assinar com Pix"))
     val c = Ui.vertical(this)
     c.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
     c.background = Ui.forma(this, T.surface, 18, T.outline)
@@ -459,9 +538,9 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             linha.background = Ui.forma(this, if (sel) Ui.alpha(T.verde, 0x22) else T.surface2, 14, if (sel) T.verde else T.outline, if (sel) 2 else 1)
             val tx = Ui.vertical(this)
             tx.addView(Ui.texto(this, pl.nome, 15f, T.texto, Ui.medio))
-            tx.addView(Ui.texto(this, if (pl.dias > 30) "${pl.preco(pl.porMes())} por mês" else "Renove quando quiser", 12f, T.texto3))
+            tx.addView(Ui.texto(this, if (pl.vitalicio) "Paga uma vez e usa para sempre" else if (pl.dias > 30) "${pl.preco(pl.porMes())} por mês" else "Renove quando quiser", 12f, if (pl.vitalicio) T.amarelo else T.texto3))
             linha.addView(tx, Ui.peso())
-            val eco = if (base > 0) 100 - pl.porMes() * 100 / base else 0
+            val eco = if (base > 0 && !pl.vitalicio) 100 - pl.porMes() * 100 / base else 0
             if (eco >= 5) { linha.addView(Ui.chip(this, "−$eco%", T.verde)); linha.addView(Ui.espaco(this, 10, 1)) }
             linha.addView(Ui.texto(this, pl.preco(), 16f, if (sel) T.verde else T.texto, Ui.negrito))
             linha.isClickable = true
@@ -487,6 +566,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     ec.setTextColor(T.texto); ec.setHintTextColor(T.texto3)
     lc.addView(ec, Ui.peso())
     val msgCupom = Ui.texto(this, "", 12.5f, T.texto2)
+    if (ativo && !sempre && Licenca.diasRestantes() <= 7) { ec.setText("RENOVA10"); msgCupom.text = "Seu Pro vence em ${Licenca.diasRestantes()} dia(s): toque em Aplicar para ganhar 10% renovando agora."; msgCupom.setTextColor(T.amarelo) }
     lc.addView(Ui.botao(this, "Aplicar", T.verde, false) {
         val cod = ec.text.toString().trim()
         if (cod.isEmpty()) { msgCupom.text = "Digite o cupom."; msgCupom.setTextColor(T.amarelo); return@botao }
@@ -502,6 +582,24 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     c.addView(lc, Ui.linhaLp(this, 6, 0))
     c.addView(msgCupom)
+
+    // presente
+    val cbPres = android.widget.CheckBox(this)
+    cbPres.text = "É um presente para outra pessoa"
+    cbPres.setTextColor(T.texto)
+    cbPres.isChecked = sempre
+    if (sempre) cbPres.visibility = android.view.View.GONE
+    val ep = EditText(this)
+    ep.hint = "E-mail de quem vai ganhar"
+    ep.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+    ep.setTextColor(T.texto); ep.setHintTextColor(T.texto3)
+    ep.visibility = if (sempre) android.view.View.VISIBLE else android.view.View.GONE
+    val dicaPres = Ui.texto(this, "A pessoa recebe um código por e-mail e ativa no celular dela. O seu Pro não muda.", 12f, T.texto3)
+    dicaPres.visibility = ep.visibility
+    cbPres.setOnCheckedChangeListener { _, marcado -> val v = if (marcado) android.view.View.VISIBLE else android.view.View.GONE; ep.visibility = v; dicaPres.visibility = v }
+    c.addView(cbPres, Ui.linhaLp(this, 8, 0))
+    c.addView(ep)
+    c.addView(dicaPres)
 
     val area = Ui.vertical(this)
     val msg = Ui.texto(this, "", 13f, T.texto2)
@@ -541,7 +639,17 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             val fim = System.currentTimeMillis() + 30 * 60_000L
             while (vigiaPix == meu && System.currentTimeMillis() < fim) {
                 val st = Compra.consultar(id)
+                if (st != null && st.pago && st.voucher.isNotEmpty()) {
+                    Store.putStr("ultimo_presente", st.voucher + " → " + st.para)
+                    Compra.limpar()
+                    runOnUiThread {
+                        msg.text = "Pagamento confirmado! Mandamos o código de presente ${st.voucher} para ${st.para}." + if (st.emailEnviado) "" else "\nSe o e-mail não chegar, passe este código para a pessoa."
+                        msg.setTextColor(T.verde); area.removeAllViews()
+                    }
+                    return@Thread
+                }
                 if (st != null && st.pago && st.chave.isNotEmpty()) {
+                    Store.putBool("lic_comprou", true)
                     val (ok, m) = Licenca.ativar(st.chave)
                     Compra.limpar()
                     runOnUiThread {
@@ -564,11 +672,13 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     botao.setOnClickListener {
         val email = et.text.toString().trim()
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) { msg.text = "Digite um e-mail válido."; msg.setTextColor(T.vermelho); return@setOnClickListener }
+        val presente = if (cbPres.isChecked) ep.text.toString().trim() else ""
+        if (cbPres.isChecked && !android.util.Patterns.EMAIL_ADDRESS.matcher(presente).matches()) { msg.text = "Digite o e-mail de quem vai ganhar o presente."; msg.setTextColor(T.vermelho); return@setOnClickListener }
         msg.text = "Gerando o Pix…"; msg.setTextColor(T.texto2)
         botao.isEnabled = false
         Thread {
             try {
-                val p = Compra.criar(email, escolhido, cupomOk)
+                val p = Compra.criar(email, escolhido, cupomOk, presente)
                 runOnUiThread { botao.isEnabled = true; mostrarPix(p.numero, p.brCode, p.qr, p.teste); vigiar(p.id) }
             } catch (e: Exception) {
                 runOnUiThread { botao.isEnabled = true; msg.text = e.message ?: "Sem conexão. Tente de novo."; msg.setTextColor(T.vermelho) }

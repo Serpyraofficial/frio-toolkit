@@ -1,8 +1,6 @@
-- Modelos prontos de botões para Free Fire, PUBG, COD, Roblox e MOBA: escolha o jogo e só ajuste
-- Modo campeonato: bloqueia chamadas e notificações, trava o brilho e avisa se a internet oscilar
-- Relatório da partida com ping e comparação com a partida anterior, e resumo por jogo no histórico
-- Internet para jogos: descubra se o lag vem do Wi-Fi ou da internet
-- Modo bateria para jogar longe da tomada
-- Backup das configurações: leve seus botões e perfis para outro celular
-- Cuidados automáticos: limpeza semanal e alertas de calor e de app pesado
-- Mira com imagem sua, gravar a tela, conquistas, letra maior e ajuda em cada tela
+- Pro vitalício: paga uma vez e não vence mais
+- Dê o Pro de presente: a pessoa recebe um código por e-mail
+- Indique e ganhe: seu amigo ganha 10% e você ganha 15 dias de Pro a cada compra dele
+- 10% de desconto para renovar quando o Pro está perto de vencer
+- Avisos e promoções aparecem na tela inicial
+- Tudo da 5.7: modelos prontos de botões, Modo campeonato, relatório da partida, backup e mais

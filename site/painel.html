@@ -28,6 +28,12 @@ h2{font-size:20px;font-weight:600;margin:34px 0 12px;letter-spacing:-.01em}
 .num b{display:block;font-size:30px;font-weight:600;letter-spacing:-.02em;font-variation-settings:"opsz" 60,"wdth" 90;line-height:1.15}
 .num i{font-style:normal;color:var(--t3);font-size:13.5px}
 .caixa{background:var(--branco);border:1px solid var(--linha);border-radius:16px;padding:18px}
+.grafico{display:flex;align-items:flex-end;gap:3px;height:150px;padding-top:8px}
+.grafico div{flex:1;background:var(--menta);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.grafico div.zero{background:var(--linha)}
+.grafico div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;font-size:12px;padding:3px 7px;border-radius:6px;white-space:nowrap;margin-bottom:4px}
+.eixo{display:flex;justify-content:space-between;color:var(--t3);font-size:12px;margin-top:6px}
+.barra-motivo{height:8px;background:var(--azul);border-radius:4px;margin:3px 0 10px}
 .linha{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 label{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--t2)}
 input,select{font:inherit;font-size:15px;border:1px solid #CBD2DC;border-radius:10px;padding:9px 11px;min-width:0;background:#fff;color:var(--tinta)}
@@ -73,6 +79,29 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
   <div class="num"><small>Desde o início</small><b id="n-tudo">–</b><i id="v-tudo"></i></div>
  </div>
  <p class="msg" id="extra"></p>
+
+ <h2>Vendas por dia (últimos 30 dias)</h2>
+ <div class="caixa"><div class="grafico" id="graf"></div><div class="eixo"><span id="gIni"></span><span>passe o mouse ou toque numa barra</span><span>hoje</span></div></div>
+
+ <div class="grid2">
+  <div>
+   <h2>Aviso para todos no app</h2>
+   <div class="caixa">
+    <label>Texto (aparece no topo da tela inicial do app)<input id="aTxt" maxlength="240" placeholder="Ex.: Promoção de Natal: 20% com o cupom NATAL"></label>
+    <label style="margin-top:10px">Link ao tocar (opcional, começando com https://)<input id="aLink" placeholder="https://..."></label>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="b" id="btAviso">Publicar aviso</button><button class="b l" id="btTirar">Tirar aviso</button></div>
+    <div class="msg" id="msgAviso"></div>
+   </div>
+  </div>
+  <div>
+   <h2>Por que não renovaram</h2>
+   <div class="caixa" id="pesq"></div>
+  </div>
+ </div>
+
+ <h2>Vencendo nos próximos 7 dias</h2>
+ <div class="caixa rolar"><table><thead><tr><th>Celular</th><th>E-mail</th><th>Vence</th><th></th></tr></thead><tbody id="tVence"></tbody></table>
+ <p class="msg">O app já oferece 10% de desconto (cupom RENOVA10) para quem está a 7 dias de vencer.</p></div>
 
  <div class="grid2">
   <div>
@@ -136,6 +165,16 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
       var ex=[];
       if(planos) ex.push('Por plano: '+planos+'.');
       if(r.pendentes) ex.push(r.pendentes+' Pix gerados e não pagos.');
+      if(r.indicacoes) ex.push(r.indicacoes+' venda(s) por indicação.');
+      var d30=r.dias30||[], mx=Math.max.apply(null,d30.map(function(x){return x.centavos}).concat([1]));
+      $('graf').innerHTML=d30.map(function(x){var h=Math.round(x.centavos*100/mx);return '<div class="'+(x.vendas?'':'zero')+'" style="height:'+Math.max(h,2)+'%" data-t="'+esc(x.dia)+': '+x.vendas+' venda(s) · R$ '+(x.centavos/100).toFixed(2).replace('.',',')+'"></div>'}).join('');
+      $('gIni').textContent=d30.length?d30[0].dia:'';
+      var pq=r.pesquisa||{}, tot=Object.keys(pq).reduce(function(t,k){return t+pq[k]},0);
+      $('pesq').innerHTML=tot?Object.keys(pq).sort(function(a,b){return pq[b]-pq[a]}).map(function(k){return '<div>'+esc(k)+' <b>'+pq[k]+'</b></div><div class="barra-motivo" style="width:'+Math.round(pq[k]*100/tot)+'%"></div>'}).join(''):'<p class="vazio">Ninguém respondeu ainda. A pergunta aparece no app quando o Pro comprado vence.</p>';
+      if(r.aviso&&r.aviso.texto){$('aTxt').value=r.aviso.texto;$('aLink').value=r.aviso.link||'';msg($('msgAviso'),'Aviso no ar.','ok')}
+      api('GET','/admin/vencendo').then(function(v){
+        $('tVence').innerHTML=v.vencendo.length?v.vencendo.map(function(x){return '<tr><td>'+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.validade)+' ('+(x.dias<0?'venceu':x.dias===0?'hoje':'em '+x.dias+' dia(s)')+')</td><td>'+(x.email?'<a class="b l" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.email)+'?subject='+encodeURIComponent('Seu SerpyraToolkit Pro está vencendo')+'&body='+encodeURIComponent('Oi! Seu Pro vence em '+x.validade+'. Renovando pelo app agora você ganha 10% com o cupom RENOVA10.')+'">Mandar e-mail</a>':'')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="vazio">Ninguém vencendo nos próximos dias.</td></tr>';
+      }).catch(function(){});
       $('extra').innerHTML=esc(ex.join(' '))+(r.emailsPendentes?' <b>'+r.emailsPendentes+' e-mail(s) não enviados</b> (o servidor tenta de novo todo dia). <button class="b l" id="btReenviar" style="padding:4px 10px;margin-left:6px">Tentar agora</button>':'');
       var bt=$('btReenviar'); if(bt) bt.onclick=function(){bt.disabled=true;api('POST','/admin/reenviar').then(function(x){alert(x.enviados+' enviado(s).');carregar()}).catch(function(e){alert(e.message);bt.disabled=false})};
       $('tVendas').innerHTML=r.ultimas.length?r.ultimas.map(function(v){
@@ -168,6 +207,9 @@ td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
     api('POST','/admin/cupom',{codigo:$('cCod').value,pct:$('cPct').value,limite:$('cLim').value,dono:$('cDono').value}).then(function(){msg($('msgCupom'),'Cupom salvo.','ok');carregar()})
       .catch(function(e){msg($('msgCupom'),e.message,'erro')}).finally(function(){b.disabled=false});
   };
+
+  $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};
+  $('btTirar').onclick=function(){$('aTxt').value='';$('btAviso').click()};
 
   if(token) carregar().catch(function(){mostrar(false)}); else mostrar(false);
 })();

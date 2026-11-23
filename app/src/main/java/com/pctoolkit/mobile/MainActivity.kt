@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Typeface
@@ -215,6 +216,16 @@ class MainActivity : Activity() {
         }
         Automatico.agendar(this)
         Thread { Conquistas.conferir() }.start()
+        if (Vendedor.automatico()) Thread {
+            val ult = Store.str("aviso_em").toLongOrNull() ?: 0L
+            if (System.currentTimeMillis() - ult > 30 * 60_000L) {
+                Store.putStr("aviso_em", System.currentTimeMillis().toString())
+                val a = Compra.aviso()
+                Store.putStr("aviso_id", a?.first?.toString() ?: ""); Store.putStr("aviso_texto", a?.second ?: ""); Store.putStr("aviso_link", a?.third ?: "")
+                runOnUiThread { atualizarInicio() }
+            }
+        }.start()
+        perguntarMotivo()
         AvisoPro.agendar(this)
         if (Vendedor.automatico() && Store.str("lic_pedido").isNotEmpty()) Thread { if (Compra.conferirPendente()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
         else if (Vendedor.automatico() && !Licenca.ativo()) Thread { if (Compra.restaurar()) runOnUiThread { if (!naTarefa) mostrar() } }.start()
@@ -280,6 +291,17 @@ class MainActivity : Activity() {
         naTarefa = false
         val render: () -> Unit = pilha[pilha.size - 1]
         render()
+    }
+
+    /** Quando o Pro comprado vence sem renovar: uma pergunta rapida, uma vez por vencimento. */
+    private fun perguntarMotivo() {
+        val d = Licenca.diaValidade()
+        if (!Vendedor.automatico() || d <= 0 || Licenca.ativo() || !Store.bool("lic_comprou", false) || Store.int("pesquisa_dia", 0) == d) return
+        Store.putInt("pesquisa_dia", d)
+        val motivos = arrayOf("Achei caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro motivo")
+        AlertDialog.Builder(this).setTitle("Seu Pro venceu. Pode contar por que não renovou?")
+            .setItems(motivos) { _, i -> Thread { Compra.pesquisa(i) }.start(); Toast.makeText(this, "Obrigado! Isso ajuda a melhorar o app.", Toast.LENGTH_SHORT).show() }
+            .setNegativeButton("Agora não", null).show()
     }
 
     /** Redesenha a tela inicial se ela estiver aberta (ex.: chegou aviso de atualizacao). */
@@ -402,6 +424,22 @@ class MainActivity : Activity() {
             av.addView(Ui.chip(this, "Atualizar", T.azul))
             av.isClickable = true
             av.setOnClickListener { Atualizador.oferecer(this, up) }
+            col.addView(av, Ui.linhaLp(this, 0, 14))
+        }
+
+        // aviso do dono (promocao, novidade)
+        val avTxt = Store.str("aviso_texto"); val avId = Store.str("aviso_id")
+        if (avTxt.isNotEmpty() && avId != Store.str("aviso_fechado")) {
+            val av = Ui.horizontal(this)
+            av.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12))
+            av.background = Ui.clicavel(this, Ui.forma(this, Ui.alpha(T.amarelo, 0x22), 18, T.amarelo), 18)
+            av.addView(Ui.texto(this, "📣  $avTxt", 13.5f, T.texto, Ui.medio), Ui.peso())
+            val x = Ui.texto(this, "  ✕  ", 16f, T.texto2, Ui.negrito)
+            x.setOnClickListener { Store.putStr("aviso_fechado", avId); mostrar() }
+            av.addView(x)
+            val link = Store.str("aviso_link")
+            av.isClickable = true
+            av.setOnClickListener { if (link.startsWith("https://")) try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) } catch (e: Exception) { } else abrirTela { telaPro() } }
             col.addView(av, Ui.linhaLp(this, 0, 14))
         }
 
