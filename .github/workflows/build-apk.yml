@@ -58,7 +58,8 @@ jobs:
           SHA=$(sha256sum app/build/outputs/apk/release/app-release.apk | cut -d' ' -f1)
           ARQ="SerpyraToolkit-$NOME-${SHA:0:10}.apk"
           ANTIGO=$(python3 -c "import json;print(json.load(open('apk/versao.json')).get('arquivo',''))" 2>/dev/null || true)
-          for f in apk/SerpyraToolkit*.apk; do [ -e "$f" ] || continue; b=$(basename "$f"); [ "$b" = "$ANTIGO" ] || { [ -z "$ANTIGO" ] && [ "$b" = "SerpyraToolkit.apk" ]; } || git rm -q --ignore-unmatch "$f" || rm -f "$f"; done
+          # guarda so a versao anterior (quem esta no meio de um download) e a nova; apaga qualquer outro .apk
+          for f in apk/*.apk; do [ -e "$f" ] || continue; b=$(basename "$f"); [ "$b" = "$ANTIGO" ] || git rm -q --ignore-unmatch "$f" || rm -f "$f"; done
           cp app/build/outputs/apk/release/app-release.apk "apk/$ARQ"
           TAM=$(stat -c %s "apk/$ARQ")
           python3 - "$CODE" "$NOME" "$SHA" "$TAM" "$ARQ" <<'PY'
