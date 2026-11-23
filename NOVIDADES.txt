@@ -1,1 +1,3 @@
-- Foto do tutorial do Shizuku atualizada, com os 5 itens que precisam ficar ligados
+- Download da atualização aguenta internet fraca: se a conexão cair, tenta de novo e continua de onde parou
+- Faixa de promoção mostra a frase inteira, mesmo quando é maior que a tela
+- Botões de um amigo: se o celular não deixar colar sozinho, aparece um campo para colar o código

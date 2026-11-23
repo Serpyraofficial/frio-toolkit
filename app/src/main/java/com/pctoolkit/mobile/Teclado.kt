@@ -977,8 +977,21 @@ class TecladoService : Service() {
                     val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     val txt = try { cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: "" } catch (e: Exception) { "" }
                     val novos = CompartilharBotoes.ler(txt)
-                    if (novos == null) mostrarDialogo(dialogo().setTitle("Usar botões de um amigo").setMessage("Copie a mensagem inteira que o seu amigo mandou (começa com SERPYRA-BOTOES:) e toque aqui de novo.").setPositiveButton("OK", null).create())
-                    else mostrarDialogo(dialogo().setTitle("Usar ${novos.size} botões do seu amigo?").setMessage("Os botões atuais deste jogo serão trocados.").setPositiveButton("Usar") { _, _ -> lista.clear(); lista.addAll(novos); edSel = null; depois(); toast("Botões do amigo colocados. Toque em Salvar.") }.setNegativeButton("Cancelar", null).create())
+                    val usar: (MutableList<Controle>) -> Unit = { nv ->
+                        mostrarDialogo(dialogo().setTitle("Usar ${nv.size} botões do seu amigo?").setMessage("Os botões atuais deste jogo serão trocados.").setPositiveButton("Usar") { _, _ -> lista.clear(); lista.addAll(nv); edSel = null; depois(); toast("Botões do amigo colocados. Toque em Salvar.") }.setNegativeButton("Cancelar", null).create())
+                    }
+                    if (novos != null) usar(novos)
+                    else {
+                        // o Android pode nao deixar ler o que foi copiado por cima do jogo: deixa colar a mao
+                        val campo = EditText(ContextThemeWrapper(this, R.style.TemaDialogo))
+                        campo.hint = "Cole aqui (começa com SERPYRA-BOTOES:)"
+                        campo.maxLines = 4; campo.setTextColor(T.texto)
+                        mostrarDialogo(dialogo().setTitle("Usar botões de um amigo").setMessage("Segure o dedo no campo abaixo e toque em Colar.").setView(campo)
+                            .setPositiveButton("Usar") { _, _ ->
+                                val l = CompartilharBotoes.ler(campo.text.toString())
+                                if (l == null) toast("Código inválido. Copie a mensagem inteira que o seu amigo mandou.") else usar(l)
+                            }.setNegativeButton("Cancelar", null).create())
+                    }
                 }
             }
         }.create())

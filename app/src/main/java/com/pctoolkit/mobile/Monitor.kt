@@ -157,7 +157,10 @@ object Promo {
         tv.setTextColor(T.texto); tv.textSize = 14.5f * Letra.escala; tv.typeface = Ui.negrito
         tv.isSingleLine = true
         tv.setHorizontallyScrolling(true)
-        caixa.addView(tv, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL or Gravity.START))
+        // largura do texto inteiro: sem isso, frase maior que a tela ficava cortada no meio da faixa
+        tv.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        tv.visibility = View.INVISIBLE
+        caixa.addView(tv, FrameLayout.LayoutParams(tv.measuredWidth, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL or Gravity.START))
         caixa.isClickable = true
         caixa.setOnClickListener {
             if (d.cupom.isNotEmpty()) Store.putStr("cupom_pendente", d.cupom)
@@ -174,6 +177,7 @@ object Promo {
             anim.repeatCount = ValueAnimator.INFINITE
             anim.interpolator = LinearInterpolator()
             anim.addUpdateListener { tv.translationX = it.animatedValue as Float }
+            tv.translationX = larg; tv.visibility = View.VISIBLE
             anim.start()
             caixa.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                 override fun onViewAttachedToWindow(v: View) {}

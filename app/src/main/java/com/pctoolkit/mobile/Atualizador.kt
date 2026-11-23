@@ -22,7 +22,7 @@ import java.security.MessageDigest
  * a autorizacao do usuario para instalar por cima. Configuracoes e a licenca Pro continuam.
  */
 object Atualizador {
-    class Info(val codigo: Int, val nome: String, val notas: String, val sha256: String, val tamanho: Long)
+    class Info(val codigo: Int, val nome: String, val notas: String, val sha256: String, val tamanho: Long, val arquivo: String = "")
 
     private const val INTERVALO = 45_000L   // confere sempre que o app abre ou volta (no maximo 1x a cada 45 s)
     private const val JOB = 4343
@@ -96,12 +96,8 @@ object Atualizador {
         if (arq.exists() && (i.sha256.isBlank() || sha256(arq).equals(i.sha256, true))) return arq
         ctx.filesDir.listFiles()?.filter { it.name.startsWith("atualizacao-") }?.forEach { it.delete() }
         return try {
-            val c = URL(Vendedor.SERVIDOR.trimEnd('/') + "/apk").openConnection() as HttpURLConnection
-            c.connectTimeout = 15000; c.readTimeout = 30000
-            if (c.responseCode != 200) { c.disconnect(); return null }
             val tmp = File(ctx.filesDir, "atualizacao-${i.codigo}.parte")
-            c.inputStream.use { inp -> tmp.outputStream().use { inp.copyTo(it, 64 * 1024) } }
-            c.disconnect()
+            if (!baixarRetomando(tmp, i, { false }, { })) return null
             if (i.sha256.isNotBlank() && !sha256(tmp).equals(i.sha256, true)) { tmp.delete(); return null }
             val pkg = ctx.packageManager.getPackageArchiveInfo(tmp.path, 0)
             if (pkg == null || pkg.packageName != ctx.packageName) { tmp.delete(); return null }
@@ -208,7 +204,7 @@ object Atualizador {
             if (c.responseCode != 200) { c.disconnect(); return null }
             val o = org.json.JSONObject(c.inputStream.bufferedReader().readText()); c.disconnect()
             Store.putStr("upd_ultima", System.currentTimeMillis().toString())
-            val i = Info(o.optInt("versionCode"), o.optString("versionName"), o.optString("notas"), o.optString("sha256"), o.optLong("tamanho"))
+            val i = Info(o.optInt("versionCode"), o.optString("versionName"), o.optString("notas"), o.optString("sha256"), o.optLong("tamanho"), o.optString("arquivo"))
             if (i.codigo == atual()) Store.putStr("upd_notas_atual", i.notas)
             if (i.codigo > atual()) { guardar(i); i } else { Store.putStr("upd_codigo", ""); null }
         } catch (e: Exception) { null }
@@ -216,14 +212,14 @@ object Atualizador {
 
     private fun guardar(i: Info) {
         Store.putStr("upd_codigo", i.codigo.toString()); Store.putStr("upd_nome", i.nome); Store.putStr("upd_notas", i.notas)
-        Store.putStr("upd_sha", i.sha256); Store.putStr("upd_tam", i.tamanho.toString())
+        Store.putStr("upd_sha", i.sha256); Store.putStr("upd_tam", i.tamanho.toString()); Store.putStr("upd_arq", i.arquivo)
     }
 
     /** Versao nova ja conhecida (para o aviso fixo na tela inicial), sem usar a internet. */
     fun pendente(): Info? {
         val c = Store.str("upd_codigo").toIntOrNull() ?: return null
         if (c <= atual()) return null
-        return Info(c, Store.str("upd_nome"), Store.str("upd_notas"), Store.str("upd_sha"), Store.str("upd_tam").toLongOrNull() ?: 0L)
+        return Info(c, Store.str("upd_nome"), Store.str("upd_notas"), Store.str("upd_sha"), Store.str("upd_tam").toLongOrNull() ?: 0L, Store.str("upd_arq"))
     }
 
     /** Ao abrir ou voltar para o app: confere (no maximo a cada 10 min). Mostra a janela uma vez por versao; o aviso fixo fica na tela inicial. */
@@ -337,7 +333,7 @@ object Atualizador {
         }
         con.linha("Baixando a versão ${i.nome}...", T.texto2)
         val arq = File(ctx.cacheDir, "atualizacao.apk")
-        try { baixar(con, arq, i.tamanho) } catch (e: Exception) { con.erro("Falha no download: " + (e.message ?: "sem internet")); arq.delete(); return }
+        try { baixar(con, arq, i) } catch (e: Exception) { con.erro("Falha no download: " + (e.message ?: "sem internet")); arq.delete(); return }
         if (con.cancelado) { arq.delete(); return }
         if (i.sha256.isNotBlank() && !sha256(arq).equals(i.sha256, true)) { con.erro("O arquivo baixado veio corrompido. Tente de novo."); arq.delete(); return }
         val pkg = ctx.packageManager.getPackageArchiveInfo(arq.path, 0)
@@ -358,23 +354,52 @@ object Atualizador {
         try { instalar(ctx, arq) } catch (e: Exception) { con.erro("Não consegui abrir o instalador: " + e.message) }
     }
 
-    private fun baixar(con: Console, destino: File, esperado: Long) {
-        val c = URL(Vendedor.SERVIDOR.trimEnd('/') + "/apk").openConnection() as HttpURLConnection
-        c.connectTimeout = 15000; c.readTimeout = 30000
-        if (c.responseCode != 200) throw IllegalStateException("servidor respondeu ${c.responseCode}")
-        val total = if (c.contentLengthLong > 0) c.contentLengthLong else esperado
-        var lido = 0L; var ultimo = -1
-        c.inputStream.use { inp -> destino.outputStream().use { out ->
-            val buf = ByteArray(64 * 1024)
-            while (true) {
-                if (con.cancelado) break
-                val n = inp.read(buf); if (n < 0) break
-                out.write(buf, 0, n); lido += n
-                if (total > 0) { val pct = (lido * 100 / total).toInt() / 25 * 25; if (pct != ultimo && pct in 25..75) { ultimo = pct; con.info("$pct%") } }
-            }
-        } }
-        c.disconnect()
-        if (total > 0 && lido < total && !con.cancelado) throw IllegalStateException("download incompleto")
+    private fun baixar(con: Console, destino: File, i: Info) {
+        var ultimo = -1
+        val ok = baixarRetomando(destino, i, { con.cancelado }, { pct ->
+            val p = pct / 25 * 25
+            if (p != ultimo && p in 25..75) { ultimo = p; con.info("$p%") }
+        }, { tent -> con.aviso("A conexão caiu. Tentando de novo e continuando de onde parou ($tent de 5)...") })
+        if (!ok && !con.cancelado) throw IllegalStateException("a internet caiu várias vezes. Tente de novo num lugar com sinal melhor")
+    }
+
+    /**
+     * Baixa o APK aguentando internet fraca: ate 5 tentativas e, se a conexao cair no meio,
+     * continua de onde parou (o GitHub aceita pedir so o pedaco que falta).
+     */
+    fun baixarRetomando(destino: File, i: Info, cancelado: () -> Boolean, progresso: (Int) -> Unit, novaTentativa: (Int) -> Unit = {}): Boolean {
+        destino.delete()
+        val servidor = Vendedor.SERVIDOR.trimEnd('/') + "/apk"
+        val direto = if (i.arquivo.isNotBlank()) "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/apk/" + i.arquivo else ""
+        for (tent in 1..5) {
+            if (cancelado()) return false
+            val ja = destino.length()
+            val url = when { ja > 0 && direto.isNotEmpty() -> direto; tent % 2 == 0 && direto.isNotEmpty() -> direto; else -> servidor }
+            try {
+                val c = URL(url).openConnection() as HttpURLConnection
+                c.connectTimeout = 15000; c.readTimeout = 25000
+                if (ja > 0 && url == direto) c.setRequestProperty("Range", "bytes=$ja-")
+                val code = c.responseCode
+                if (code != 200 && code != 206) { c.disconnect(); throw IllegalStateException("resposta $code") }
+                val continuar = code == 206
+                val total = if (c.contentLengthLong > 0) (if (continuar) ja + c.contentLengthLong else c.contentLengthLong) else i.tamanho
+                var lido = if (continuar) ja else 0L
+                c.inputStream.use { inp -> java.io.FileOutputStream(destino, continuar).use { out ->
+                    val buf = ByteArray(64 * 1024)
+                    while (true) {
+                        if (cancelado()) break
+                        val n = inp.read(buf); if (n < 0) break
+                        out.write(buf, 0, n); lido += n
+                        if (total > 0) progresso((lido * 100 / total).toInt())
+                    }
+                } }
+                c.disconnect()
+                if (cancelado()) return false
+                if (total <= 0 || destino.length() >= total) return true
+            } catch (e: Exception) { Log2.registrar("download tentativa $tent: $e") }
+            if (tent < 5) { novaTentativa(tent + 1); try { Thread.sleep(2000L * tent) } catch (x: InterruptedException) { } }
+        }
+        return false
     }
 
     fun sha256(f: File): String {
