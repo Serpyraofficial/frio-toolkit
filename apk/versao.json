@@ -1,8 +1,8 @@
 {
- "versionCode": 60,
- "versionName": "5.9",
- "notas": "- Botões na tela corrigidos: quando o círculo fica em cima do botão do jogo, o toque agora chega ao jogo (antes o próprio círculo \"engolia\" o toque)\n- Turbo e Liga/desliga afastam o círculo do ponto do jogo sozinhos, e o editor avisa quando um botão esconde o ponto de outro\n- Toda mudança de configuração agora é conferida: o app só diz \"pronto\" se o Android realmente aceitou\n- Liberar memória funciona no Android 14+ (com o modo automático) e mostra quanto liberou de verdade\n- Limpeza conta só o que foi realmente apagado e mostra o espaço liberado do cache\n- DNS mais rápido testa a internet depois de trocar e volta sozinho se a rede bloquear\n- Raio-X: taxa da tela avaliada pelo limite configurado (telas adaptativas não aparecem mais como erro)\n- Desfazer guarda o que não conseguiu voltar para tentar de novo",
- "sha256": "d5d65371303a6b6de5b1d788a25c96b0a972901abffb80430e7320813047717b",
- "tamanho": 1184701,
- "arquivo": "SerpyraToolkit-5.9-d5d6537130.apk"
+ "versionCode": 61,
+ "versionName": "5.9.1",
+ "notas": "- Aviso de atualização mais rápido: o app confere sempre que é aberto\n- Notificação \"Atualização disponível\" mesmo com o app fechado (confere a cada 2 horas)\n- Tudo da 5.9: botões na tela corrigidos e ajustes conferidos de verdade",
+ "sha256": "6f8e970cbb1a14f3c23aa16d93265d2a2fd08cb38bff8d31d141951a46d73c15",
+ "tamanho": 1186257,
+ "arquivo": "SerpyraToolkit-5.9.1-6f8e970cbb.apk"
 }
