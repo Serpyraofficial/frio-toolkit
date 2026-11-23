@@ -76,10 +76,20 @@ object Compra {
 
     /** Confere um cupom. Devolve o preco final em centavos, ou lanca erro com a mensagem. */
     fun cupom(codigo: String, plano: String): Int {
-        val (code, t) = http("GET", "/cupom?c=" + Uri.encode(codigo) + "&plano=" + plano + "&codigo=" + Licenca.codigo(), null)
+        val cod = codigo.trim().uppercase().replace(" ", "")
+        val (code, t) = try { http("GET", "/cupom?c=" + Uri.encode(cod) + "&plano=" + plano + "&codigo=" + Licenca.codigo(), null) } catch (e: Exception) { throw IllegalStateException("Sem internet para conferir o cupom. Tente de novo.") }
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
-        if (code != 200 || !o.optBoolean("ok")) throw IllegalStateException(o.optString("erro", "Cupom inválido."))
-        return o.getInt("centavos")
+        if (code == 200 && o.optBoolean("ok")) return o.getInt("centavos")
+        // explica o motivo de verdade (o servidor responde igual para todos os casos)
+        throw IllegalStateException(when {
+            code >= 500 || code == 0 -> "O servidor não respondeu. Tente de novo em instantes."
+            cod == "IND" + Licenca.codigo() -> "Esse é o SEU código de indicação: ele serve para os seus amigos, não vale no seu próprio celular."
+            Regex("^IND[A-Z2-9]{8}$").matches(cod) -> "Esse código de indicação ainda não está valendo. Quem indicou precisa ter o Pro comprado e abrir o app atualizado uma vez."
+            cod.startsWith("IND") -> "Código de indicação incompleto. Ele tem IND + 8 letras/números (ex.: INDABCD2345)."
+            cod == "RENOVA10" -> "O RENOVA10 só vale para renovar um Pro comprado que vence em até 7 dias."
+            cod.startsWith("PRE") || cod.startsWith("PCT") -> "Isso não é cupom: é um código de presente ou uma chave. Cole em “Tem um código?”, mais abaixo."
+            else -> "O cupom $cod não existe, foi pausado ou já atingiu o limite de usos. Confira as letras."
+        })
     }
 
     /** Teste gratis do Pro (uma vez por celular). Devolve a mensagem para o usuario. */
@@ -610,7 +620,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
                 runOnUiThread { precoCupom = v; cupomOk = cod; Store.putStr("cupom_pendente", ""); msgCupom.text = "Cupom $cod aplicado: " + (pl?.let { "${it.preco()} → ${it.preco(v)}" } ?: ""); msgCupom.setTextColor(T.verde); botaoTxt() }
             } catch (e: Exception) {
                 Store.putStr("cupom_pendente", "")
-                runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = (e.message ?: "Cupom inválido.") + if (cod.startsWith("IND")) " (o código de indicação só vale se quem indicou já tiver o Pro comprado, e não vale o seu próprio)" else ""; msgCupom.setTextColor(T.vermelho); botaoTxt() }
+                runOnUiThread { precoCupom = -1; cupomOk = ""; msgCupom.text = e.message ?: "Cupom inválido."; msgCupom.setTextColor(T.vermelho); botaoTxt() }
             }
         }.start()
     }
