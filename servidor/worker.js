@@ -202,6 +202,7 @@ async function validadeAtual(env, codigo) {
   return parseInt((await env.PCT.get("lic:" + codigo)) || "0", 10) || 0;
 }
 
+async function avisarDono(env, p, plano) { try { const ti = (p.presente ? "🎁 Presente vendido: " : "💰 Nova venda: ") + reais(p.valor) + " · " + plano; const linhas = [["Plano", plano + (p.presente ? " (presente para " + p.presente + ")" : "")], ["Valor", reais(p.valor)], ["Cliente", p.email], ["Celular", p.codigo ? p.codigo.slice(0, 4) + "-" + p.codigo.slice(4) : "—"], ["Cupom", p.cupom || "—"], ["Pedido", p.numero], ["Quando", agoraBr()]]; const html = moldura(ti, "Pix confirmado. O cliente já recebeu a chave por e-mail.", `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">` + linhas.map(([a, b]) => `<tr><td style="color:#9AA8BA">${a}</td><td align="right">${esc(b)}</td></tr>`).join("") + `</table></div><a href="https://serpyratoolkit.pages.dev/painel" style="color:#3DDC97">Abrir o painel de vendas</a>`); await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, ti, html, ti + "\n" + linhas.map(l => l.join(": ")).join("\n")); } catch (e) { } }
 async function liberar(env, id, valorPago) {
   const p = await lerJson(env, "pedido:" + id);
   if (!p) return null;
@@ -216,6 +217,7 @@ async function liberar(env, id, valorPago) {
   const plano = (PLANOS[p.plano] || PLANOS.m1).nome;
   const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano, cupom: p.cupom, validade: validadeTxt(dia), dataPago: agoraBr() });
   p.email_status = await mandarEmail(env, p.email, m.assunto, m.html, m.texto);
+  await avisarDono(env, p, plano);
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
   await env.PCT.put("chave:" + p.codigo, JSON.stringify({ chave: p.chave, dia, email: p.email }));
   const em = (await lerJson(env, "email:" + p.email)) || {};
@@ -258,6 +260,7 @@ async function liberarPresente(env, id, p, plano) {
   await env.PCT.put("presente:" + p.voucher, JSON.stringify({ plano: p.plano, dias: p.dias, vitalicio: !!plano.vitalicio, de: p.email, para: p.presente, usado: "" }));
   const m = emailPresente(p, plano);
   p.email_status = await mandarEmail(env, p.presente, m.assunto, m.html, m.texto);
+  await avisarDono(env, p, plano.nome);
   await mandarEmail(env, p.email, "Presente enviado: pedido " + p.numero, moldura("Presente enviado ✅", "Pagamento confirmado.", `<div style="${CAIXA}">Mandamos o código <b>${esc(p.voucher)}</b> para <b>${esc(p.presente)}</b>. Guarde este e-mail: se a pessoa não achar, repasse o código.</div>`), "Presente enviado para " + p.presente + ". Código: " + p.voucher);
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
   return p;
