@@ -28,7 +28,7 @@ object AvisoPro {
 
 class AvisoProReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
-        if (!Licenca.ativo()) return
+        if (!Licenca.ativo() || Licenca.fimTeste() > 0) return   // no teste de 1 hora nao avisa vencimento
         val dias = Licenca.diasRestantes()
         val nm = c.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("pro", "Assinatura Pro", NotificationManager.IMPORTANCE_DEFAULT))

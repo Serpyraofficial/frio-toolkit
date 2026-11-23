@@ -39,7 +39,7 @@ object Vendedor {
     const val SERVIDOR = "https://serpyratoolkit.officialcarloswendrik.workers.dev"
     const val PRECO = "15.00"
     const val PRECO_TXT = "R$ 15"
-    const val TESTE_DIAS = 3
+    const val TESTE_TXT = "1 hora"
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
     fun automatico() = SERVIDOR.startsWith("https://")
 }
@@ -98,8 +98,11 @@ object Compra {
         val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
         if (code == 200 || code == 409) Store.putBool("teste_usado", true)
         if (code != 200) return Pair(false, o.optString("erro", "Não deu para liberar o teste agora."))
-        val (ok, m) = Licenca.ativar(o.optString("chave"))
-        return Pair(ok, if (ok) "Teste liberado! Pro ativo até ${o.optString("validade")}." else m)
+        val ate = o.optLong("ate", 0L)
+        val chave = o.optString("chave")
+        if (ate > 0) { Store.putStr("lic_teste_chave", chave.trim()); Store.putStr("lic_teste_ate", ate.toString()) }
+        val (ok, m) = Licenca.ativar(chave)
+        return Pair(ok, if (ok) "Teste liberado! Pro ativo até ${Licenca.validadeTexto()}." else m)
     }
 
     /** Troca de celular, passo 1: manda um codigo para o e-mail da compra. */
@@ -312,7 +315,19 @@ object Licenca {
         return conferir(c)
     }
 
-    fun ativo(): Boolean { val d = diaValidade(); return d > 0 && agoraConfiavel() < (d + 1L) * DIA }
+    /** Fim do teste gratis (em milissegundos), se a chave atual for a do teste; senao 0. */
+    fun fimTeste(): Long {
+        val c = Store.str("lic_chave"); if (c.isEmpty() || c != Store.str("lic_teste_chave")) return 0L
+        return Store.str("lic_teste_ate").toLongOrNull() ?: 0L
+    }
+
+    fun ativo(): Boolean {
+        val d = diaValidade()
+        if (d <= 0) return false
+        val ft = fimTeste()
+        if (ft > 0) return agoraConfiavel() < ft
+        return agoraConfiavel() < (d + 1L) * DIA
+    }
 
     fun diasRestantes(): Int { val d = diaValidade(); if (d <= 0) return 0; return (((d + 1L) * DIA - agoraConfiavel()) / DIA).toInt().coerceAtLeast(0) }
 
@@ -321,6 +336,8 @@ object Licenca {
     fun validadeTexto(): String {
         val d = diaValidade(); if (d <= 0) return ""
         if (d >= 20000) return "sempre (vitalício)"
+        val ft = fimTeste()
+        if (ft > 0) { val h = SimpleDateFormat("HH:mm", Locale.US); return "às " + h.format(Date(ft)) + " (teste grátis)" }
         val f = SimpleDateFormat("dd/MM/yyyy", Locale.US); f.timeZone = TimeZone.getTimeZone("UTC")
         return f.format(Date(d * DIA))
     }
@@ -386,9 +403,9 @@ object Pro {
         if (ativo()) return true
         con.aviso("$recurso é uma função do SerpyraToolkit Pro.")
         con.info("Pro: a partir de ${Vendedor.PRECO_TXT} por mês. Libera: " + recursos.joinToString("; "))
-        if (!Store.bool("teste_usado", false) && Licenca.diaValidade() <= 0) con.info("Dá para testar grátis por ${Vendedor.TESTE_DIAS} dias na tela do Pro.")
+        if (!Store.bool("teste_usado", false) && Licenca.diaValidade() <= 0) con.info("Dá para testar grátis por ${Vendedor.TESTE_TXT} na tela do Pro.")
         val d = Licenca.diaValidade()
-        if (d > 0) con.info("Sua assinatura venceu em ${Licenca.validadeTexto()}.")
+        if (d > 0) con.info(if (Licenca.fimTeste() > 0) "Seu teste grátis de ${Vendedor.TESTE_TXT} terminou." else "Sua assinatura venceu em ${Licenca.validadeTexto()}.")
         if (con.ask("Assinar, testar grátis ou ativar uma chave agora?", "Ver o Pro", "Agora não", importante = true)) {
             (con.ctx as? MainActivity)?.let { a -> a.runOnUiThread { a.abrirTela { a.telaPro() } } }
         }
@@ -483,8 +500,8 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         val ct = Ui.vertical(this)
         ct.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
         ct.background = Ui.gradiente(this, 0xFF14301F.toInt(), 0xFF121821.toInt(), 18)
-        ct.addView(Ui.texto(this, "Teste o Pro grátis por ${Vendedor.TESTE_DIAS} dias", 16f, T.texto, Ui.negrito))
-        ct.addView(Ui.texto(this, "Sem pagar nada e sem cadastro. Depois, se gostar, é só assinar.", 12.5f, T.texto2))
+        ct.addView(Ui.texto(this, "Teste o Pro grátis por ${Vendedor.TESTE_TXT}", 16f, T.texto, Ui.negrito))
+        ct.addView(Ui.texto(this, "Sem pagar nada e sem cadastro. Vale uma vez por celular e por internet. Depois, se gostar, é só assinar.", 12.5f, T.texto2))
         val mt = Ui.texto(this, "", 12.5f, T.texto2)
         lateinit var bt: LinearLayout
         bt = Ui.botao(this, "Começar o teste grátis", T.verde, true) {

@@ -18,7 +18,7 @@
 const API = "https://api.purin.cash/v1";
 const DIA = 86400000;
 const B32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const TESTE_DIAS = 3;
+const TESTE_DIAS = 0, TESTE_MIN = 60;
 const TROCA_INTERVALO = 30;
 const PLANOS = {
   m1: { nome: "1 mês", dias: 30, centavos: 1500 },
@@ -143,7 +143,7 @@ function comDesconto(centavos, c) { return c ? Math.max(100, Math.round(centavos
 function planos(url) {
   // apps antigos (sem ?v=2) nao sabem mostrar o vitalicio (dias = 0): so os planos mensais para eles
   const novo = parseInt(url.searchParams.get("v") || "0", 10) >= 2;
-  return json({ teste: TESTE_DIAS, indicacao: { pct: IND_PCT, dias: IND_DIAS }, renova: RENOVA_PCT, planos: Object.entries(PLANOS).filter(([id, p]) => novo || !p.vitalicio).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos), vitalicio: !!p.vitalicio })) });
+  return json({ teste: 0, testeMin: TESTE_MIN, indicacao: { pct: IND_PCT, dias: IND_DIAS }, renova: RENOVA_PCT, planos: Object.entries(PLANOS).filter(([id, p]) => novo || !p.vitalicio).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos), vitalicio: !!p.vitalicio })) });
 }
 
 async function verCupom(url, env) {
@@ -426,13 +426,16 @@ async function testeGratis(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
   const codigo = limpaCodigo(b.codigo);
   if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
-  if (await env.PCT.get("teste:" + codigo)) return json({ erro: "O teste grátis deste celular já foi usado." }, 409);
+  const ip = req.headers.get("cf-connecting-ip") || "";
+  if (await env.PCT.get("teste:" + codigo)) return json({ erro: "O teste grátis deste celular já foi usado. Veja os planos do Pro." }, 409);
+  if (ip && await env.PCT.get("testeip:" + ip)) return json({ erro: "O teste grátis já foi usado nesta internet. Veja os planos do Pro." }, 409);
   if (await validadeAtual(env, codigo)) return json({ erro: "Este celular já tem ou já teve o Pro. Use Já comprei para recuperar." }, 409);
   if (!(await limitar("teste", 300))) return json({ erro: "Muitos testes agora. Tente mais tarde." }, 429);
-  const dia = hoje() + TESTE_DIAS;
+  const ate = Date.now() + TESTE_MIN * 60000, dia = Math.floor(ate / DIA);
   const chave = await assinarChave(env, codigo, dia);
   await env.PCT.put("teste:" + codigo, String(dia));
-  return json({ chave, validade: validadeTxt(dia), dias: TESTE_DIAS });
+  if (ip) await env.PCT.put("testeip:" + ip, codigo, { expirationTtl: 60 * 60 * 24 * 30 });
+  return json({ chave, validade: "1 hora", ate, minutos: TESTE_MIN, dias: 0 });
 }
 
 async function licenca(url, env) {
