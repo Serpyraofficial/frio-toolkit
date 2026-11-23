@@ -1,8 +1,8 @@
 {
- "versionCode": 62,
- "versionName": "5.10",
- "notas": "- Novo campo \"Tem um código?\" na tela do Pro: aceita chave, código de presente/cortesia e cupom, e descobre sozinho qual é\n- Se você copiou um código (do WhatsApp ou do e-mail), o app oferece usar assim que abre a tela do Pro\n- Cupom corrigido: não some mais ao trocar de plano e é conferido mesmo sem tocar em Aplicar\n- Indique e ganhe corrigido: o seu código passa a valer assim que o seu Pro estiver ativo\n- Atualização: aviso a cada abertura e notificação com o app fechado",
- "sha256": "d9683870caaa44a24437ccbd84bd48b4b16bb9f2ce846e6d108ca50f7b653a07",
- "tamanho": 1190617,
- "arquivo": "SerpyraToolkit-5.10-d9683870ca.apk"
+ "versionCode": 64,
+ "versionName": "5.10.2",
+ "notas": "- Pagamento corrigido: um cupom que não vale não impede mais de gerar o Pix (o app oferece pagar o preço normal)\n- Cupom explica o motivo quando não vale (não existe, esgotado, código de indicação, renovação)\n- O desconto de renovação só aparece para quem já comprou e quando o servidor confirma que vale",
+ "sha256": "2c80f29949c00bdbe9054d30d1d4325e866e00ae6eb010f1d3da93533acc8398",
+ "tamanho": 1191857,
+ "arquivo": "SerpyraToolkit-5.10.2-2c80f29949.apk"
 }
