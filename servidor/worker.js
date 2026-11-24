@@ -21,14 +21,18 @@ const B32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TESTE_DIAS = 0, TESTE_MIN = 60;
 const TROCA_INTERVALO = 30;
 const PLANOS = {
-  m1: { nome: "1 mês", dias: 30, centavos: 1500 },
-  m3: { nome: "3 meses", dias: 90, centavos: 3900 },
-  m6: { nome: "6 meses", dias: 180, centavos: 6900 },
-  vida: { nome: "Vitalício", dias: 0, centavos: 14900, vitalicio: true }
+  s7: { nome: "7 dias", dias: 7, centavos: 490, v: 3 },
+  m1: { nome: "1 mês", dias: 30, centavos: 1290 },
+  m3: { nome: "3 meses", dias: 90, centavos: 2990 },
+  m6: { nome: "6 meses", dias: 180, centavos: 4990 },
+  a1: { nome: "1 ano", dias: 365, centavos: 7990, v: 3 },
+  vida: { nome: "Vitalício", dias: 0, centavos: 11990, vitalicio: true, v: 2 },
+  f1: { nome: "Família · 1 mês", dias: 30, centavos: 2490, familia: 3, v: 3 },
+  f12: { nome: "Família · 1 ano", dias: 365, centavos: 14990, familia: 3, v: 3 }
 };
 const DIA_VITALICIO = 99999;
 const LICENCA_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEe1+AJ9msQvTj5AdyZO0SzXl0SNyekG3tBq3nUeQHdWSvy3u7i8k6qTJsZ8iU890vHizszVAKeAxs4fjOVXVnFQ==";
-const IND_PCT = 10, IND_DIAS = 5, RENOVA_PCT = 10, IND_MAX_MES = 15, IND_PREMIO = { m1: 5, m3: 10, m6: 15, vida: 30 };
+const IND_PCT = 10, IND_DIAS = 5, RENOVA_PCT = 10, IND_MAX_MES = 15, IND_PREMIO = { s7: 2, m1: 5, m3: 10, m6: 15, a1: 30, vida: 30, f1: 5, f12: 30 }, COMISSAO_PADRAO = 20;
 const MOTIVOS = ["Caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro"];
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
 
@@ -114,8 +118,9 @@ function emailCompra(p) {
     linha("Celular", esc(p.codigo.slice(0, 4) + "-" + p.codigo.slice(4))) + linha("Válido até", `<b style="color:#3DDC97">${esc(p.validade)}</b>`) +
     `</table></div><div style="${CAIXA}"><div style="${ROT}">Sua chave de ativação</div><div style="${CHV}">${esc(p.chave)}</div>` +
     `<div style="color:#9AA8BA;font-size:13px;margin-top:12px">Se o app estava aberto, o Pro já foi ativado sozinho. Se não, abra <b>SerpyraToolkit &gt; SerpyraToolkit Pro</b>, toque em <b>Colar</b> e depois em <b>Ativar</b>. A chave funciona só no celular deste pedido. Trocou de celular? No app, use <b>Trocar de celular</b> com este e-mail.</div></div>` +
+    (p.familia && p.familia.length ? `<div style="${CAIXA}"><div style="${ROT}">Códigos para a sua família</div>` + p.familia.map(v => `<div style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#3DDC97;margin:6px 0">${esc(v)}</div>`).join("") + `<div style="color:#9AA8BA;font-size:13px;margin-top:10px">Cada código libera o Pro em mais um celular, pelo mesmo tempo do seu plano. A pessoa baixa o app em serpyratoolkit.pages.dev, abre SerpyraToolkit Pro e cola o código em “Tem um código?”.</div></div>` : "") +
     `<div style="color:#66758A;font-size:12px">Para renovar, gere um novo Pix pelo app antes de vencer: os dias se somam. Guarde este e-mail como comprovante.</div>`);
-  const texto = `SerpyraToolkit Pro ativado!\n\nPedido: ${p.numero}\nData: ${p.dataPago}\nProduto: SerpyraToolkit Pro - ${p.plano}\nValor: ${p.valor} (Pix)\nVálido até: ${p.validade}\n\nSua chave de ativação:\n${p.chave}\n\nNo app: SerpyraToolkit Pro > Colar > Ativar.`;
+  const texto = (p.familia && p.familia.length ? "Códigos para a sua família: " + p.familia.join(", ") + "\n\n" : "") + `SerpyraToolkit Pro ativado!\n\nPedido: ${p.numero}\nData: ${p.dataPago}\nProduto: SerpyraToolkit Pro - ${p.plano}\nValor: ${p.valor} (Pix)\nVálido até: ${p.validade}\n\nSua chave de ativação:\n${p.chave}\n\nNo app: SerpyraToolkit Pro > Colar > Ativar.`;
   return { assunto: `Pedido ${p.numero} confirmado: sua chave do SerpyraToolkit Pro`, html, texto };
 }
 
@@ -143,8 +148,8 @@ function comDesconto(centavos, c) { return c ? Math.max(100, Math.round(centavos
 
 function planos(url) {
   // apps antigos (sem ?v=2) nao sabem mostrar o vitalicio (dias = 0): so os planos mensais para eles
-  const novo = parseInt(url.searchParams.get("v") || "0", 10) >= 2;
-  return json({ teste: 0, testeMin: TESTE_MIN, indicacao: { pct: IND_PCT, dias: IND_DIAS }, renova: RENOVA_PCT, planos: Object.entries(PLANOS).filter(([id, p]) => novo || !p.vitalicio).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos), vitalicio: !!p.vitalicio })) });
+  const v = parseInt(url.searchParams.get("v") || "0", 10) || 0;
+  return json({ teste: 0, testeMin: TESTE_MIN, indicacao: { pct: IND_PCT, dias: IND_DIAS }, renova: RENOVA_PCT, planos: Object.entries(PLANOS).filter(([id, p]) => (p.v || 0) <= v).map(([id, p]) => ({ id, nome: p.nome, dias: p.dias, centavos: p.centavos, preco: reais(p.centavos), vitalicio: !!p.vitalicio, familia: p.familia || 0 })) });
 }
 
 async function verCupom(url, env) {
@@ -223,7 +228,15 @@ async function liberar(env, id, valorPago) {
   p.chave = await assinarChave(env, p.codigo, dia);
   p.dia = dia; p.status = "pago"; p.pagoEm = new Date().toISOString();
   const plano = (PLANOS[p.plano] || PLANOS.m1).nome;
-  const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano, cupom: p.cupom, validade: validadeTxt(dia), dataPago: agoraBr() });
+  if (planoObj.familia && !p.familia) {
+    p.familia = [];
+    for (let i = 1; i < planoObj.familia; i++) {
+      const v = novoVoucher();
+      await env.PCT.put("presente:" + v, JSON.stringify({ plano: p.plano, dias: dias, vitalicio: false, de: p.email, para: "família de " + p.email, familia: true, usado: "", criado: new Date().toISOString() }));
+      p.familia.push(v);
+    }
+  }
+  const m = emailCompra({ numero: p.numero, codigo: p.codigo, chave: p.chave, valor: reais(p.valor), plano, cupom: p.cupom, validade: validadeTxt(dia), dataPago: agoraBr(), familia: p.familia });
   p.email_status = await mandarEmail(env, p.email, m.assunto, m.html, m.texto);
   await avisarDono(env, p, plano);
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
@@ -233,7 +246,7 @@ async function liberar(env, id, valorPago) {
   if (/^IND/.test(p.cupom || "")) await premiarIndicacao(env, p.cupom.slice(3), p.codigo, p.plano);
   else if (p.cupom && p.cupom !== "RENOVA10") {
     const c = await lerJson(env, "cupom:" + p.cupom);
-    if (c) { c.usos = (c.usos || 0) + 1; c.receita = (c.receita || 0) + p.valor; await env.PCT.put("cupom:" + p.cupom, JSON.stringify(c)); }
+    if (c) { c.usos = (c.usos || 0) + 1; c.receita = (c.receita || 0) + p.valor; c.comissaoTotal = (c.comissaoTotal || 0) + Math.round(p.valor * (c.comissao != null ? c.comissao : COMISSAO_PADRAO) / 100); await env.PCT.put("cupom:" + p.cupom, JSON.stringify(c)); }
   }
   return p;
 }
@@ -299,6 +312,59 @@ async function resgatarPresente(req, env) {
   return json({ ok: true, chave, validade: ate ? "até " + horaBr(ate) : validadeTxt(dia), ate: ate || undefined });
 }
 
+/* ---------------- mensagens, relatos, pirataria e notas ---------------- */
+async function mensagens(env) {
+  const l = (await lerJson(env, "mensagens")) || [];
+  const agora = Date.now();
+  return json({ mensagens: l.filter(m => (!m.inicio || agora >= m.inicio) && (!m.ate || agora <= m.ate)).map(m => ({ id: m.id, titulo: m.titulo, texto: m.texto, publico: m.publico, cupom: m.cupom || "" })) });
+}
+async function relato(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const codigo = limpaCodigo(b.codigo), texto = String(b.texto || "").trim().slice(0, 1500);
+  if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
+  if (texto.length < 5) return json({ erro: "Conte um pouco mais do que aconteceu." }, 400);
+  if (!(await limitar("relato:" + codigo, 5)) || !(await limitar("relatos-total", 200))) return json({ erro: "Muitas mensagens agora. Tente de novo mais tarde." }, 429);
+  const l = (await lerJson(env, "relatos")) || [];
+  l.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), em: Date.now(), codigo, texto, contato: String(b.contato || "").trim().slice(0, 120), versao: String(b.versao || "").slice(0, 12), modelo: String(b.modelo || "").slice(0, 40), android: String(b.android || "").slice(0, 6), pro: !!b.pro, tela: String(b.tela || "").slice(0, 60), status: "novo" });
+  await env.PCT.put("relatos", JSON.stringify(l.slice(0, 300)));
+  return json({ ok: true });
+}
+async function pirata(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
+  const codigo = limpaCodigo(b.codigo);
+  if (!(await limitar("pirata:" + (codigo || "x"), 3)) || !(await limitar("pirata-total", 200))) return json({ ok: true });
+  const k = "pirata:" + mesAtual(), m = (await lerJson(env, k)) || { total: 0, celulares: [], certs: {}, versoes: {}, modelos: {} };
+  m.total++; m.ultimo = Date.now();
+  if (codigoValido(codigo) && !m.celulares.includes(codigo) && m.celulares.length < 300) m.celulares.push(codigo);
+  const ce = String(b.cert || "?").slice(0, 16), ve = String(b.versao || "?").slice(0, 12), mo = String(b.modelo || "?").slice(0, 40);
+  m.certs[ce] = (m.certs[ce] || 0) + 1; m.versoes[ve] = (m.versoes[ve] || 0) + 1; m.modelos[mo] = (m.modelos[mo] || 0) + 1;
+  await env.PCT.put(k, JSON.stringify(m), { expirationTtl: 60 * 60 * 24 * 400 });
+  return json({ ok: true });
+}
+function chaveModelo(m) { return String(m || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 40) || "?"; }
+async function nota(req, url, env) {
+  if (req.method === "POST") {
+    let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
+    const codigo = limpaCodigo(b.codigo), n = Math.max(0, Math.min(100, parseInt(b.nota, 10) || 0)), mod = chaveModelo(b.modelo);
+    if (!codigoValido(codigo) || !n) return json({ ok: true });
+    if (await limitar("nota:" + codigo + ":" + diaAtual(), 1) && await limitar("notas-total", 2000)) {
+      for (const k of ["notas:" + mod, "notas:_todos"]) {
+        const x = (await lerJson(env, k)) || { n: 0, soma: 0, hist: Array(10).fill(0), modelo: b.modelo || "" };
+        x.n++; x.soma += n; x.hist[Math.min(9, Math.floor(n / 10))]++;
+        await env.PCT.put(k, JSON.stringify(x));
+      }
+    }
+  }
+  const nota0 = Math.max(0, Math.min(100, parseInt(url.searchParams.get("nota") || "0", 10) || 0));
+  const mod = chaveModelo(url.searchParams.get("modelo"));
+  let x = await lerJson(env, "notas:" + mod), de = "modelo";
+  if (!x || x.n < 5) { x = await lerJson(env, "notas:_todos"); de = "todos"; }
+  if (!x || !x.n) return json({ n: 0 });
+  const b10 = Math.min(9, Math.floor(nota0 / 10)); let abaixo = 0; for (let i = 0; i < b10; i++) abaixo += x.hist[i];
+  abaixo += x.hist[b10] / 2;
+  return json({ n: x.n, media: Math.round(x.soma / x.n), melhorQue: Math.round(abaixo * 100 / x.n), de });
+}
+
 /* ---------------- erros do app, funil e promocao ---------------- */
 function mesAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 7); }
 function diaAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10); }
@@ -352,10 +418,10 @@ async function promoAtual(env) {
   if (corpo === null) {
     const p = (await lerJson(env, "promo")) || {};
     corpo = JSON.stringify(p);
-    await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=300" } }));
+    await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=120" } }));
   }
   const p = JSON.parse(corpo || "{}");
-  if (!p.texto || (p.ate && Date.now() > p.ate)) return json({});
+  if (!p.texto || (p.ate && Date.now() > p.ate) || (p.inicio && Date.now() < p.inicio)) return json({});
   return json(p);
 }
 
@@ -413,7 +479,7 @@ async function status(url, env) {
     } catch (e) { }
   }
   if (p.status === "pago" && p.presente) return json({ status: "pago", presente: true, voucher: p.voucher, para: p.presente, numero: p.numero, email: p.email_status === "enviado" });
-  if (p.status === "pago") return json({ status: "pago", chave: p.chave, numero: p.numero, validade: validadeTxt(p.dia), email: p.email_status === "enviado" });
+  if (p.status === "pago") return json({ status: "pago", chave: p.chave, numero: p.numero, validade: validadeTxt(p.dia), email: p.email_status === "enviado", familia: p.familia || [] });
   return json({ status: "pendente" });
 }
 
@@ -545,7 +611,7 @@ async function admin(req, url, env) {
   if (rota === "cupons" && req.method === "GET") {
     const nomes = await listar(env, "cupom:", 500);
     const l = await Promise.all(nomes.map(async n => ({ codigo: n.slice(6), ...(await lerJson(env, n)) })));
-    return json({ cupons: l.map(c => ({ ...c, receita: reais(c.receita || 0) })) });
+    return json({ cupons: l.map(c => ({ ...c, receita: reais(c.receita || 0), comissao: c.comissao != null ? c.comissao : COMISSAO_PADRAO, aPagar: reais(Math.max(0, (c.comissaoTotal || 0) - (c.comissaoPaga || 0))), aPagarC: Math.max(0, (c.comissaoTotal || 0) - (c.comissaoPaga || 0)), comissaoTotal: reais(c.comissaoTotal || 0), pagoEm: c.pagoEm || "" })) });
   }
   if (rota === "cupom" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
@@ -555,8 +621,19 @@ async function admin(req, url, env) {
     if (!(pct >= 1 && pct <= 90)) return json({ erro: "Desconto entre 1% e 90%." }, 400);
     const atual = (await lerJson(env, "cupom:" + cod)) || { usos: 0, receita: 0, criado: new Date().toISOString() };
     atual.pct = pct; atual.ativo = b.ativo !== false; atual.limite = parseInt(b.limite, 10) || 0; atual.dono = String(b.dono || "").slice(0, 60);
+    const com = parseInt(b.comissao, 10); atual.comissao = com >= 0 && com <= 90 ? com : (atual.comissao != null ? atual.comissao : COMISSAO_PADRAO);
     await env.PCT.put("cupom:" + cod, JSON.stringify(atual));
     return json({ ok: true });
+  }
+  if (rota === "cupom-pago" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const cod = limpaCupom(b.codigo), c = await lerJson(env, "cupom:" + cod);
+    if (!c) return json({ erro: "Cupom não encontrado." }, 404);
+    const valor = Math.max(0, (c.comissaoTotal || 0) - (c.comissaoPaga || 0));
+    c.comissaoPaga = c.comissaoTotal || 0; c.pagoEm = new Date().toISOString();
+    c.pagamentos = (c.pagamentos || []).concat([{ em: c.pagoEm, valor }]).slice(-50);
+    await env.PCT.put("cupom:" + cod, JSON.stringify(c));
+    return json({ ok: true, pago: reais(valor) });
   }
   if (rota === "cupom" && req.method === "DELETE") {
     await env.PCT.delete("cupom:" + limpaCupom(url.searchParams.get("c")));
@@ -678,18 +755,56 @@ async function admin(req, url, env) {
     if (!texto) await env.PCT.delete("promo");
     else {
       const horas = Math.min(24 * 60, Math.max(0, parseInt(b.horas, 10) || 0));
-      await env.PCT.put("promo", JSON.stringify({ id: Date.now(), texto, cupom: limpaCupom(b.cupom), cor: /^(verde|amarelo|vermelho|azul)$/.test(b.cor) ? b.cor : "verde", ate: horas ? Date.now() + horas * 3600000 : 0 }));
+      const ini = Math.max(Date.now(), parseInt(b.inicio, 10) || 0);
+    await env.PCT.put("promo", JSON.stringify({ id: Date.now(), texto, cupom: limpaCupom(b.cupom), cor: /^(verde|amarelo|vermelho|azul)$/.test(b.cor) ? b.cor : "verde", inicio: ini > Date.now() + 60000 ? ini : 0, ate: horas ? ini + horas * 3600000 : 0 }));
     }
     try { await caches.default.delete(new Request("https://promo.local/atual")); } catch (e) { }
     return json({ ok: true });
   }
   if (rota === "promo" && req.method === "GET") return json((await lerJson(env, "promo")) || {});
+  if (rota === "mensagem" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const titulo = String(b.titulo || "").trim().slice(0, 60), texto = String(b.texto || "").trim().slice(0, 240);
+    if (!titulo || !texto) return json({ erro: "Escreva o título e o texto." }, 400);
+    const publico = ["todos", "gratis", "pro", "vencidos"].includes(b.publico) ? b.publico : "todos";
+    const ini = Math.max(Date.now(), parseInt(b.inicio, 10) || 0), horas = Math.min(24 * 30, Math.max(1, parseInt(b.horas, 10) || 48));
+    const l = (await lerJson(env, "mensagens")) || [];
+    l.unshift({ id: Date.now(), titulo, texto, publico, cupom: limpaCupom(b.cupom), inicio: ini > Date.now() + 60000 ? ini : 0, ate: ini + horas * 3600000, criado: Date.now() });
+    await env.PCT.put("mensagens", JSON.stringify(l.filter(m => !m.ate || m.ate > Date.now() - 7 * DIA).slice(0, 30)));
+    return json({ ok: true });
+  }
+  if (rota === "mensagem" && req.method === "DELETE") {
+    const id = parseInt(url.searchParams.get("id"), 10);
+    const l = ((await lerJson(env, "mensagens")) || []).filter(m => m.id !== id);
+    await env.PCT.put("mensagens", JSON.stringify(l));
+    return json({ ok: true });
+  }
+  if (rota === "mensagens" && req.method === "GET") return json({ mensagens: (await lerJson(env, "mensagens")) || [] });
+  if (rota === "relatos" && req.method === "GET") return json({ relatos: (await lerJson(env, "relatos")) || [] });
+  if (rota === "relatos" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    let l = (await lerJson(env, "relatos")) || [];
+    if (b.acao === "apagar") l = l.filter(r => r.id !== b.id);
+    else l.forEach(r => { if (r.id === b.id) r.status = b.acao === "reabrir" ? "novo" : "resolvido"; });
+    await env.PCT.put("relatos", JSON.stringify(l));
+    return json({ ok: true });
+  }
+  if (rota === "pirataria" && req.method === "GET") {
+    const nomes = (await listar(env, "pirata:", 24)).sort().reverse();
+    const m = nomes.length ? await lerJson(env, nomes[0]) : null;
+    return json({ mes: nomes.length ? nomes[0].slice(7) : mesAtual(), total: m ? m.total : 0, celulares: m ? m.celulares.length : 0, versoes: m ? m.versoes : {}, modelos: m ? m.modelos : {}, ultimo: m ? m.ultimo : 0 });
+  }
+  if (rota === "notas" && req.method === "GET") {
+    const t = (await lerJson(env, "notas:_todos")) || { n: 0, soma: 0 };
+    return json({ n: t.n, media: t.n ? Math.round(t.soma / t.n) : 0 });
+  }
   if (rota === "novas" && req.method === "GET") {
     const desde = parseInt(url.searchParams.get("desde") || "0", 10) || 0;
     const l = (await lerJson(env, "vendas:recentes")) || [];
     const em = (await lerJson(env, "erros:" + mesAtual())) || {};
     const errosNovos = desde ? Object.values(em).filter(x => !x.resolvido && (x.primeiro > desde || (x.reaberto || 0) > desde)).slice(0, 5).map(x => ({ onde: x.onde, msg: x.msg, tipo: x.tipo, celulares: x.celulares.length })) : [];
-    return json({ agora: Date.now(), vendas: l.filter(v => v.em > desde), erros: errosNovos });
+    const relatosNovos = desde ? ((await lerJson(env, "relatos")) || []).filter(r => r.em > desde && r.status === "novo").slice(0, 5).map(r => ({ modelo: r.modelo, texto: r.texto.slice(0, 120) })) : [];
+    return json({ agora: Date.now(), vendas: l.filter(v => v.em > desde), erros: errosNovos, relatos: relatosNovos });
   }
   if (rota === "testar-aviso" && req.method === "POST") {
     const para = env.AVISO_EMAIL || env.REMETENTE_EMAIL;
@@ -812,6 +927,10 @@ export default {
       if (m === "GET" && p === "/aviso") return await avisoAtual(env);
       if (m === "GET" && p === "/promo") return await promoAtual(env);
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
+    if (m === "GET" && p === "/mensagens") return await mensagens(env);
+    if (m === "POST" && p === "/relato") return await relato(req, env);
+    if (m === "POST" && p === "/pirata") return await pirata(req, env);
+    if (p === "/nota") return await nota(req, url, env);
       if (m === "POST" && p === "/evento") return await evento(req, env);
       if (m === "POST" && p === "/pesquisa") return await pesquisa(req, env);
       if (m === "GET" && p === "/versao") return await versao(env);

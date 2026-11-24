@@ -235,6 +235,7 @@ tr:last-child td{border-bottom:0}
  <button class="aba-b" data-ir="clientes"><svg class="i"><use href="#ic-pessoa"/></svg><span class="rot">Clientes</span></button>
  <button class="aba-b" data-ir="cupons"><svg class="i"><use href="#ic-cupom"/></svg><span class="rot">Cupons</span></button>
  <button class="aba-b" data-ir="avisos"><svg class="i"><use href="#ic-aviso"/></svg><span class="rot">Promoção</span></button>
+ <button class="aba-b" data-ir="relatos"><svg class="i"><use href="#ic-pessoa"/></svg><span class="rot">Relatos</span><span class="bdg" id="rlBadge" hidden></span></button>
  <button class="aba-b" data-ir="erros"><svg class="i"><use href="#ic-erro"/></svg><span class="rot">Erros</span><span class="bdg" id="erBadge" hidden></span></button>
 </div></nav>
 <div class="hero"><div class="w">
@@ -330,31 +331,33 @@ tr:last-child td{border-bottom:0}
 <section class="aba" id="aba-cupons">
  <div class="card">
   <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-cupom"/></svg></span><h2>Criar ou mudar cupom</h2></div>
-  <div class="card-d">Limite 0 = sem limite. Salvar um cupom que já existe atualiza o desconto e o limite.</div>
+  <div class="card-d">Limite 0 = sem limite. Salvar um cupom que já existe atualiza o desconto, o limite e a comissão. Para influenciadores: coloque o nome em “De quem é” e a comissão; o painel soma quanto você deve a cada um.</div>
   <div class="linha">
    <label style="flex:1 1 160px">Cupom<input id="cCod" placeholder="YOUTUBER10" maxlength="20" autocapitalize="characters"></label>
    <label class="meia" style="width:110px">Desconto %<input id="cPct" type="number" min="1" max="90" value="10" inputmode="numeric"></label>
    <label class="meia" style="width:120px">Limite de usos<input id="cLim" type="number" min="0" value="0" inputmode="numeric"></label>
    <label style="flex:1 1 200px">De quem é (opcional)<input id="cDono" placeholder="Nome do canal ou parceiro"></label>
+   <label class="meia" style="width:120px">Comissão %<input id="cCom" type="number" min="0" max="90" value="20" inputmode="numeric"></label>
   </div>
   <div class="acao-l"><button class="b" id="btCupom"><svg class="i"><use href="#ic-cupom"/></svg>Salvar cupom</button></div>
   <div class="msg" id="msgCupom"></div>
  </div>
  <div class="card">
   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-cupom"/></svg></span><h2>Seus cupons</h2></div>
-  <div class="rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
+  <div class="rolar"><table><thead><tr><th>Cupom</th><th>Desconto</th><th>Usos</th><th>Vendeu</th><th>De quem</th><th>Comissão</th><th>A pagar</th><th></th></tr></thead><tbody id="tCupons"></tbody></table></div>
  </div>
 </section>
 
 <section class="aba" id="aba-avisos">
  <div class="card">
   <div class="card-t"><span class="ic am"><svg class="i"><use href="#ic-aviso"/></svg></span><h2>Faixa de promoção</h2></div>
-  <div class="card-d">Uma linha que corre de uma ponta à outra no topo do app de todo mundo, em até 5 minutos, sem precisar atualizar. Tocando nela, a pessoa vai para o Pro com o cupom já colocado.</div>
+  <div class="card-d">Uma linha que corre de uma ponta à outra no topo do app de todo mundo, sem precisar atualizar. Deixe “Começa” vazio para entrar agora, ou escolha dia e hora para ela entrar e sair sozinha. Tocando nela, a pessoa vai para o Pro com o cupom já colocado.</div>
   <div class="promo-previa" id="prPrevia"><span id="prPreviaTxt">🔥  Sua promoção aparece assim, correndo na tela</span></div>
   <label style="margin-top:14px">Texto da promoção<input id="prTxt" maxlength="200" placeholder="Ex.: Black Friday: 30% de desconto no Pro!"></label>
   <div class="linha" style="margin-top:12px">
    <label style="flex:1 1 150px">Cupom (opcional, crie em Cupons)<input id="prCupom" maxlength="20" placeholder="BLACK30" autocapitalize="characters"></label>
    <label style="flex:1 1 150px">Dura<select id="prHoras"><option value="0">Até eu tirar</option><option value="6">6 horas</option><option value="24">1 dia</option><option value="48" selected>2 dias</option><option value="72">3 dias</option><option value="168">1 semana</option></select></label>
+   <label style="flex:1 1 170px">Começa<input id="prIni" type="datetime-local"></label>
    <label style="flex:1 1 130px">Cor<select id="prCor"><option value="verde">Verde</option><option value="amarelo">Amarelo</option><option value="vermelho">Vermelho</option><option value="azul">Azul</option></select></label>
   </div>
   <div class="acao-l"><button class="b prin" id="btPromo">Publicar promoção</button><button class="b l" id="btPromoTirar">Tirar promoção</button></div>
@@ -367,6 +370,30 @@ tr:last-child td{border-bottom:0}
   <label style="margin-top:12px">Link ao tocar (opcional, começando com https://)<input id="aLink" placeholder="https://..." inputmode="url" autocapitalize="off"></label>
   <div class="acao-l"><button class="b prin" id="btAviso">Publicar aviso</button><button class="b l" id="btTirar">Tirar aviso</button></div>
   <div class="msg" id="msgAviso"></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-aviso"/></svg></span><h2>Notificação para um grupo</h2></div>
+  <div class="card-d">Chega como notificação no celular, só para o grupo escolhido, uma vez por pessoa. Se tiver cupom, tocar na notificação abre o Pro com o cupom já colocado.</div>
+  <div class="linha">
+   <label style="flex:1 1 160px">Para quem<select id="mPub"><option value="todos">Todo mundo</option><option value="gratis">Quem nunca foi Pro</option><option value="pro">Quem está com Pro</option><option value="vencidos">Quem já foi Pro e venceu</option></select></label>
+   <label style="flex:1 1 170px">Envia em<input id="mIni" type="datetime-local"></label>
+   <label style="flex:1 1 130px">Vale por<select id="mHoras"><option value="24">1 dia</option><option value="48" selected>2 dias</option><option value="168">1 semana</option></select></label>
+  </div>
+  <label style="margin-top:12px">Título<input id="mTit" maxlength="60" placeholder="Ex.: Volta pro Pro com 20%"></label>
+  <label style="margin-top:12px">Texto<input id="mTxt" maxlength="240" placeholder="Ex.: Só hoje: use o cupom VOLTA20 e renove com desconto."></label>
+  <label style="margin-top:12px">Cupom (opcional)<input id="mCup" maxlength="20" placeholder="VOLTA20" autocapitalize="characters"></label>
+  <div class="acao-l"><button class="b prin" id="btMsg">Enviar notificação</button></div>
+  <div class="msg" id="msgMsg"></div>
+  <div id="mLista"></div>
+ </div>
+</section>
+
+<section class="aba" id="aba-relatos">
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-pessoa"/></svg></span><h2>Problemas relatados pelos clientes</h2></div>
+  <div class="card-d">Quando alguém toca em “Relatar um problema” no app, a mensagem chega aqui com o celular, a versão e se a pessoa é Pro. Se ela deixou um e-mail, você pode responder.</div>
+  <label class="chk"><input type="checkbox" id="rlTodos"> Mostrar também os resolvidos</label>
+  <div id="rlLista"><div class="vazio">Carregando…</div></div>
  </div>
 </section>
 
@@ -385,6 +412,11 @@ tr:last-child td{border-bottom:0}
   <div class="msg" id="msgRelErros"></div>
   <div class="er-nums" id="erNums"></div>
   <div id="erLista"><div class="vazio">Carregando…</div></div>
+ </div>
+ <div class="card">
+  <div class="card-t"><span class="ic vm"><svg class="i"><use href="#ic-erro"/></svg></span><h2>Cópias modificadas do app</h2></div>
+  <div class="card-d">O app confere se foi assinado por você. Se alguém modificar e espalhar uma cópia, ela bloqueia o Pro e avisa aqui.</div>
+  <div id="piLista" class="msg"></div>
  </div>
 </section>
 </main>
@@ -421,7 +453,7 @@ tr:last-child td{border-bottom:0}
       var pq=r.pesquisa||{}, tot=Object.keys(pq).reduce(function(t,k){return t+pq[k]},0);
       $('pesq').innerHTML=tot?Object.keys(pq).sort(function(a,b){return pq[b]-pq[a]}).map(function(k){return '<div>'+esc(k)+' <b>'+pq[k]+'</b></div><div class="barra-motivo" style="width:'+Math.round(pq[k]*100/tot)+'%"></div>'}).join(''):'<p class="vazio">Ninguém respondeu ainda. A pergunta aparece no app quando o Pro comprado vence.</p>';
       if(r.aviso&&r.aviso.texto){$('aTxt').value=r.aviso.texto;$('aLink').value=r.aviso.link||'';msg($('msgAviso'),'Aviso no ar.','ok')}
-      cortesias(); funil(); erros(); promoAtual();
+      cortesias(); funil(); erros(); promoAtual(); mensagens(); relatos(); pirataria();
       api('GET','/admin/vencendo').then(function(v){
         $('tVence').innerHTML=v.vencendo.length?v.vencendo.map(function(x){return '<tr><td>'+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.validade)+' ('+(x.dias<0?'venceu':x.dias===0?'hoje':'em '+x.dias+' dia(s)')+')</td><td>'+(x.email?'<a class="b l" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.email)+'?subject='+encodeURIComponent('Seu SerpyraToolkit Pro está vencendo')+'&body='+encodeURIComponent('Oi! Seu Pro vence em '+x.validade+'. Renovando pelo app agora você ganha 10% com o cupom RENOVA10.')+'">Mandar e-mail</a>':'')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="vazio">Ninguém vencendo nos próximos dias.</td></tr>';
       }).catch(function(){});
@@ -433,8 +465,9 @@ tr:last-child td{border-bottom:0}
       return api('GET','/admin/cupons');
     }).then(function(c){
       $('tCupons').innerHTML=c.cupons.length?c.cupons.map(function(x){
-        return '<tr><td><b>'+esc(x.codigo)+'</b>'+(x.ativo?'':' <span class="tag">pausado</span>')+'</td><td>'+esc(x.pct)+'%</td><td>'+esc(x.usos||0)+(x.limite?' de '+esc(x.limite):'')+'</td><td>'+esc(x.receita)+'</td><td>'+esc(x.dono||'')+'</td><td><button class="b l" data-apagar="'+esc(x.codigo)+'" style="padding:4px 10px">Apagar</button></td></tr>'}).join('')
-        :'<tr><td colspan="6" class="vazio">Nenhum cupom criado.</td></tr>';
+        return '<tr><td><b>'+esc(x.codigo)+'</b>'+(x.ativo?'':' <span class="tag">pausado</span>')+'</td><td>'+esc(x.pct)+'%</td><td>'+esc(x.usos||0)+(x.limite?' de '+esc(x.limite):'')+'</td><td>'+esc(x.receita)+'</td><td>'+esc(x.dono||'')+'</td><td>'+esc(x.comissao)+'%</td><td><b>'+esc(x.aPagar)+'</b>'+(x.pagoEm?'<br><small style="color:#66758A">último pagamento '+esc(data(x.pagoEm))+'</small>':'')+'</td><td style="white-space:nowrap">'+(x.aPagarC>0?'<button class="b" data-pago="'+esc(x.codigo)+'" data-v="'+esc(x.aPagar)+'" style="padding:4px 10px">Marcar pago</button> ':'')+'<button class="b l" data-apagar="'+esc(x.codigo)+'" style="padding:4px 10px">Apagar</button></td></tr>'}).join('')
+        :'<tr><td colspan="8" class="vazio">Nenhum cupom criado.</td></tr>';
+      [].forEach.call(document.querySelectorAll('[data-pago]'),function(b){b.onclick=function(){var c=b.getAttribute('data-pago');if(!confirm('Marcar '+b.getAttribute('data-v')+' como pago para o cupom '+c+'?'))return;api('POST','/admin/cupom-pago',{codigo:c}).then(carregar).catch(function(e){alert(e.message)})}});
       [].forEach.call(document.querySelectorAll('[data-apagar]'),function(b){b.onclick=function(){var c=b.getAttribute('data-apagar');if(!confirm('Apagar o cupom '+c+'? Quem tentar usar ele vai receber "cupom inválido".'))return;api('DELETE','/admin/cupom?c='+encodeURIComponent(c)).then(carregar).catch(function(e){alert(e.message)})}});
     });
   }
@@ -454,7 +487,7 @@ tr:last-child td{border-bottom:0}
   };
   $('btCupom').onclick=function(){
     var b=this; b.disabled=true;
-    api('POST','/admin/cupom',{codigo:$('cCod').value,pct:$('cPct').value,limite:$('cLim').value,dono:$('cDono').value}).then(function(){msg($('msgCupom'),'Cupom salvo.','ok');carregar()})
+    api('POST','/admin/cupom',{codigo:$('cCod').value,pct:$('cPct').value,limite:$('cLim').value,dono:$('cDono').value,comissao:$('cCom').value}).then(function(){msg($('msgCupom'),'Cupom salvo.','ok');carregar()})
       .catch(function(e){msg($('msgCupom'),e.message,'erro')}).finally(function(){b.disabled=false});
   };
 
@@ -604,9 +637,29 @@ tr:last-child td{border-bottom:0}
   $('erMes').onchange=function(){erros(this.value)};
   function previa(){var t=$('prTxt').value.trim()||'Sua promoção aparece assim, correndo na tela',c=$('prCupom').value.trim().toUpperCase();$('prPreviaTxt').textContent='🔥  '+t+(c?'  ·  cupom '+c:'');var cores={verde:['#E3F8EE','#9ADDBE'],amarelo:['#FFF3D1','#F2D27A'],vermelho:['#FDE7E8','#F3A9AC'],azul:['#E8ECFF','#AEBBFF']}[$('prCor').value];$('prPrevia').style.background=cores[0];$('prPrevia').style.borderColor=cores[1]}
   ['prTxt','prCupom','prCor'].forEach(function(i){$(i).addEventListener('input',previa);$(i).addEventListener('change',previa)});
-  $('btPromo').onclick=function(){var b=this;if(!$('prTxt').value.trim()){msg($('msgPromo'),'Escreva o texto da promoção.','erro');return}b.disabled=true;api('POST','/admin/promo',{texto:$('prTxt').value,cupom:$('prCupom').value,horas:$('prHoras').value,cor:$('prCor').value}).then(function(){msg($('msgPromo'),'Promoção no ar. Aparece no app de todo mundo em até 5 minutos.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')}).finally(function(){b.disabled=false})};
+  $('btPromo').onclick=function(){var b=this;if(!$('prTxt').value.trim()){msg($('msgPromo'),'Escreva o texto da promoção.','erro');return}b.disabled=true;api('POST','/admin/promo',{texto:$('prTxt').value,cupom:$('prCupom').value,horas:$('prHoras').value,cor:$('prCor').value,inicio:quando('prIni')}).then(function(){var i=quando('prIni');msg($('msgPromo'),i>Date.now()+60000?'Promoção agendada para '+dataHora(i)+'.':'Promoção no ar. Aparece no app de todo mundo em poucos minutos.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btPromoTirar').onclick=function(){api('POST','/admin/promo',{texto:''}).then(function(){$('prTxt').value='';previa();msg($('msgPromo'),'Promoção tirada do app.','ok')}).catch(function(e){msg($('msgPromo'),e.message,'erro')})};
-  function promoAtual(){api('GET','/admin/promo').then(function(p){if(p&&p.texto){$('prTxt').value=p.texto;$('prCupom').value=p.cupom||'';$('prCor').value=p.cor||'verde';previa();msg($('msgPromo'),'No ar'+(p.ate?' até '+dataHora(p.ate):' até você tirar')+'.','ok')}}).catch(function(){})}
+  function promoAtual(){api('GET','/admin/promo').then(function(p){if(p&&p.texto){$('prTxt').value=p.texto;$('prCupom').value=p.cupom||'';$('prCor').value=p.cor||'verde';previa();msg($('msgPromo'),(p.inicio&&p.inicio>Date.now()?'Agendada: começa '+dataHora(p.inicio)+(p.ate?' e termina '+dataHora(p.ate):''):'No ar'+(p.ate?' até '+dataHora(p.ate):' até você tirar'))+'.','ok')}}).catch(function(){})}
+  function quando(id){var v=$(id).value;if(!v)return 0;var t=new Date(v).getTime();return isNaN(t)?0:t}
+  var publicoNome={todos:'Todo mundo',gratis:'Quem nunca foi Pro',pro:'Quem está com Pro',vencidos:'Quem já foi Pro e venceu'};
+  function mensagens(){api('GET','/admin/mensagens').then(function(r){var l=(r.mensagens||[]).filter(function(m){return !m.ate||m.ate>Date.now()});
+    $('mLista').innerHTML=l.length?'<div class="card-d" style="margin-top:14px">Programadas ou no ar:</div>'+l.map(function(m){return '<div class="er-item" style="padding:10px 0;border-top:1px solid #E3E8EF"><b>'+esc(m.titulo)+'</b> · '+esc(publicoNome[m.publico]||m.publico)+'<br><span style="color:#66758A">'+esc(m.texto)+'</span><br><small>'+(m.inicio&&m.inicio>Date.now()?'Envia '+dataHora(m.inicio):'No ar')+' até '+dataHora(m.ate)+'</small> <button class="b l" data-mdel="'+m.id+'" style="padding:2px 10px;margin-left:6px">Cancelar</button></div>'}).join(''):'';
+    [].forEach.call(document.querySelectorAll('[data-mdel]'),function(b){b.onclick=function(){api('DELETE','/admin/mensagem?id='+b.getAttribute('data-mdel')).then(mensagens)}});
+  }).catch(function(){})}
+  $('btMsg').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/mensagem',{titulo:$('mTit').value,texto:$('mTxt').value,publico:$('mPub').value,cupom:$('mCup').value,horas:$('mHoras').value,inicio:quando('mIni')}).then(function(){msg($('msgMsg'),'Pronto. Chega no celular de cada pessoa do grupo em poucas horas, quando o app conferir.','ok');$('mTit').value='';$('mTxt').value='';mensagens()}).catch(function(e){msg($('msgMsg'),e.message,'erro')}).finally(function(){b.disabled=false})};
+  var relatosCache=[];
+  function relatos(){api('GET','/admin/relatos').then(function(r){relatosCache=r.relatos||[];desenharRelatos()}).catch(function(){})}
+  function desenharRelatos(){var todos=$('rlTodos').checked,l=relatosCache.filter(function(x){return todos||x.status!=='resolvido'}),novos=relatosCache.filter(function(x){return x.status==='novo'}).length;
+    $('rlBadge').hidden=!novos;$('rlBadge').textContent=novos;
+    $('rlLista').innerHTML=l.length?l.map(function(x){return '<div style="padding:12px 0;border-top:1px solid #E3E8EF'+(x.status==='resolvido'?';opacity:.6':'')+'"><div><b>'+esc(x.modelo||'?')+'</b> · Android '+esc(x.android||'?')+' · app '+esc(x.versao||'?')+(x.pro?' <span class="tag">Pro</span>':'')+' <small style="color:#66758A">'+esc(dataHora(x.em))+'</small></div><div style="margin:6px 0;white-space:pre-wrap">'+esc(x.texto)+'</div><small style="color:#66758A">Celular '+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+(x.tela?' · tela '+esc(x.tela):'')+'</small><div class="acao-l" style="margin-top:6px">'+(x.contato&&/@/.test(x.contato)?'<a class="b" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.contato)+'?subject='+encodeURIComponent('Sobre o seu relato no SerpyraToolkit')+'">Responder por e-mail</a>':'')+'<button class="b l" data-rl="'+esc(x.id)+'" data-ac="'+(x.status==='resolvido'?'reabrir':'resolver')+'" style="padding:4px 10px">'+(x.status==='resolvido'?'Reabrir':'Resolvido')+'</button><button class="b l" data-rl="'+esc(x.id)+'" data-ac="apagar" style="padding:4px 10px">Apagar</button></div></div>'}).join(''):'<div class="vazio">Nenhum relato'+(todos?'':' aberto')+'.</div>';
+    [].forEach.call(document.querySelectorAll('[data-rl]'),function(b){b.onclick=function(){var ac=b.getAttribute('data-ac');if(ac==='apagar'&&!confirm('Apagar este relato?'))return;api('POST','/admin/relatos',{id:b.getAttribute('data-rl'),acao:ac}).then(relatos)}});
+  }
+  $('rlTodos').onchange=desenharRelatos;
+  function pirataria(){api('GET','/admin/pirataria').then(function(p){
+    if(!p.total){$('piLista').className='msg ok';$('piLista').textContent='Nenhuma cópia modificada encontrada este mês.';return}
+    var top=function(o){return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).slice(0,5).map(function(k){return esc(k)+' ('+o[k]+')'}).join(', ')};
+    $('piLista').className='msg erro';$('piLista').innerHTML='<b>'+p.total+'</b> aberturas de cópias modificadas em '+p.celulares+' celular(es) ('+esc(p.mes)+'). Versões: '+top(p.versoes)+'. Celulares: '+top(p.modelos)+'. Última: '+esc(dataHora(p.ultimo))+'.';
+  }).catch(function(){})}
   $('btAtualizar').onclick=function(){var b=this;b.classList.add('girando');carregar().catch(function(){}).finally(function(){setTimeout(function(){b.classList.remove('girando')},300)})};
   $('btAviso').onclick=function(){var b=this;b.disabled=true;api('POST','/admin/aviso',{texto:$('aTxt').value,link:$('aLink').value}).then(function(){msg($('msgAviso'),$('aTxt').value.trim()?'Aviso publicado. Aparece no app em até 30 minutos.':'Aviso tirado.','ok')}).catch(function(e){msg($('msgAviso'),e.message,'erro')}).finally(function(){b.disabled=false})};
   $('btTirar').onclick=function(){$('aTxt').value='';$('btAviso').click()};
