@@ -41,3 +41,24 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 ## Regra do dono
 - As novidades do app falam só do que muda para quem usa o app. Nada de painel ou servidor.
 - Se a mudança for só no painel ou no servidor, não sai versão nova do app.
+
+## Depois da 5.18: "Ativar modo completo" sem o Shizuku (aprovado pelo dono em 27/11)
+- Conexão ADB por Depuração sem fio dentro do próprio app, sem instalar o Shizuku. Quem já usa o Shizuku continua funcionando.
+- Funções que dá para fazer só com permissões normais passam a funcionar sem acesso especial:
+  - DNS por VPN local;
+  - Não perturbe, brilho e tela travados no Modo Jogo;
+  - fechar apps pela Acessibilidade;
+  - limpeza;
+  - gravar a tela.
+- Automação única para todas as marcas (não uma receita por marca):
+  1. abrir as telas pelos atalhos oficiais do Android (DEVICE_INFO_SETTINGS, APPLICATION_DEVELOPMENT_SETTINGS);
+  2. ler os textos de dentro do app de Configurações do próprio celular (getResourcesForApplication("com.android.settings"), por exemplo build_number e a tela de depuração sem fio) para saber o nome que aquela marca usa;
+  3. a Acessibilidade procura na tela, rola e toca; se não achar, busca o mais parecido ou usa a busca das Configurações; o código de pareamento é reconhecido por ser um número de 6 dígitos;
+  4. lista de palavras atualizável pelo painel, sem lançar versão nova; quando trava, manda a marca, a versão e a tela ao painel.
+- Depois de conectar: o app dá a si mesmo WRITE_SECURE_SETTINGS e, depois de reiniciar, religa adb_wifi_enabled e se reconecta sozinho quando está no Wi-Fi.
+- A pessoa ainda faz à mão:
+  - ligar a Acessibilidade;
+  - "Permitir configurações restritas" no Android 13 ou mais novo;
+  - o PIN, se o celular pedir;
+  - estar no Wi-Fi.
+- Quando a automação falhar: passo a passo com destaque na tela.
