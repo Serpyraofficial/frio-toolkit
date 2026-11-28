@@ -294,7 +294,7 @@ object Atualizador {
                     if (ctx.packageManager.canRequestPackageInstalls()) con.ok("Pronto. Agora atualiza sozinho.") else con.aviso("Ainda sem a autorização. Você recebe um aviso quando sair versão nova.")
                 }
             }
-            else -> con.aviso("No Android ${Build.VERSION.RELEASE}, atualizar sozinho precisa do modo automático (Shizuku) ligado. Sem ele, você recebe um aviso quando sair versão nova.")
+            else -> con.aviso("No Android ${Build.VERSION.RELEASE}, atualizar sozinho precisa do modo completo ligado. Sem ele, você recebe um aviso quando sair versão nova.")
         }
         val log = Store.str("upd_log")
         if (log.isNotBlank()) con.info("Última tentativa: $log")
@@ -460,6 +460,7 @@ class AtualizacaoJob : android.app.job.JobService() {
             try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
             try { Semanal.conferir(applicationContext) } catch (e: Throwable) { }
             try { Integridade.conferir() } catch (e: Throwable) { }
+            try { if (!Priv.permitido()) Interno.religar(applicationContext) } catch (e: Throwable) { }
             try { Relatorio.enviar() } catch (e: Throwable) { }
             jobFinished(p, false)
         }.start()

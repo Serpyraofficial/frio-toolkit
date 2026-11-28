@@ -88,7 +88,7 @@ object Tuner {
         con.titulo("Tuner · $nome")
         if (!Pro.exigir(con, "O Tuner de jogos")) return
         if (!Sh.privOk()) {
-            con.aviso("O Tuner precisa do modo automático (Shizuku) ou root: são os mesmos comandos que o Magic Tuner usa.")
+            con.aviso("O Tuner precisa do modo completo ou root: são os mesmos comandos que o Magic Tuner usa.")
             if (!Priv.ativar(con)) return
         }
         con.info("Android ${Build.VERSION.RELEASE} · ${Build.MANUFACTURER} ${Build.MODEL}")

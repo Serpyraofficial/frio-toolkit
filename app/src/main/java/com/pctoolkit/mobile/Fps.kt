@@ -23,7 +23,7 @@ object Fps {
         con.linha("Livre agora: ${fmtTam(antes)} de ${fmtTam(Sensores.memoria(ctx).totalMem)}")
         // Android 14+: um app comum so consegue encerrar os proprios processos. Com Shizuku/root funciona em todos.
         if (!Sh.privOk() && android.os.Build.VERSION.SDK_INT >= 34) {
-            con.aviso("No Android 14 ou mais novo, só dá para encerrar os outros apps com o modo automático (Shizuku).")
+            con.aviso("No Android 14 ou mais novo, só dá para encerrar os outros apps com o modo completo.")
             if (!con.ask("Ativar o modo automático agora?") || !Priv.ativar(con)) { con.info("Sem ele, feche os apps pela tela de recentes (botão quadrado) antes de jogar."); return false }
         }
         val n = encerrarSegundoPlano(ctx, null)
@@ -288,7 +288,7 @@ object Fps {
         if (!Pro.exigir(con, "O Medidor de FPS na tela")) return
         con.titulo("Medidor de FPS")
         if (!Sh.privOk() || Sensores.contadorQuadros() == null) {
-            con.linha(if (Sh.privOk()) "Este Android não libera o contador de quadros nem para o modo automático (alguns fabricantes bloqueiam). Dá para ver o FPS pelos jeitos abaixo." else "Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo automático (Shizuku) ou root, o medidor funciona.", T.texto2)
+            con.linha(if (Sh.privOk()) "Este Android não libera o contador de quadros nem para o modo automático (alguns fabricantes bloqueiam). Dá para ver o FPS pelos jeitos abaixo." else "Um app comum não pode ler o FPS de outro app (bloqueio de segurança do Android). Com o modo completo ou root, o medidor funciona.", T.texto2)
             con.subtitulo("Como ver o FPS sem root")
             val f = FerramentaFabricante.encontrar(con.ctx)
             if (f != null) con.item("${f.second}: tem contador de FPS no painel durante o jogo", T.verde)

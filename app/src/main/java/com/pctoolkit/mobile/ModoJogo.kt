@@ -98,7 +98,7 @@ object ModoJogo {
         val limite = Store.int("limite_bateria", 43)
         if (op["mj_frio"] == null) op["mj_frio"] = false
         if (op["mj_frio"] == true && !Frio.pode()) {
-            con.aviso("O Modo Frio precisa do modo automático (Shizuku) para mexer na tela e no FPS. Sem ele, só o alerta de calor funciona.")
+            con.aviso("O Modo Frio precisa do modo completo para mexer na tela e no FPS. Sem ele, só o alerta de calor funciona.")
             if (con.ask("Ativar o modo automático agora?")) Priv.ativar(con)
             if (!Frio.pode()) op["mj_frio"] = false
         }
@@ -577,6 +577,7 @@ class GameService : Service() {
             // reforca o boost a cada 30 s (o sistema/fabricante pode desligar sozinho)
             if (agora - ultimoReforco > 30_000) {
                 ultimoReforco = agora
+                if (!Sh.privOk() && Interno.pareado()) try { Interno.religar(this) } catch (e: Throwable) { }
                 val ok = !Sh.privOk() && Store.str("modo_perm") != "manual" && Priv.instalado(this)
                 if (ok && !shizukuCaiu) { shizukuCaiu = true; avisar(ID + 4, "Shizuku desligou", "O Modo Jogo continua, mas sem os ajustes automáticos. Abra o Shizuku e toque em Iniciar para voltar.") }
                 if (Sh.privOk() && shizukuCaiu) { shizukuCaiu = false; try { getSystemService(NotificationManager::class.java).cancel(ID + 4) } catch (e: Exception) { } }

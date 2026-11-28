@@ -1,7 +1,4 @@
-- Preparar e jogar: memória, limpeza e Modo Jogo com um toque (também no widget da tela inicial)
-- Botão do Modo Jogo nas Configurações rápidas e widget com Modo Jogo, Preparar e Raio-X
-- Calculadora de sensibilidade para o Free Fire, feita para a sua tela
-- Compare a sua nota com celulares iguais ao seu e compartilhe o resultado
-- Relatar um problema direto pelo app
-- Novos planos do Pro: a partir de R$ 4,90, plano anual e plano Família (3 celulares)
-- Resumo da sua semana de jogos
+- Modo completo sem instalar nada: um toque e o app liga tudo sozinho, sem o Shizuku (Android 11 ou mais novo)
+- Os botões no jogo, o Tuner e o Modo Frio funcionam com o modo completo
+- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi
+- Quem já usa o Shizuku continua funcionando normalmente

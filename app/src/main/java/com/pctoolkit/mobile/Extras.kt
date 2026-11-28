@@ -161,7 +161,7 @@ object Economia {
 
     /** Baixa o brilho, trava a tela em 60 Hz e (se der) poe o jogo no modo bateria do Android. */
     fun ligar(ctx: Context, pkg: String?): String {
-        if (!Ajuste.podeSystem()) return "este celular não deixou mudar o brilho e a taxa da tela por comando (ative o modo automático/Shizuku)"
+        if (!Ajuste.podeSystem()) return "este celular não deixou mudar o brilho e a taxa da tela por comando (ative o modo completo)"
         if (!ativo()) {
             val o = JSONObject().put("modo", Ajuste.ler("system", "screen_brightness_mode")).put("brilho", Ajuste.ler("system", "screen_brightness"))
                 .put("peak", Ajuste.ler("system", "peak_refresh_rate")).put("min", Ajuste.ler("system", "min_refresh_rate")).put("pkg", pkg ?: "")
@@ -197,7 +197,7 @@ object Economia {
             if (con.ask("O modo bateria está ligado. Desligar e voltar tudo ao normal?", "Desligar", "Manter")) { desligar(); con.ok("Tudo de volta ao normal") }
             return
         }
-        if (!Ajuste.pode() && !Priv.ativar(con)) { con.erro("O modo bateria precisa do modo automático (Shizuku)."); return }
+        if (!Ajuste.pode() && !Priv.ativar(con)) { con.erro("O modo bateria precisa do modo completo."); return }
         val jogo = if (con.ask("Também deixar um jogo no modo economia do Android?", "Escolher jogo", "Só o celular")) Jogos.escolher(con) else null
         val r = ligar(con.ctx, jogo?.pkg)
         if (r.isNotEmpty()) { con.erro("Não deu: $r"); return }
@@ -273,7 +273,7 @@ object Gravador {
         if (!Pro.exigir(con, "Gravar a tela")) return
         con.titulo("Gravar a tela")
         con.linha("Grava até 3 minutos por vez. Ligue o painel do Modo Jogo antes para o FPS e a temperatura aparecerem no vídeo.", T.texto2)
-        if (!Sh.privOk() && !Priv.ativar(con)) { con.erro("Gravar pela ferramenta precisa do modo automático (Shizuku). Você também pode usar o gravador de tela do próprio Android."); return }
+        if (!Sh.privOk() && !Priv.ativar(con)) { con.erro("Gravar pela ferramenta precisa do modo completo. Você também pode usar o gravador de tela do próprio Android."); return }
         if (gravando()) {
             if (con.ask("Está gravando agora. Parar e salvar?", "Parar", "Continuar")) { Sh.root("pkill -INT screenrecord", 5); con.sleep(1500); con.ok("Vídeo salvo na pasta Filmes/SerpyraToolkit") }
             return
@@ -374,7 +374,7 @@ object Automatico {
         con.info("Ligados agora: " + if (atuais.isEmpty()) "nenhum" else atuais.joinToString(", ") { listOf("limpeza", "calor", "app pesado")[it] })
         val sel = con.varios("O que deixar ligado?", nomes, false, importante = true)
         Store.putBool("auto_limpeza", 0 in sel); Store.putBool("auto_calor", 1 in sel); Store.putBool("auto_pesado", 2 in sel)
-        if ((0 in sel || 2 in sel) && !Sh.privOk()) con.aviso("A limpeza e o alerta de app pesado funcionam melhor com o modo automático (Shizuku) ligado.")
+        if ((0 in sel || 2 in sel) && !Sh.privOk()) con.aviso("A limpeza e o alerta de app pesado funcionam melhor com o modo completo ligado.")
         if (sel.isNotEmpty() && !Acesso.notificacoes()) con.garantirNome("Notificações")
         agendar(con.ctx)
         con.ok(if (sel.isEmpty()) "Cuidados automáticos desligados" else "Pronto: ${sel.size} cuidado(s) ligado(s)")
@@ -480,7 +480,7 @@ object Ajuda {
 object Suporte {
     const val EMAIL = "serpyrasuporte@gmail.com"
     private val FAQ = listOf(
-        "Os botões não apertam nada no jogo" to "Ative o modo automático (Shizuku) em Acesso e permissões e confira se o Shizuku está rodando. Depois de reiniciar o celular, o Shizuku precisa ser ligado de novo.",
+        "Os botões não apertam nada no jogo" to "Ative o modo completo em Acesso e permissões e confira se o Shizuku está rodando. Depois de reiniciar o celular, o Shizuku precisa ser ligado de novo.",
         "O Modo Jogo encerrou sozinho" to "Permita “Acesso ao uso” e deixe o app sem restrição de bateria (Configurações > Apps > SerpyraToolkit > Bateria > Sem restrição).",
         "Paguei e a chave não chegou" to "Olhe a caixa de spam. Na tela do Pro, toque em “Já comprei” e digite o e-mail da compra: a chave é recuperada na hora.",
         "Troquei de celular" to "Na tela do Pro, use “Trocou de celular?”, digite o e-mail da compra e o código que chega no e-mail. Dá para trocar uma vez a cada 30 dias.",

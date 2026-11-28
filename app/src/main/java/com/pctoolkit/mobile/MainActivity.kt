@@ -160,7 +160,7 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
                 if (ok) { ok("${p.nome}: liberado automaticamente"); return true }
             } else if (!Store.bool("shizuku_oferecido", false)) {
                 Store.putBool("shizuku_oferecido", true)
-                if (perguntar("Quer que o app libere esta e as outras permissões sozinho?\n\nPara isso ele usa o Shizuku (gratuito, sem root e sem PC). Leva 1 minuto, só na primeira vez.", "Configurar", "Fazer manualmente") && Priv.ativar(this)) {
+                if (perguntar("Quer que o app libere esta e as outras permissões sozinho?\n\nPara isso ele ativa o modo completo (sem instalar nada, sem root e sem PC). Leva 1 minuto, só na primeira vez.", "Configurar", "Fazer manualmente") && Priv.ativar(this)) {
                     val ok = Acesso.lista().firstOrNull { it.nome == p.nome }?.ok ?: false
                     if (ok) return true
                 }
@@ -224,6 +224,7 @@ class MainActivity : Activity() {
         Thread {
             Relatorio.enviar()
             Integridade.conferir()
+            if (!Priv.permitido()) try { if (Interno.religar(applicationContext)) runOnUiThread { atualizarInicio() } } catch (e: Throwable) { }
             try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
             if (Promo.atualizar()) runOnUiThread { atualizarInicio() }
             if (Dono.ligado()) Dono.conferir(this)
@@ -275,7 +276,7 @@ class MainActivity : Activity() {
         executar("Bem-vindo ao SerpyraToolkit") { con ->
             con.linha("Duas escolhas rápidas e o app passa a trabalhar sozinho. Dá para mudar depois em Acesso e permissões.", T.texto2)
             val p = con.escolher("Como liberar as permissões do app?", listOf(
-                "Automático (recomendado): o app libera tudo sozinho pelo Shizuku",
+                "Automático (recomendado): o app ativa o modo completo e libera tudo sozinho",
                 "Pedir uma por uma: abro as telas do Android para você permitir"))
             Modo.definirPermissoes(p != 1)
             val c = con.escolher("Como o app deve confirmar as ações?", listOf(
@@ -286,7 +287,7 @@ class MainActivity : Activity() {
             if (Modo.permissoesAuto()) {
                 Store.putBool("shizuku_oferecido", true)
                 if (Priv.ativar(con)) con.ok("Pronto! O app já consegue fazer tudo sozinho.")
-                else con.info("Sem o Shizuku agora, o app pede as permissões quando precisar. Ative depois em Acesso e permissões.")
+                else con.info("Sem o modo completo agora, o app pede as permissões quando precisar. Ative depois em Acesso e permissões.")
             }
             con.linha("")
             con.subtitulo("Primeiro Raio-X do seu celular")
@@ -644,16 +645,16 @@ class MainActivity : Activity() {
         sz.setPadding(Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16))
         sz.background = Ui.gradiente(this, 0xFF0F2A22.toInt(), 0xFF101C30.toInt(), 20)
         val szT = Ui.horizontal(this)
-        szT.addView(Ui.texto(this, "Modo automático (Shizuku)", 15.5f, T.texto, Ui.negrito), Ui.peso())
+        szT.addView(Ui.texto(this, "Modo completo", 15.5f, T.texto, Ui.negrito), Ui.peso())
         val est = Priv.estado(this)
         szT.addView(Ui.chip(this, est, if (est == "Ativo") T.verde else T.amarelo))
         sz.addView(szT)
-        val szD = Ui.texto(this, if (est == "Ativo") "O app libera as próprias permissões e aplica os ajustes sozinho, sem root e sem PC." else "Com o Shizuku (gratuito) o app libera todas as permissões e faz os ajustes sozinho, sem root e sem PC. Configura uma vez em 1 minuto.", 12.5f, T.texto2)
+        val szD = Ui.texto(this, if (est == "Ativo") "O app libera as próprias permissões e aplica os ajustes sozinho, sem root e sem PC." else if (Interno.suportado()) "Um toque e o app liga tudo sozinho, sem instalar nada: libera as permissões, os botões no jogo, o Tuner e o Modo Frio. Precisa estar no Wi-Fi só na hora de ativar." else "Com o Shizuku (gratuito) o app libera todas as permissões e faz os ajustes sozinho, sem root e sem PC.", 12.5f, T.texto2)
         szD.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12))
         sz.addView(szD)
-        sz.addView(Ui.botao(this, if (est == "Ativo") "Liberar tudo de novo" else "Ativar modo automático", T.verde, true) { executar("Modo automático") { Priv.ativar(it) } })
+        sz.addView(Ui.botao(this, if (est == "Ativo") "Liberar tudo de novo" else "Ativar modo completo", T.verde, true) { executar("Modo completo") { if (Priv.pronto()) { Priv.autoConfigurar(true); it.ok("Modo completo ativo: permissões liberadas de novo") } else ModoCompleto.executar(it) } })
         sz.addView(Ui.espaco(this, 1, 8))
-        sz.addView(Ui.botao(this, "Vídeo e passo a passo do Shizuku", T.azul, false) { abrirTela { TutorialShizuku.tela(this) } })
+        sz.addView(Ui.botao(this, "Prefiro usar o Shizuku (vídeo e passo a passo)", T.azul, false) { abrirTela { TutorialShizuku.tela(this) } })
         col.addView(sz, Ui.linhaLp(this, 0, 6))
 
         col.addView(Ui.secao(this, "Preferências"))

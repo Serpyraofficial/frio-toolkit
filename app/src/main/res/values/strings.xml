@@ -11,4 +11,6 @@
     <string name="at_raiox_l">Raio-X de desempenho</string>
     <string name="tile_modojogo">Modo Jogo</string>
     <string name="widget_desc">Modo Jogo, Preparar e jogar e Raio-X na tela inicial</string>
+    <string name="auto_nome">SerpyraToolkit: ativar modo completo</string>
+    <string name="auto_desc">Usado só para tocar nas Configurações no seu lugar quando você ativa o modo completo (liga as Opções do desenvolvedor e a Depuração sem fio). Não lê suas mensagens nem senhas e não envia nada da sua tela.</string>
 </resources>

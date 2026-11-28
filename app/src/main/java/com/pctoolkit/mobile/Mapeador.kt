@@ -20,7 +20,7 @@ object Mapeador {
     fun ativo(): Boolean = Store.bool("fisico_on", false) && Sh.privOk()
 
     fun ativar(con: Console): Boolean {
-        if (!Sh.privOk()) { con.aviso("Precisa do modo automático (Shizuku) para ler o teclado/controle físico."); return false }
+        if (!Sh.privOk()) { con.aviso("Precisa do modo completo para ler o teclado/controle físico."); return false }
         Store.putBool("fisico_on", true)
         con.ok("Teclado/controle físico ativado: as teclas dos seus botões de toque viram toques no jogo")
         return true

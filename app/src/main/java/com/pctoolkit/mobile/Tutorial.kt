@@ -40,14 +40,14 @@ object TutorialShizuku {
         val cor = if (ok) T.verde else T.amarelo
         c.background = Ui.clicavel(act, Ui.forma(act, Ui.alpha(cor, 0x22), 18, cor), 18)
         val tx = Ui.vertical(act)
-        tx.addView(Ui.texto(act, "SHIZUKU", 15.5f, T.texto, Ui.negrito))
-        tx.addView(Ui.texto(act, if (ok) "Ligado: o app faz tudo sozinho. Toque para ver o tutorial."
-            else "Ligue em 2 minutos: vídeo, foto do que ativar e passo a passo.", 12.5f, T.texto2))
+        tx.addView(Ui.texto(act, "MODO COMPLETO", 15.5f, T.texto, Ui.negrito))
+        tx.addView(Ui.texto(act, if (ok) "Ligado: o app faz tudo sozinho."
+            else if (Interno.suportado()) "Um toque e o app liga tudo sozinho, sem instalar nada." else "Ligue em 2 minutos com o Shizuku: vídeo e passo a passo.", 12.5f, T.texto2))
         c.addView(tx, Ui.peso())
         c.addView(Ui.espaco(act, 10, 1))
         c.addView(Ui.chip(act, if (ok) "Ativo ✓" else est, cor))
         c.isClickable = true
-        c.setOnClickListener { act.abrirTela { tela(act) } }
+        c.setOnClickListener { if (!ok && Interno.suportado()) act.executar("Modo completo") { ModoCompleto.executar(it) } else if (ok) act.abrirTela { act.telaPermissoes() } else act.abrirTela { tela(act) } }
         return c
     }
 

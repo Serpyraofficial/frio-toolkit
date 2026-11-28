@@ -28,14 +28,16 @@ object Injetor {
     private var binder: IBinder? = null
     private var metodo: Method? = null
     val fila = Executors.newSingleThreadExecutor()
-    @Volatile var modo = "nenhum"   // binder | shell | nenhum
+    @Volatile var modo = "nenhum"   // binder | interno | shell | nenhum
 
     @Synchronized
     fun preparar(): Boolean {
         val b0 = binder
-        if (im != null && b0 != null && Priv.pronto() && b0.pingBinder()) return true
+        if (im != null && b0 != null && Priv.permitido() && b0.pingBinder()) return true
+        if (modo == "interno" && EntradaInterna.pronto()) return true
         im = null; metodo = null; binder = null; modo = "nenhum"
-        if (Priv.pronto()) {
+        if (!Priv.permitido() && Interno.pronto() && EntradaInterna.pronto()) { modo = "interno"; return true }
+        if (Priv.permitido()) {
             try {
                 if (Build.VERSION.SDK_INT >= 28) HiddenApiBypass.addHiddenApiExemptions("")
                 val b = SystemServiceHelper.getSystemService("input")
@@ -56,7 +58,8 @@ object Injetor {
     private fun injetar(e: InputEvent): Boolean {
         for (t in 0..1) {
             try {
-                if (modo != "binder" && !preparar()) return false
+                if (modo != "binder" && modo != "interno" && !preparar()) return false
+                if (modo == "interno") { if (EntradaInterna.enviar(e)) return true; if (!preparar()) return false; if (modo == "interno") { if (EntradaInterna.enviar(e)) return true; continue } }
                 if (modo != "binder") return false
                 metodo?.invoke(im, e, 0)
                 return true

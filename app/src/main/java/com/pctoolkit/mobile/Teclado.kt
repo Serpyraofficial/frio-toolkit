@@ -1037,7 +1037,7 @@ object TecladoJogo {
         con.linha("Crie botões por cima do jogo: cada um aperta um ponto do jogo para você, com turbo, liga/desliga ou uma tecla do teclado/controle físico.", T.texto2)
         if (!Pro.exigir(con, "Teclado e controles no jogo")) return
         if (!Sh.privOk()) {
-            con.aviso("Para enviar teclas e toques a outro app o Android exige o modo automático (Shizuku) ou root.")
+            con.aviso("Para enviar teclas e toques a outro app o Android exige o modo completo ou root.")
             if (!Priv.ativar(con)) return
         }
         if (!con.garantirNome("Sobrepor a outros apps")) { con.erro("Sem permissão de sobreposição os botões não aparecem por cima do jogo."); return }

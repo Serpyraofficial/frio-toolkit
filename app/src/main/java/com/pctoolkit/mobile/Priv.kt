@@ -26,13 +26,16 @@ object Priv {
         rodando() && !Shizuku.isPreV11() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
     } catch (e: Throwable) { false }
 
-    fun pronto(): Boolean = permitido()
+    /** Pode rodar comandos com o poder do ADB: pelo Shizuku ou pelo modo completo do proprio app. */
+    fun pronto(): Boolean = permitido() || Interno.pronto()
 
     fun estado(ctx: Context): String = when {
         pronto() -> "Ativo"
+        Interno.pareado() -> "Reconectar"
         rodando() -> "Falta permitir"
+        Interno.suportado() -> "Desligado"
         instalado(ctx) -> "Instalado, desligado"
-        else -> "Não instalado"
+        else -> "Desligado"
     }
 
     /** Mostra o pedido do proprio Shizuku e espera a resposta (chamar fora da thread principal). */
@@ -66,14 +69,14 @@ object Priv {
 
     /** Processo longo com o poder do ADB (para leitura continua, ex.: getevent). */
     fun processo(cmd: String): Process? {
-        if (!pronto()) return null
+        if (!permitido()) return Interno.processo(cmd)
         val m = metodo ?: return null
         return try { val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process; p.outputStream.close(); p } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
     }
 
     /** Processo com o poder do ADB cuja entrada fica aberta (para mandar um arquivo, ex.: pm install -S). */
     fun processoComEntrada(cmd: String): Process? {
-        if (!pronto()) return null
+        if (!permitido()) return Interno.processo(cmd)
         val m = metodo ?: return null
         return try { m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process } catch (e: Throwable) { Log2.registrar("processo: $e"); null }
     }
@@ -93,7 +96,7 @@ object Priv {
     }
 
     fun exec(cmd: String, timeoutS: Long = 60): Sh.R {
-        if (!pronto()) return Sh.R(-1, "", "Shizuku indisponível")
+        if (!permitido()) return if (Interno.pronto()) Interno.exec(cmd, timeoutS) else Sh.R(-1, "", "modo completo desligado")
         val m = metodo ?: return Sh.R(-1, "", "Shizuku sem newProcess")
         return try {
             val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
@@ -141,6 +144,8 @@ object Priv {
     /** Passo a passo de ativacao, dentro de uma tarefa. Devolve true se ficou pronto. */
     fun ativar(con: Console): Boolean {
         val ctx = con.ctx
+        // Android 11+: o proprio app faz a conexao, sem instalar o Shizuku
+        if (!pronto() && !rodando() && Interno.suportado()) return ModoCompleto.executar(con)
         con.subtitulo("Modo automático (Shizuku)")
         if (pronto()) { val n = autoConfigurar(true); con.ok("Shizuku ativo · $n permissões liberadas automaticamente"); return true }
         if (!instalado(ctx)) {
