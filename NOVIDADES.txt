@@ -1,1 +1,4 @@
+- Botões prontos de outros jogadores: baixe com um toque no editor de botões (Mais > Botões prontos) e publique os seus
+- Lembrete de renovação com 10% de desconto já aplicado
 - Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)
+- Versões de teste: quem quiser recebe as novidades antes (Manutenção > Versões de teste)

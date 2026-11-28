@@ -224,6 +224,7 @@ class MainActivity : Activity() {
         Thread {
             Relatorio.enviar()
             Integridade.conferir()
+            Uso.abriu()
             if (!Priv.permitido()) try { if (Interno.religar(applicationContext)) runOnUiThread { atualizarInicio() } } catch (e: Throwable) { }
             try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
             if (Promo.atualizar()) runOnUiThread { atualizarInicio() }

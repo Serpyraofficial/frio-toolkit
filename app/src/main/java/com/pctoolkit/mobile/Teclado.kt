@@ -936,7 +936,9 @@ class TecladoService : Service() {
             "Avançado: botão de tecla (jogos que aceitam teclado)",
             "Avançado: macro (sequência de teclas)",
             "Compartilhar meus botões com um amigo",
-            "Usar botões que um amigo mandou"
+            "Usar botões que um amigo mandou",
+            "Botões prontos de outros jogadores",
+            "Publicar meus botões para outros jogadores"
         )
         mostrarDialogo(dialogo().setItems(ops) { _, i ->
             when (i) {
@@ -992,6 +994,44 @@ class TecladoService : Service() {
                                 if (l == null) toast("Código inválido. Copie a mensagem inteira que o seu amigo mandou.") else usar(l)
                             }.setNegativeButton("Cancelar", null).create())
                     }
+                }
+                9 -> {
+                    toast("Buscando botões de outros jogadores…")
+                    Thread {
+                        val l = Comunidade.listar(pkg)
+                        ui.post {
+                            when {
+                                l == null -> toast("Sem conexão agora. Tente de novo.")
+                                l.isEmpty() -> mostrarDialogo(dialogo().setTitle("Ainda não tem").setMessage("Ninguém publicou botões para ${Jogos.nome(this, pkg)} ainda. Que tal ser o primeiro? Monte os seus e use Mais > Publicar meus botões.").setPositiveButton("OK", null).create())
+                                else -> mostrarDialogo(dialogo().setTitle("Botões para ${Jogos.nome(this, pkg)}").setItems(l.map { "${it.nome} · ${it.n} botões" + (if (it.autor.isNotBlank()) " · por ${it.autor}" else "") + " · ${it.baixados}↓" }.toTypedArray()) { _, k ->
+                                    Thread {
+                                        val cod = Comunidade.baixar(l[k].id)
+                                        val nv = cod?.let { CompartilharBotoes.ler(it) }
+                                        ui.post {
+                                            if (nv == null) toast("Não consegui baixar. Tente de novo.")
+                                            else mostrarDialogo(dialogo().setTitle("Usar “${l[k].nome}”?").setMessage("Os botões atuais deste jogo serão trocados. Depois ajuste a posição se precisar e toque em Salvar.").setPositiveButton("Usar") { _, _ -> lista.clear(); lista.addAll(nv); edSel = null; depois(); toast("Botões colocados. Toque em Salvar.") }.setNegativeButton("Cancelar", null).create())
+                                        }
+                                    }.start()
+                                }.create())
+                            }
+                        }
+                    }.start()
+                }
+                10 -> {
+                    if (lista.size < 2) { toast("Monte pelo menos 2 botões antes de publicar."); return@setItems }
+                    val nome = EditText(ContextThemeWrapper(this, R.style.TemaDialogo)); nome.hint = "Nome (ex.: 4 dedos rush)"; nome.setTextColor(T.texto)
+                    val autor = EditText(ContextThemeWrapper(this, R.style.TemaDialogo)); autor.hint = "Seu apelido (opcional)"; autor.setTextColor(T.texto)
+                    val caixa = android.widget.LinearLayout(this); caixa.orientation = android.widget.LinearLayout.VERTICAL
+                    val pd = (16 * resources.displayMetrics.density).toInt(); caixa.setPadding(pd, 0, pd, 0)
+                    caixa.addView(nome); caixa.addView(autor)
+                    mostrarDialogo(dialogo().setTitle("Publicar para outros jogadores").setMessage("Seus ${lista.size} botões para ${Jogos.nome(this, pkg)} ficam disponíveis para quem usa o app. Só os botões vão: nada pessoal.").setView(caixa)
+                        .setPositiveButton("Publicar") { _, _ ->
+                            val cod = CompartilharBotoes.codigo(lista)
+                            Thread {
+                                val erro = Comunidade.publicar(pkg, Jogos.nome(this, pkg), nome.text.toString(), autor.text.toString(), cod, lista.size)
+                                toast(erro ?: "Publicado! Obrigado por ajudar outros jogadores.")
+                            }.start()
+                        }.setNegativeButton("Cancelar", null).create())
                 }
             }
         }.create())

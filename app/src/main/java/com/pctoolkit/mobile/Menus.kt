@@ -118,6 +118,7 @@ object Menus {
         Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
         Item("Relatar um problema", "Mande uma mensagem direto para a gente", M, T.azul, "Novo", T.verde, acao = { Relatar.executar(it) }),
         Item("Avaliar o app", "Dê sua nota e comente no site", M, T.amarelo, acao = { Avaliar.abrir(it.ctx); it.ok("Abrindo a página de avaliações") }),
+        Item("Versões de teste", "Receba as novidades antes, para ajudar a testar", M, T.texto2, acao = { Testes.configurar(it) }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Atualizar sozinho", "Liga ou desliga a atualização automática do app", M, T.verde, acao = { Atualizador.configurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })
