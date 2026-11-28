@@ -1,8 +1,8 @@
 {
- "versionCode": 86,
- "versionName": "5.23",
- "notas": "- Correções e melhorias",
- "sha256": "db2db0b4fd7e652d6743d3acc75a257ac4debbd16b2da331b132b5dc676568f1",
+ "versionCode": 87,
+ "versionName": "5.24",
+ "notas": "- A mesma chave do Pro agora vale no celular e no PC: cole em Tem um código? em qualquer aparelho\n- Correções e melhorias",
+ "sha256": "76db550dd6c1c9ac867cd30c98774bb24cef9299e33f0a4302e6312c5dd75403",
  "tamanho": 4892985,
- "arquivo": "SerpyraToolkit-5.23-db2db0b4fd.apk"
+ "arquivo": "SerpyraToolkit-5.24-76db550dd6.apk"
 }
