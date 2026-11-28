@@ -162,6 +162,21 @@ async function verCupom(url, env) {
 }
 
 /* ---------------- compra ---------------- */
+async function contarCache(chave) {
+  const cache = caches.default, req = new Request("https://conta.local/" + chave);
+  const r = await cache.match(req);
+  const n = (r ? parseInt(await r.text(), 10) || 0 : 0) + 1;
+  await cache.put(req, new Response(String(n), { headers: { "cache-control": "max-age=90000" } }));
+  return n;
+}
+async function cacheJson(chave, segundos, fazer) {
+  const cache = caches.default, req = new Request("https://cache.local/" + encodeURIComponent(chave));
+  const r = await cache.match(req);
+  if (r) return JSON.parse(await r.text());
+  const o = await fazer();
+  await cache.put(req, new Response(JSON.stringify(o), { headers: { "cache-control": "max-age=" + segundos } }));
+  return o;
+}
 async function limitar(chave, max) {
   const cache = caches.default;
   const req = new Request("https://limite.local/" + chave + "/" + Math.floor(Date.now() / 3600000));
@@ -314,7 +329,7 @@ async function resgatarPresente(req, env) {
 
 /* ---------------- mensagens, relatos, pirataria e notas ---------------- */
 async function mensagens(env) {
-  const l = (await lerJson(env, "mensagens")) || [];
+  const l = await cacheJson("mensagens", 300, async () => (await lerJson(env, "mensagens")) || []);
   const agora = Date.now();
   return json({ mensagens: l.filter(m => (!m.inicio || agora >= m.inicio) && (!m.ate || agora <= m.ate)).map(m => ({ id: m.id, titulo: m.titulo, texto: m.texto, publico: m.publico, cupom: m.cupom || "" })) });
 }
@@ -323,7 +338,7 @@ async function relato(req, env) {
   const codigo = limpaCodigo(b.codigo), texto = String(b.texto || "").trim().slice(0, 1500);
   if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
   if (texto.length < 5) return json({ erro: "Conte um pouco mais do que aconteceu." }, 400);
-  if (!(await limitar("relato:" + codigo, 5)) || !(await limitar("relatos-total", 200))) return json({ erro: "Muitas mensagens agora. Tente de novo mais tarde." }, 429);
+  if (!(await limitar("relato:" + codigo, 5)) || !(await limitar("relatos-total", 10))) return json({ erro: "Muitas mensagens agora. Tente de novo mais tarde." }, 429);
   const l = (await lerJson(env, "relatos")) || [];
   l.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), em: Date.now(), codigo, texto, contato: String(b.contato || "").trim().slice(0, 120), versao: String(b.versao || "").slice(0, 12), modelo: String(b.modelo || "").slice(0, 40), android: String(b.android || "").slice(0, 6), pro: !!b.pro, tela: String(b.tela || "").slice(0, 60), status: "novo" });
   await env.PCT.put("relatos", JSON.stringify(l.slice(0, 300)));
@@ -332,7 +347,7 @@ async function relato(req, env) {
 async function pirata(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
   const codigo = limpaCodigo(b.codigo);
-  if (!(await limitar("pirata:" + (codigo || "x"), 3)) || !(await limitar("pirata-total", 200))) return json({ ok: true });
+  if (!(await limitar("pirata:" + (codigo || "x"), 3)) || !(await limitar("pirata-total", 4))) return json({ ok: true });
   const k = "pirata:" + mesAtual(), m = (await lerJson(env, k)) || { total: 0, celulares: [], certs: {}, versoes: {}, modelos: {} };
   m.total++; m.ultimo = Date.now();
   if (codigoValido(codigo) && !m.celulares.includes(codigo) && m.celulares.length < 300) m.celulares.push(codigo);
@@ -346,19 +361,20 @@ async function nota(req, url, env) {
   if (req.method === "POST") {
     let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
     const codigo = limpaCodigo(b.codigo), n = Math.max(0, Math.min(100, parseInt(b.nota, 10) || 0)), mod = chaveModelo(b.modelo);
-    if (!codigoValido(codigo) || !n) return json({ ok: true });
-    if (await limitar("nota:" + codigo + ":" + diaAtual(), 1) && await limitar("notas-total", 2000)) {
-      for (const k of ["notas:" + mod, "notas:_todos"]) {
-        const x = (await lerJson(env, k)) || { n: 0, soma: 0, hist: Array(10).fill(0), modelo: b.modelo || "" };
-        x.n++; x.soma += n; x.hist[Math.min(9, Math.floor(n / 10))]++;
-        await env.PCT.put(k, JSON.stringify(x));
+    if (codigoValido(codigo) && n && await limitar("nota:" + codigo, 1) && await limitar("notas-total", 4)) {
+      const t = (await lerJson(env, "notas")) || { _todos: { n: 0, soma: 0, hist: Array(10).fill(0) } };
+      for (const k of [mod, "_todos"]) {
+        if (!t[k]) { if (Object.keys(t).length > 400) continue; t[k] = { n: 0, soma: 0, hist: Array(10).fill(0) }; }
+        t[k].n++; t[k].soma += n; t[k].hist[Math.min(9, Math.floor(n / 10))]++;
       }
+      await env.PCT.put("notas", JSON.stringify(t));
     }
   }
   const nota0 = Math.max(0, Math.min(100, parseInt(url.searchParams.get("nota") || "0", 10) || 0));
   const mod = chaveModelo(url.searchParams.get("modelo"));
-  let x = await lerJson(env, "notas:" + mod), de = "modelo";
-  if (!x || x.n < 5) { x = await lerJson(env, "notas:_todos"); de = "todos"; }
+  const t = await cacheJson("notas", 1800, async () => (await lerJson(env, "notas")) || {});
+  let x = t[mod], de = "modelo";
+  if (!x || x.n < 5) { x = t._todos; de = "todos"; }
   if (!x || !x.n) return json({ n: 0 });
   const b10 = Math.min(9, Math.floor(nota0 / 10)); let abaixo = 0; for (let i = 0; i < b10; i++) abaixo += x.hist[i];
   abaixo += x.hist[b10] / 2;
@@ -373,7 +389,7 @@ async function registrarErro(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
   const codigo = limpaCodigo(b.codigo);
   if (!codigoValido(codigo)) return json({ ok: true });
-  if (!(await limitar("erro:" + codigo, 10)) || !(await limitar("erros-total", 300))) return json({ ok: true });
+  if (!(await limitar("erro:" + codigo, 3)) || !(await limitar("erros-total", 12))) return json({ ok: true });
   const lista = Array.isArray(b.erros) ? b.erros.slice(0, 10) : [b];
   const k = "erros:" + mesAtual();
   const m = (await lerJson(env, k)) || {};
@@ -402,10 +418,12 @@ async function evento(req, env) {
   const codigo = limpaCodigo(b.codigo), tipo = b.tipo === "pro" ? "pro" : "";
   if (!codigoValido(codigo) || !tipo) return json({ ok: true });
   // uma vez por celular por dia, e no maximo 400 gravacoes por dia no total
-  if (!(await limitar("ev:" + tipo + ":" + codigo + ":" + diaAtual(), 1)) || !(await limitar("ev-total:" + diaAtual(), 400))) return json({ ok: true });
+  if (!(await limitar("ev:" + tipo + ":" + codigo + ":" + diaAtual(), 1))) return json({ ok: true });
+  const n = await contarCache("evc:" + tipo + ":" + diaAtual());
+  if (n % 10 !== 0) return json({ ok: true });
   const k = "funil:" + diaAtual();
   const f = (await lerJson(env, k)) || {};
-  f[tipo] = (f[tipo] || 0) + 1;
+  f[tipo] = (f[tipo] || 0) + 10;
   await env.PCT.put(k, JSON.stringify(f), { expirationTtl: 60 * 60 * 24 * 120 });
   return json({ ok: true });
 }
@@ -506,7 +524,7 @@ async function testeGratis(req, env) {
   if (await env.PCT.get("teste:" + codigo)) return json({ erro: "O teste grátis deste celular já foi usado. Veja os planos do Pro." }, 409);
   if (ip && await env.PCT.get("testeip:" + ip)) return json({ erro: "O teste grátis já foi usado nesta internet. Veja os planos do Pro." }, 409);
   if (await validadeAtual(env, codigo)) return json({ erro: "Este celular já tem ou já teve o Pro. Use Já comprei para recuperar." }, 409);
-  if (!(await limitar("teste", 300))) return json({ erro: "Muitos testes agora. Tente mais tarde." }, 429);
+  if (!(await limitar("teste", 60))) return json({ erro: "Muitos testes agora. Tente mais tarde." }, 429);
   const ate = Date.now() + TESTE_MIN * 60000, dia = Math.floor(ate / DIA);
   const chave = await assinarChave(env, codigo, dia);
   await env.PCT.put("teste:" + codigo, String(dia));
@@ -771,12 +789,14 @@ async function admin(req, url, env) {
     const l = (await lerJson(env, "mensagens")) || [];
     l.unshift({ id: Date.now(), titulo, texto, publico, cupom: limpaCupom(b.cupom), inicio: ini > Date.now() + 60000 ? ini : 0, ate: ini + horas * 3600000, criado: Date.now() });
     await env.PCT.put("mensagens", JSON.stringify(l.filter(m => !m.ate || m.ate > Date.now() - 7 * DIA).slice(0, 30)));
+    try { await caches.default.delete(new Request("https://cache.local/mensagens")); } catch (e) { }
     return json({ ok: true });
   }
   if (rota === "mensagem" && req.method === "DELETE") {
     const id = parseInt(url.searchParams.get("id"), 10);
     const l = ((await lerJson(env, "mensagens")) || []).filter(m => m.id !== id);
     await env.PCT.put("mensagens", JSON.stringify(l));
+    try { await caches.default.delete(new Request("https://cache.local/mensagens")); } catch (e) { }
     return json({ ok: true });
   }
   if (rota === "mensagens" && req.method === "GET") return json({ mensagens: (await lerJson(env, "mensagens")) || [] });
@@ -795,7 +815,7 @@ async function admin(req, url, env) {
     return json({ mes: nomes.length ? nomes[0].slice(7) : mesAtual(), total: m ? m.total : 0, celulares: m ? m.celulares.length : 0, versoes: m ? m.versoes : {}, modelos: m ? m.modelos : {}, ultimo: m ? m.ultimo : 0 });
   }
   if (rota === "notas" && req.method === "GET") {
-    const t = (await lerJson(env, "notas:_todos")) || { n: 0, soma: 0 };
+    const t = ((await lerJson(env, "notas")) || {})._todos || { n: 0, soma: 0 };
     return json({ n: t.n, media: t.n ? Math.round(t.soma / t.n) : 0 });
   }
   if (rota === "novas" && req.method === "GET") {
