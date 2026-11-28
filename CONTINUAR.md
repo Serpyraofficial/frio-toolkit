@@ -70,3 +70,9 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
   - o PIN, se o celular pedir;
   - estar no Wi-Fi.
 - Quando a automação falhar: passo a passo com destaque na tela.
+
+## 2026-11-28: site no visual novo (Y2K)
+- index, suporte, termos, privacidade e jogos/* publicados no visual escuro com grade, cromo, VT323 e janelas .exe.
+- Celular do topo do site = tela inicial nova do app (Main.dc.html, escalada com .app-mini --k).
+- Branch wip-site já mesclada em android-app.
+- Pendente: o texto da ajuda (suporte.html) ainda fala em Shizuku para os botões; o app 5.22 segue só no beta.
