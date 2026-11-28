@@ -250,6 +250,12 @@ tr:last-child td{border-bottom:0}
  <p class="msg" id="extra"></p>
 
 <section class="aba on" id="aba-resumo">
+ <div class="card">
+  <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-pessoa"/></svg></span><h2>Quem está usando o app</h2></div>
+  <div class="card-d">Pessoas diferentes que abriram o app (cada celular conta uma vez por dia).</div>
+  <div class="er-nums" id="usoNums"><div class="vazio">Carregando…</div></div>
+  <div id="usoMc" style="margin-top:12px"></div>
+ </div>
  <div class="card" id="erResumoCard">
   <div class="card-t"><span class="ic vm"><svg class="i"><use href="#ic-erro"/></svg></span><h2>Saúde do app</h2></div>
   <div class="er-nums" id="erResumo"><div class="vazio">Carregando…</div></div>
@@ -390,6 +396,11 @@ tr:last-child td{border-bottom:0}
 
 <section class="aba" id="aba-relatos">
  <div class="card">
+  <div class="card-t"><span class="ic"><svg class="i"><use href="#ic-pessoa"/></svg></span><h2>Botões publicados pelos jogadores</h2></div>
+  <div class="card-d">Os jogadores podem publicar os botões deles para outros baixarem. Esconda os que estiverem ruins ou com nome ofensivo.</div>
+  <div id="btLista"><div class="vazio">Carregando…</div></div>
+ </div>
+ <div class="card">
   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-pessoa"/></svg></span><h2>Problemas relatados pelos clientes</h2></div>
   <div class="card-d">Quando alguém toca em “Relatar um problema” no app, a mensagem chega aqui com o celular, a versão e se a pessoa é Pro. Se ela deixou um e-mail, você pode responder.</div>
   <label class="chk"><input type="checkbox" id="rlTodos"> Mostrar também os resolvidos</label>
@@ -459,7 +470,7 @@ tr:last-child td{border-bottom:0}
       var pq=r.pesquisa||{}, tot=Object.keys(pq).reduce(function(t,k){return t+pq[k]},0);
       $('pesq').innerHTML=tot?Object.keys(pq).sort(function(a,b){return pq[b]-pq[a]}).map(function(k){return '<div>'+esc(k)+' <b>'+pq[k]+'</b></div><div class="barra-motivo" style="width:'+Math.round(pq[k]*100/tot)+'%"></div>'}).join(''):'<p class="vazio">Ninguém respondeu ainda. A pergunta aparece no app quando o Pro comprado vence.</p>';
       if(r.aviso&&r.aviso.texto){$('aTxt').value=r.aviso.texto;$('aLink').value=r.aviso.link||'';msg($('msgAviso'),'Aviso no ar.','ok')}
-      cortesias(); funil(); erros(); promoAtual(); mensagens(); relatos(); pirataria(); avaliacoesPainel();
+      cortesias(); funil(); erros(); promoAtual(); mensagens(); relatos(); pirataria(); avaliacoesPainel(); usoPainel(); botoesPainel();
       api('GET','/admin/vencendo').then(function(v){
         $('tVence').innerHTML=v.vencendo.length?v.vencendo.map(function(x){return '<tr><td>'+esc(x.codigo.slice(0,4)+'-'+x.codigo.slice(4))+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.validade)+' ('+(x.dias<0?'venceu':x.dias===0?'hoje':'em '+x.dias+' dia(s)')+')</td><td>'+(x.email?'<a class="b l" style="padding:4px 10px;text-decoration:none" href="mailto:'+esc(x.email)+'?subject='+encodeURIComponent('Seu SerpyraToolkit Pro está vencendo')+'&body='+encodeURIComponent('Oi! Seu Pro vence em '+x.validade+'. Renovando pelo app agora você ganha 10% com o cupom RENOVA10.')+'">Mandar e-mail</a>':'')+'</td></tr>'}).join(''):'<tr><td colspan="4" class="vazio">Ninguém vencendo nos próximos dias.</td></tr>';
       }).catch(function(){});
@@ -661,6 +672,16 @@ tr:last-child td{border-bottom:0}
     [].forEach.call(document.querySelectorAll('[data-rl]'),function(b){b.onclick=function(){var ac=b.getAttribute('data-ac');if(ac==='apagar'&&!confirm('Apagar este relato?'))return;api('POST','/admin/relatos',{id:b.getAttribute('data-rl'),acao:ac}).then(relatos)}});
   }
   $('rlTodos').onchange=desenharRelatos;
+  function usoPainel(){api('GET','/admin/uso').then(function(u){
+    if(u.semBanco){$('usoNums').innerHTML='<div class="vazio">Aparece depois que a publicação automática do servidor estiver ligada.</div>';return}
+    $('usoNums').innerHTML=[['Hoje',u.hoje],['Últimos 7 dias',u.semana],['Últimos 30 dias',u.mes],['Pro hoje',u.proHoje]].map(function(x){return '<div><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join('');
+    var ok=(u.mcOk||[]).reduce(function(t,x){return t+x.n},0),fa=(u.mcFalha||[]).reduce(function(t,x){return t+x.n},0);
+    $('usoMc').innerHTML='<div class="card-d" style="margin:0"><b>Modo completo (30 dias):</b> '+ok+' ativaram, '+fa+' não conseguiram.'+(ok?' Marcas: '+u.mcOk.slice(0,6).map(function(x){return esc(x.chave)+' ('+x.n+')'}).join(', ')+'.':'')+(fa?' Onde travou: '+u.mcFalha.slice(0,6).map(function(x){return esc(x.chave.replace('|',' · '))+' ('+x.n+')'}).join(', ')+'.':'')+'</div>';
+  }).catch(function(){$('usoNums').innerHTML='<div class="vazio">Aparece depois que a publicação automática do servidor estiver ligada.</div>'})}
+  function botoesPainel(){api('GET','/admin/botoes').then(function(r){var l=r.botoes||[];
+    $('btLista').innerHTML=l.length?l.map(function(b){return '<div style="padding:10px 0;border-top:1px solid #E3E8EF'+(b.oculto?';opacity:.55':'')+'"><b>'+esc(b.nome)+'</b> · '+esc(b.jogo||b.pkg)+' · '+b.n+' botões'+(b.autor?' · por '+esc(b.autor):'')+' · baixado '+b.baixados+'x <small style="color:#66758A">'+esc(dataHora(b.em))+'</small><div class="acao-l"><button class="b l" data-bt="'+esc(b.id)+'" data-ac="'+(b.oculto?'mostrar':'ocultar')+'" style="padding:4px 10px">'+(b.oculto?'Mostrar':'Esconder')+'</button><button class="b l" data-bt="'+esc(b.id)+'" data-ac="apagar" style="padding:4px 10px">Apagar</button></div></div>'}).join(''):'<div class="vazio">Ninguém publicou botões ainda.</div>';
+    [].forEach.call(document.querySelectorAll('[data-bt]'),function(x){x.onclick=function(){var ac=x.getAttribute('data-ac');if(ac==='apagar'&&!confirm('Apagar estes botões?'))return;api('POST','/admin/botoes',{id:x.getAttribute('data-bt'),acao:ac}).then(botoesPainel)}});
+  }).catch(function(){$('btLista').innerHTML='<div class="vazio">Aparece depois que a publicação automática do servidor estiver ligada.</div>'})}
   function avaliacoesPainel(){api('GET','/admin/avaliacoes').then(function(r){var l=r.avaliacoes||[],v=l.filter(function(a){return a.visivel});
     $('avResumo').textContent=l.length?(v.length+' visíveis · média '+(v.length?(v.reduce(function(t,a){return t+a.estrelas},0)/v.length).toFixed(1).replace('.',','):'–')+' · '+(l.length-v.length)+' escondidas'):'Nenhuma avaliação ainda.';
     $('avLista').innerHTML=l.map(function(a){return '<div style="padding:12px 0;border-top:1px solid #E3E8EF'+(a.visivel?'':';opacity:.55')+'"><div><span style="color:#F2B01E">'+'★★★★★'.slice(0,a.estrelas)+'☆☆☆☆☆'.slice(0,5-a.estrelas)+'</span> <b>'+esc(a.nome||'Anônimo')+'</b> <small style="color:#66758A">'+esc(dataHora(a.em))+(a.visivel?'':' · escondida')+'</small></div><div style="margin:6px 0;white-space:pre-wrap">'+esc(a.texto)+'</div><div class="acao-l"><button class="b l" data-av="'+esc(a.id)+'" data-ac="'+(a.visivel?'ocultar':'mostrar')+'" style="padding:4px 10px">'+(a.visivel?'Esconder':'Mostrar')+'</button><button class="b l" data-av="'+esc(a.id)+'" data-ac="apagar" style="padding:4px 10px">Apagar</button></div></div>'}).join('');
