@@ -89,3 +89,10 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 - 2026-11-28 13:45: 5.22 (85) lançada para todos (APK d07b88f4de, assinatura conferida, sem Acessibilidade/SMS/notificações).
 - 2026-11-28 14:20: 5.23 (86) lançada (abas alinhadas, presente atrás do botão 🎁, área do dono escondida: segurar o nome no Início + chave do dono definida no painel em Site > Chave do dono; /dono/entrar, /dono/novas, /dono/saude). Novidades: só 'Correções e melhorias'.
 - 2026-11-28 14:35: compra pelo site (pedido com site:true, codigo WEB+5, vouchers PRE por e-mail; família = 3 códigos). Janela comprar.exe no index (?comprar=<plano> abre direto).
+
+## 2026-11-28: SerpyraToolkit para PC (v1.0, em teste)
+- pc/script/PC-Toolkit.ps1 = script do dono (v4.0); pc/ferramentas/preparar.py tira o menu/param e troca as teclas; pc/script/app.ps1 é a ponte (cores ESC[c:Cor], perguntas ESC[p]..ESC[/p], limpar ESC[2J, teclas por arquivo %TEMP%\serpyra-pc-tecla.txt).
+- pc/app: WPF .NET Framework 4.8 (C#), roda como administrador, abas Início/Jogos e FPS/Ferramentas/Segurança/Pro; console embutido; Pro: teste 1h, Pix no app, código PRE/PCT, "Já tenho o Pro no celular" (/pc/pedir + /pc/confirmar). Código do PC = SHA256("serpyra-pc|"+MachineGuid) → 8 letras B32.
+- Workflow "Gerar PC" (windows-latest): compila, tira fotos das telas (--fotos), testa a ponte, publica pc/dist/SerpyraToolkit-PC.exe.
+- Grátis x Pro: grátis = Raio-X, Modo Jogo 2x/dia, limpeza, RAM, temperatura, tela/Hz, teste de conexão, histórico, varredura rápida, quarentena, megazord, desfazer. Pro = o resto.
+- Pendente: atualização automática do programa de PC, botão no site, certificado de assinatura (aviso do Windows).
