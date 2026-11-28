@@ -24,14 +24,19 @@ jobs:
       - name: Conferir a sintaxe
         if: steps.tk.outputs.ok == '1'
         run: node --check servidor/worker.js || node -e "import('./servidor/worker.js').then(()=>console.log('ok'))"
-      - name: Publicar no Cloudflare
+      - name: Publicar no Cloudflare (cria o banco D1 se faltar)
         if: steps.tk.outputs.ok == '1'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: f060b4f72273d897fb21b18c200548dc
-          workingDirectory: servidor
-          command: deploy
+        working-directory: servidor
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: f060b4f72273d897fb21b18c200548dc
+        run: |
+          npm i -g wrangler@4 >/dev/null 2>&1
+          achar() { wrangler d1 list --json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const l=JSON.parse(s);const d=l.find(x=>x.name==='serpyra-dados');console.log(d?(d.uuid||d.id):'')}catch(e){console.log('')}})"; }
+          ID=$(achar)
+          if [ -z "$ID" ]; then wrangler d1 create serpyra-dados >/dev/null && ID=$(achar); fi
+          if [ -n "$ID" ]; then printf '\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "serpyra-dados"\ndatabase_id = "%s"\n' "$ID" >> wrangler.toml; echo "D1: $ID"; else echo "D1 indisponível (o token tem D1 Edit?). Publicando sem ele."; fi
+          wrangler deploy
       - name: Conferir se está no ar
         if: steps.tk.outputs.ok == '1'
         run: |
