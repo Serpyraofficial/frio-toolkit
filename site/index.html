@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SerpyraToolkit: seu Android pronto para jogar</title>
-<meta name="description" content="Mais FPS, menos calor e controles de emulador por cima do jogo. Sem root. Baixe grátis para Android.">
+<title>SerpyraToolkit: celular e PC prontos para jogar</title>
+<meta name="description" content="Mais FPS, menos calor e tudo ajustado para jogar, no Android e no PC com Windows. Um Pro só para os dois. Baixe grátis.">
 <meta name="theme-color" content="#07081A">
-<meta property="og:title" content="SerpyraToolkit: seu Android pronto para jogar">
-<meta property="og:description" content="Mais FPS, menos calor e controles de emulador por cima do jogo. Sem root.">
+<meta property="og:title" content="SerpyraToolkit: celular e PC prontos para jogar">
+<meta property="og:description" content="Android e Windows, um Pro só. Mais FPS, menos calor e Modo Jogo nos dois.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@ img,svg{display:block}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em;font-variation-settings:"opsz" 30,"wdth" 90}
 .logo svg{width:34px;height:34px}
 .nav-links{display:flex;gap:24px;font-size:15.5px;margin-left:8px}
-.nav-links a{text-decoration:none;color:var(--tinta2)}
+.nav-links a{text-decoration:none;color:var(--tinta2);white-space:nowrap}
 .nav-links a:hover{color:var(--tinta)}
 .nav-acoes{margin-left:auto;display:flex;gap:10px}
 .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--f);font-weight:600;font-size:16px;text-decoration:none;border-radius:10px;padding:11px 18px;border:1.5px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
@@ -84,6 +84,63 @@ h1{font-weight:500;font-size:clamp(38px,5.2vw,70px);line-height:.98;letter-spaci
 .exe{position:relative;padding-top:52px!important;overflow:hidden}
 .exe:before{content:attr(data-exe);position:absolute;left:0;right:0;top:0;height:34px;background:var(--barra);border-bottom:1.5px solid var(--linha);color:#A99CFF;font-family:var(--fp);font-size:20px;line-height:34px;padding:0 14px}
 .exe:after{content:"_ □ ×";position:absolute;right:14px;top:0;line-height:34px;color:#8B90C2;font-family:var(--fp);font-size:20px;letter-spacing:4px}
+
+/* ===== hero duplo: Android + PC ===== */
+.duo{position:relative;padding:54px 0 36px;overflow:hidden}
+.duo:before{content:"";position:absolute;inset:-10% 50% 0 -10%;background:radial-gradient(ellipse at 70% 55%,rgba(140,123,255,.32),transparent 62%);pointer-events:none}
+.duo:after{content:"";position:absolute;inset:-10% -10% 0 50%;background:radial-gradient(ellipse at 30% 55%,rgba(200,255,107,.16),transparent 60%);pointer-events:none}
+.duo .w{position:relative;z-index:1}
+.duo-cab{text-align:center;max-width:980px;margin:0 auto}
+.duo-cab .selo{margin-bottom:18px}
+.duo-tit{font-size:clamp(46px,8.4vw,128px)!important;line-height:.9!important;letter-spacing:-.045em!important;display:flex;flex-direction:column;align-items:center}
+.duo-tit .l1{background:none!important;-webkit-background-clip:initial;background-clip:initial;color:var(--lima)!important;-webkit-text-fill-color:var(--lima)}
+.duo-tit .l2{background:linear-gradient(180deg,#FFFFFF 0%,#C9D4FF 38%,#6E7BB8 52%,#E9EEFF 70%,#9AA8E0 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.duo-cab .hero-lead{margin:22px auto 0;text-align:center;max-width:640px}
+.duo-g{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);align-items:stretch;margin-top:46px}
+.lado{background:rgba(15,16,54,.88);border:1.5px solid var(--linha);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;backdrop-filter:blur(6px)}
+.lado-and{border-color:#8C7BFF;box-shadow:0 30px 80px -40px rgba(140,123,255,.8)}
+.lado-pc{border-color:#C8FF6B;box-shadow:0 30px 80px -40px rgba(200,255,107,.45)}
+.lado-bar{display:flex;justify-content:space-between;align-items:center;height:38px;padding:0 16px;font-family:var(--fp);font-size:21px;border-bottom:1.5px solid var(--linha)}
+.lado-and .lado-bar{background:#8C7BFF;color:#07081A;border-color:#8C7BFF}
+.lado-pc .lado-bar{background:#C8FF6B;color:#07081A;border-color:#C8FF6B}
+.lado-in{padding:28px 28px 30px;display:flex;flex-direction:column;align-items:flex-start;flex:1}
+.lado-tit{font-size:clamp(26px,2.6vw,36px)!important;margin:0}
+.lado-txt{color:var(--tinta2);margin-top:8px;max-width:440px;min-height:3.2em}
+.lado-palco{position:relative;width:100%;height:580px;display:flex;align-items:center;justify-content:center;margin:12px 0 22px}
+.lado .placa{display:none}
+.lado .cel-hero{width:250px!important;margin:0!important;transform:rotate(-5deg)}
+.lado .cel-hero .app-mini{--k:.5897}
+.lado .b-grande{width:100%}
+.b-roxo{background:#8C7BFF;color:#07081A;font-weight:700;border-color:#8C7BFF}.b-roxo:hover{background:#A99CFF}
+.monitor{width:min(100%,460px);transform:rotate(3deg)}
+.monitor-tela{background:#2A2960;border-radius:16px;padding:10px;box-shadow:0 40px 70px -30px rgba(0,0,0,.85),0 0 0 1px #3A3480}
+.monitor-tela img{display:block;width:100%;height:auto;border-radius:8px}
+.monitor-pe{width:34%;height:44px;margin:0 auto;background:linear-gradient(#2A2960,#1C1A52);clip-path:polygon(22% 0,78% 0,100% 100%,0 100%);border-radius:0 0 8px 8px}
+.ponte{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.ponte:before{content:"";position:absolute;top:8%;bottom:8%;left:50%;border-left:2px dashed #3A3480}
+.ponte .mais{position:relative;z-index:1;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#07081A;border:2px solid var(--lima);color:var(--lima);font-family:var(--fd);font-weight:900;font-size:28px;box-shadow:0 0 30px rgba(200,255,107,.35)}
+.ponte .vert{position:relative;z-index:1;writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--fp);font-size:20px;letter-spacing:.12em;color:#A99CFF;background:#07081A;padding:10px 4px}
+@media(max-width:900px){
+ .duo-g{grid-template-columns:1fr;gap:0}
+ .ponte{flex-direction:row;padding:16px 0}
+ .ponte:before{top:50%;bottom:auto;left:8%;right:8%;border-left:0;border-top:2px dashed #3A3480}
+ .ponte .vert{writing-mode:horizontal-tb;transform:none;padding:4px 10px}
+ .lado-palco{height:500px}
+ .lado .cel-hero{width:220px!important}
+ .lado .cel-hero .app-mini{--k:.5128}
+}
+/* ===== secao do PC ===== */
+.pc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pc-card{background:#0F1036;border:1.5px solid var(--linha);border-radius:18px;overflow:hidden}
+.pc-card .tb{background:#1C1A52;border-bottom:1.5px solid var(--linha);font-family:var(--fp);font-size:19px;color:#A99CFF;padding:4px 14px;display:flex;justify-content:space-between}
+.pc-card .cx{padding:16px 18px 18px}
+.pc-card h3{font-size:18px;font-weight:700}
+.pc-card p{color:var(--tinta2);font-size:15px;margin-top:4px}
+.pc-card .tag{display:inline-block;font-family:var(--fp);font-size:16px;background:var(--lima);color:#07081A;border-radius:99px;padding:0 8px;margin-left:6px;vertical-align:2px}
+.pc-acao{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin-top:30px}
+.pc-acao .nota{color:var(--tinta3);font-size:14px;max-width:560px;text-align:center}
+@media(max-width:900px){.pc-g{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.pc-g{grid-template-columns:1fr}}
 /* destaque controlado pelo painel */
 .destaque-site{margin-top:28px}
 .ds-in{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#12113A;border:1.5px solid var(--violeta);border-radius:20px;padding:22px 24px}
@@ -205,40 +262,7 @@ h2{font-weight:500;font-size:clamp(28px,3.6vw,46px);line-height:1.04;letter-spac
 .opcoes div,.opcoes button{display:flex;align-items:center;gap:10px;border:1px solid #3A3480;border-radius:14px;padding:11px 14px;width:100%;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
 .opcoes button:hover,.opcoes button:focus-visible{border-color:var(--lima);background:rgba(200,255,107,.06)}
 .compra-bts{display:grid;gap:10px}
-/* compra pelo site */
-dialog.compra{margin:auto;border:1.5px solid var(--violeta);border-radius:20px;background:#0F1036;color:var(--tinta);padding:0;width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto}
-dialog.compra::backdrop{background:rgba(7,8,26,.82)}
-.compra .tb{display:flex;align-items:center;justify-content:space-between;background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:6px 8px 6px 16px;font-family:var(--fp);font-size:20px;color:#A99CFF;position:sticky;top:0}
-.compra .tb button{background:none;border:0;color:#B8BEF0;font-size:26px;line-height:1;cursor:pointer;padding:4px 10px;border-radius:8px}
-.compra .cx{padding:20px}
-.compra h3{font-family:var(--fd);font-weight:900;text-transform:uppercase;font-size:20px;letter-spacing:-.02em;margin-bottom:6px}
-.compra p.s{color:var(--tinta2);font-size:15px}
-.compra .pls{display:grid;gap:8px;margin:16px 0}
-.compra .pls label{display:flex;align-items:center;gap:10px;border:1.5px solid #3A3480;border-radius:12px;padding:10px 12px;cursor:pointer}
-.compra .pls label:has(input:checked){border-color:var(--lima);background:rgba(200,255,107,.07)}
-.compra .pls input{accent-color:#C8FF6B;width:18px;height:18px}
-.compra .pls b{flex:1;font-weight:600}
-.compra .pls span{color:var(--tinta2);font-size:13px}
-.compra .pls strong{white-space:nowrap}
-.compra .cp{display:block;font-size:14px;font-weight:600;margin:12px 0 6px}
-.compra input[type=email],.compra input[type=text]{width:100%;font:inherit;font-size:16px;border:1.5px solid #3A3480;border-radius:12px;padding:11px 12px;background:#07081A;color:var(--tinta);caret-color:var(--lima)}
-.compra input:focus{outline:none;border-color:var(--violeta);box-shadow:0 0 0 3px rgba(140,123,255,.25)}
-.compra .linha-c{display:flex;gap:8px}
-.compra .linha-c input{flex:1}
-.compra .link{background:none;border:0;color:#A99CFF;text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;padding:0;margin-top:10px}
-.compra .msg{margin-top:10px;font-size:14px;min-height:1em}
-.compra .msg.erro{color:#FF7A86}.compra .msg.ok{color:var(--lima)}
-.compra .acao{width:100%;margin-top:16px}
-.compra .qr{display:block;width:220px;height:220px;margin:14px auto;background:#fff;border-radius:14px;padding:8px}
-.compra textarea{width:100%;font-family:ui-monospace,monospace;font-size:12px;background:#07081A;color:var(--tinta2);border:1.5px solid #3A3480;border-radius:12px;padding:10px;height:84px;resize:none}
-.compra .espera{display:flex;align-items:center;gap:10px;justify-content:center;font-family:var(--fp);font-size:20px;color:#A99CFF;margin-top:12px}
-.compra .espera i{width:10px;height:10px;border-radius:50%;background:var(--lima);animation:pisca 1s ease-in-out infinite}
-@keyframes pisca{50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){.compra .espera i{animation:none}}
-.compra .cod{flex-wrap:wrap;overflow-wrap:anywhere;font-family:var(--fp);font-size:clamp(22px,7vw,30px);letter-spacing:2px;color:var(--lima);background:#07081A;border:1.5px dashed #4C6A2A;border-radius:12px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
-.compra .cod button{font-family:var(--f);font-size:13px}
-.compra ol{margin:12px 0 0 20px;color:var(--tinta2);font-size:15px}
-.compra ol li{margin:4px 0}
+
 .opcoes b{font-weight:600;flex:1}
 .opcoes span{color:#9FB0C5;font-size:14px}
 .opcoes strong{font-weight:650;font-size:18px;white-space:nowrap}
@@ -265,6 +289,7 @@ dialog.compra::backdrop{background:rgba(7,8,26,.82)}
 .aviso-inst p{font-size:14.5px;line-height:1.55;opacity:.85}
 .aviso-inst p b{display:inline;font-size:inherit;margin:0}
 @media(max-width:760px){.aviso-inst{grid-template-columns:1fr}}
+.inst-sub{font-family:var(--fd);font-weight:700;font-size:18px;text-transform:uppercase;color:#A99CFF;margin:40px 0 16px;text-align:center}
 .inst-g{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;counter-reset:n}
 @media(max-width:900px){.inst-g{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.inst-g{grid-template-columns:1fr}}
@@ -482,36 +507,31 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div class="nav-in">
   <a class="logo" href="#topo"><svg aria-hidden="true"><use href="#logo"/></svg>SerpyraToolkit</a>
   <nav class="nav-links" aria-label="Seções">
-   <a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#planos">Planos</a><a href="#avaliacoes">Avaliações</a><a href="#duvidas">Dúvidas</a>
+   <a href="#como">No celular</a><a href="#pc">No PC</a><a href="#planos">Planos</a><a href="#avaliacoes">Avaliações</a><a href="#duvidas">Dúvidas</a>
   </nav>
   <div class="nav-acoes">
-   <a class="b b-linha so-desk" href="#planos">Ver planos</a>
-   <a class="b b-escuro" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg><span class="so-desk">Baixar grátis</span><span class="so-cel">Baixar</span></a>
+   <a class="b b-linha so-desk" href="/pc">Baixar para PC</a>
+   <a class="b b-escuro" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg><span class="so-desk">Baixar para Android</span><span class="so-cel">Baixar</span></a>
   </div>
  </div>
 </header>
 
-<section class="hero">
- <div class="w hero-g">
-  <div class="hero-txt">
-   <span class="selo"><i></i>Para Android, sem root</span>
-   <h1>Seu celular no <em>modo jogo</em> de verdade</h1>
-   <p class="hero-lead">Mais FPS, menos calor e botões de emulador por cima do jogo. O SerpyraToolkit ajusta o Android sozinho, sem root e sem computador.</p>
-   <div class="hero-ctas">
-    <a class="b b-menta b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar grátis</a>
-    <a class="b b-vidro b-grande" href="#como">Ver o que ele faz</a>
-   </div>
-   <span class="hero-versao" id="versao">Somente para Android 8 ou mais novo (não funciona no iPhone)</span>
-   <div class="hero-provas">
-    <span><svg aria-hidden="true"><use href="#certo"/></svg>Grátis para usar</span>
-    <span><svg aria-hidden="true"><use href="#certo"/></svg>Sem anúncios</span>
-    <span><svg aria-hidden="true"><use href="#certo"/></svg>Atualiza pelo próprio app</span>
-   </div>
+<section class="duo">
+ <div class="w">
+  <div class="duo-cab">
+   <span class="selo"><i></i>Android + Windows · um Pro só</span>
+   <h1 class="duo-tit"><span class="l1">Um Pro.</span><span class="l2">Dois mundos.</span></h1>
+   <p class="hero-lead">Mais FPS, menos calor e tudo ajustado para jogar, no celular e no PC. O mesmo SerpyraToolkit, a mesma conta e o mesmo Pro nos dois.</p>
   </div>
-
-  <div class="palco" aria-hidden="true">
-   <div class="placa"></div>
-   <div class="cel cel-hero"><div class="cel-tela">
+  <div class="duo-g">
+   <article class="lado lado-and" aria-labelledby="ladoAnd">
+    <div class="lado-bar"><span>android.exe</span><span>_ □ ×</span></div>
+    <div class="lado-in">
+     <h2 id="ladoAnd" class="lado-tit">No celular</h2>
+     <p class="lado-txt">Botões de emulador por cima do jogo, Modo Jogo, Tuner e Modo Frio. Sem root e sem computador.</p>
+     <div class="lado-palco" aria-hidden="true">
+      <div class="placa"></div>
+      <div class="cel cel-hero"><div class="cel-tela">
     <div class="tela tela-fixa" style="padding:0">
 <div class="app-mini" style="width:390px;height:844px;box-sizing:border-box;background:#07081A;font-family:'Space Grotesk',sans-serif;color:#E9ECFF;position:relative;overflow:hidden;display:flex;flex-direction:column">
   <div aria-hidden="true" style="position:absolute;inset:0;background-image:linear-gradient(rgba(123,92,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(123,92,255,.14) 1px,transparent 1px);background-size:26px 26px"></div>
@@ -592,11 +612,30 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 </div>
     </div>
    </div></div>
+     </div>
+     <a class="b b-roxo b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para Android</a>
+     <span class="hero-versao" id="versao">Android 8 ou mais novo (não funciona no iPhone)</span>
+    </div>
+   </article>
+   <div class="ponte" aria-hidden="true"><span class="mais">+</span><span class="vert">MESMO PRO · MESMA CONTA</span></div>
+   <article class="lado lado-pc" aria-labelledby="ladoPc">
+    <div class="lado-bar"><span>windows.exe</span><span>_ □ ×</span></div>
+    <div class="lado-in">
+     <h2 id="ladoPc" class="lado-tit">No PC</h2>
+     <p class="lado-txt">Raio-X de FPS, Modo Jogo TURBO, gráficos prontos por jogo e caçador de ameaças. Steam, Epic, Riot, Xbox e emuladores.</p>
+     <div class="lado-palco" aria-hidden="true">
+      <div class="monitor"><div class="monitor-tela"><img src="/img-pc.webp" alt="" width="1030" height="748"></div><div class="monitor-pe"></div></div>
+     </div>
+     <a class="b b-menta b-grande" href="/pc"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para PC</a>
+     <span class="hero-versao">Windows 10 ou 11 · grátis para usar</span>
+    </div>
+   </article>
   </div>
  </div>
 </section>
+
 </div>
-<div class="faixa" aria-hidden="true"><div><span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ RAIO-X 0 A 100</span> <span>★ BOTÕES NA TELA</span> <span>★ MODO FRIO</span> <span>★ PRO POR PIX</span> <span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ RAIO-X 0 A 100</span> <span>★ BOTÕES NA TELA</span> <span>★ MODO FRIO</span> <span>★ PRO POR PIX</span></div></div>
+<div class="faixa" aria-hidden="true"><div><span>★ ANDROID</span> <span>★ WINDOWS</span> <span>★ UM PRO SÓ</span> <span>★ RAIO-X DE FPS</span> <span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ PRO POR PIX</span> <span>★ ANDROID</span> <span>★ WINDOWS</span> <span>★ UM PRO SÓ</span> <span>★ RAIO-X DE FPS</span> <span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ PRO POR PIX</span></div></div>
 <div class="destaque-site w" id="destaqueSite" hidden><div class="ds-in"><div><h3 id="dsTit"></h3><p id="dsTxt"></p></div><a class="b b-menta" id="dsBt" href="#" hidden></a></div></div>
 <div class="fatos">
  <div class="w">
@@ -610,7 +649,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 <section class="sec" id="como">
  <div class="w">
   <div class="sec-cab">
-   <h2>Como usar o SerpyraToolkit para jogar melhor</h2>
+   <h2>No celular: do diagnóstico à partida</h2>
    <p>Do diagnóstico ao controle dentro da partida, em poucos toques.</p>
   </div>
   <div class="trilha">
@@ -725,11 +764,25 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   </div>
  </div>
 </section>
+<section class="sec" id="pc">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>No PC, o mesmo cuidado com o seu jogo</h2>
+   <p>Para Windows 10 e 11. Acha os seus jogos da Steam, Epic, GOG, Ubisoft, EA, Riot, Xbox, Minecraft e FiveM, e também quem joga no emulador.</p>
+  </div>
+  <div class="pc-g"><div class="pc-card"><div class="tb"><span>raio_x.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Raio-X de FPS</h3><p>Nota do PC de 0 a 100 e correção com um clique: driver, energia, Windows, tela e rede.</p></div></div><div class="pc-card"><div class="tb"><span>modo_jogo.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Modo Jogo TURBO</h3><p>Fecha o que pesa, prioriza o jogo, pausa atualizações e desfaz tudo quando você sai.</p></div></div><div class="pc-card"><div class="tb"><span>fps.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Medir FPS de verdade<span class="tag">PRO</span></h3><p>FPS médio, 1% low, engasgos e se o gargalo é o processador ou a placa de vídeo.</p></div></div><div class="pc-card"><div class="tb"><span>graficos.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Gráficos prontos por jogo<span class="tag">PRO</span></h3><p>Fortnite, Valorant, CS2, Apex, LoL, Roblox, Minecraft, GTA e FiveM.</p></div></div><div class="pc-card"><div class="tb"><span>rede.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Internet para jogos<span class="tag">PRO</span></h3><p>Ping, jitter e perda, DNS mais rápido e placa de rede ajustada.</p></div></div><div class="pc-card"><div class="tb"><span>cacador.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Caçador de ameaças</h3><p>Procura vírus, minerador de bitcoin e invasores, sem desligar o seu antivírus.</p></div></div></div>
+  <div class="pc-acao">
+   <a class="b b-menta b-grande" href="/pc"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para PC</a>
+   <p class="nota">Também tem limpeza, temperatura ao vivo, aparência e desempenho do Windows, programas que abrem com o Windows e desfazer tudo com um clique.</p>
+  </div>
+ </div>
+</section>
+
 <section class="sec planos" id="planos" style="padding-top:40px">
  <div class="w">
   <div class="sec-cab">
    <h2>Comece grátis e libere o Pro quando quiser</h2>
-   <p>Teste o Pro por 1 hora sem pagar nada. Depois, o pagamento é por Pix dentro do app: a chave ativa na hora e também chega no seu e-mail.</p>
+   <p>O mesmo Pro vale no celular e no PC. Teste por 1 hora sem pagar nada. Depois, o pagamento é por Pix dentro do app: a chave ativa na hora e também chega no seu e-mail.</p>
   </div>
   <div class="planos-g">
    <div class="plano exe" data-exe="gratis.exe">
@@ -751,14 +804,14 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     <div class="preco">R$ 6,66<small> por mês no plano anual</small></div>
     <p class="desc">Teste grátis por 1 hora, sem cadastro. Depois escolha:</p>
     <div class="opcoes">
-     <button type="button" data-comprar="s7"><b>7 dias</b><span>para experimentar</span><strong>R$ 4,90</strong></button>
-     <button type="button" data-comprar="m1"><b>1 mês</b><strong>R$ 12,90</strong></button>
-     <button type="button" data-comprar="m3"><b>3 meses</b><span>R$ 9,97/mês</span><span class="eco">−22%</span><strong>R$ 29,90</strong></button>
-     <button type="button" data-comprar="m6"><b>6 meses</b><span>R$ 8,32/mês</span><span class="eco">−35%</span><strong>R$ 49,90</strong></button>
-     <button type="button" data-comprar="a1"><b>1 ano</b><span>R$ 6,66/mês</span><span class="eco">−48%</span><strong>R$ 79,90</strong></button>
-     <button type="button" data-comprar="vida" class="vida"><b>Vitalício</b><span>paga uma vez</span><strong>R$ 119,90</strong></button>
-     <button type="button" data-comprar="f1"><b>Família · 1 mês</b><span>3 celulares</span><strong>R$ 24,90</strong></button>
-     <button type="button" data-comprar="f12"><b>Família · 1 ano</b><span>3 celulares, R$ 4,16 cada por mês</span><strong>R$ 149,90</strong></button>
+     <div><b>7 dias</b><span>para experimentar</span><strong>R$ 4,90</strong></div>
+     <div><b>1 mês</b><strong>R$ 12,90</strong></div>
+     <div><b>3 meses</b><span>R$ 9,97/mês</span><span class="eco">−22%</span><strong>R$ 29,90</strong></div>
+     <div><b>6 meses</b><span>R$ 8,32/mês</span><span class="eco">−35%</span><strong>R$ 49,90</strong></div>
+     <div><b>1 ano</b><span>R$ 6,66/mês</span><span class="eco">−48%</span><strong>R$ 79,90</strong></div>
+     <div class="vida"><b>Vitalício</b><span>paga uma vez</span><strong>R$ 119,90</strong></div>
+     <div><b>Família · 1 mês</b><span>3 celulares</span><strong>R$ 24,90</strong></div>
+     <div><b>Família · 1 ano</b><span>3 celulares, R$ 4,16 cada por mês</span><strong>R$ 149,90</strong></div>
     </div>
     <ul>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Tudo do plano grátis, sem limites</li>
@@ -773,8 +826,8 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Seus botões abrem sozinhos junto com o jogo</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Limpeza avançada (duplicados, arquivos grandes, apps esquecidos) e Blindagem contra vírus</li>
     </ul>
-    <div class="compra-bts"><button type="button" class="b b-menta b-grande" data-comprar="a1">Comprar pelo site</button><a class="b b-linha b-grande" href="/apk">Baixar e testar grátis</a></div>
-    <p class="nota">Toque num plano para comprar pelo site: você paga o Pix aqui e recebe o código de ativação na hora e no e-mail. Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
+    <div class="compra-bts"><a class="b b-menta b-grande" href="/apk">Baixar para Android</a><a class="b b-linha b-grande" href="/pc">Baixar para PC</a></div>
+    <p class="nota">O mesmo Pro vale no celular e no PC: no PC, entre com o e-mail da compra em “Já tenho o Pro no celular”. Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
    </div>
   </div>
   <div class="extras-pro">
@@ -789,13 +842,20 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div class="w">
   <div class="sec-cab">
    <h2>Instale em um minuto</h2>
-   <p>O app é instalado direto pelo arquivo, sem passar pela loja.</p>
+   <p>Direto pelo arquivo, sem passar pela loja. No celular e no PC.</p>
   </div>
   <div class="inst-g">
-   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar grátis aqui no celular. O arquivo se chama SerpyraToolkit, com o número da versão.</p></div>
+   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar para Android aqui no celular. O arquivo se chama SerpyraToolkit, com o número da versão.</p></div>
    <div><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
    <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
    <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
+  </div>
+  <h3 class="inst-sub">No PC com Windows</h3>
+  <div class="inst-g">
+   <div><h3>Baixe o programa</h3><p>Clique em Baixar para PC. Se o navegador disser que o arquivo não é baixado com frequência, escolha Manter.</p></div>
+   <div><h3>Abra o arquivo</h3><p>Abra o SerpyraToolkit-PC que baixou. Não precisa instalar nada além dele.</p></div>
+   <div><h3>Passe pelo aviso do Windows</h3><p>Se aparecer “O Windows protegeu o computador”, clique em Mais informações e em Executar assim mesmo.</p></div>
+   <div><h3>Permita como administrador</h3><p>O Windows pergunta se pode fazer alterações: clique em Sim. É o que deixa o programa ajustar o sistema para jogar.</p></div>
   </div>
   <div class="aviso-inst">
    <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
@@ -852,6 +912,9 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   <div class="sec-cab"><h2>Dúvidas frequentes</h2></div>
   <div class="faq">
    <details><summary>Precisa de root?</summary><p>Não. Para os ajustes avançados o app tem o modo completo: você ativa em poucos passos pelo próprio celular, sem instalar nada e sem computador (Android 11 ou mais novo). Quem prefere ainda pode usar o Shizuku, e se o celular tiver root o app também aproveita.</p></details>
+   <details><summary>Tem versão para PC?</summary><p>Tem. O SerpyraToolkit para PC funciona no Windows 10 e 11, com Raio-X de FPS, Modo Jogo TURBO, medidor de FPS, gráficos prontos por jogo, internet para jogos, temperatura, limpeza e caçador de ameaças. Baixe em Baixar para PC, aqui no site.</p></details>
+   <details><summary>Uso o mesmo Pro no celular e no PC?</summary><p>Sim, os planos são os mesmos e um Pro vale para os dois. Comprou no celular? No PC, abra a aba Pro, toque em Já tenho o Pro no celular e digite o e-mail da compra: chega um código nele e o Pro liga no PC, sem sair do celular. Quando você renova, os dois renovam juntos. Vale um PC por e-mail.</p></details>
+   <details><summary>O Windows disse que protegeu o computador. É perigoso?</summary><p>Não. Esse aviso aparece para programas novos que ainda não são muito baixados. Clique em Mais informações e em Executar assim mesmo. O programa pede para rodar como administrador porque ajusta o Windows para jogar, e tudo o que ele muda pode ser desfeito em Ferramentas, Desfazer as mudanças.</p></details>
    <details><summary>Funciona no iPhone?</summary><p>Não. O SerpyraToolkit é só para Android 8 ou mais novo. O iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz, então não existe versão para iPhone.</p></details>
    <details><summary>O celular disse que o app é suspeito. É perigoso?</summary><p>Não. Esse aviso aparece para apps instalados fora da Play Store que pedem permissões avançadas, como mostrar botões por cima do jogo e ajustar o sistema. São essas permissões que fazem o app funcionar por completo. Toque em Mais detalhes e em Instalar mesmo assim, e baixe sempre por este site.</p></details>
    <details><summary>Funciona no meu celular?</summary><p>Funciona em Android 8 ou mais novo. Algumas opções dependem do fabricante, como a taxa de atualização da tela. Nesses casos o app mostra o que é possível no seu aparelho.</p></details>
@@ -883,10 +946,10 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div class="w">
   <div class="rodape">
    <div><a class="logo" href="#topo" style="color:var(--tinta)"><svg aria-hidden="true"><use href="#logo"/></svg>SerpyraToolkit</a><p>Ferramentas para jogar melhor no Android, sem root.</p></div>
-   <div><h4>App</h4><a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#ferramentas">Ferramentas</a></div>
+   <div><h4>App</h4><a href="#como">No celular</a><a href="#pc">No PC</a><a href="#partida">Na partida</a><a href="#ferramentas">Ferramentas</a></div>
    <div><h4>Pro</h4><a href="#planos">Planos</a><a href="#duvidas">Recuperar o Pro</a></div>
    <div><h4>Guias</h4><a href="/jogos/free-fire">Free Fire</a><a href="/jogos/blood-strike">Blood Strike</a><a href="/jogos/cod-mobile">COD Mobile</a><a href="/jogos/pubg-mobile">PUBG Mobile</a></div>
-   <div><h4>Baixar</h4><a href="/apk">Baixar o app</a><a href="#instalar">Como instalar</a><a href="/suporte">Ajuda e contato</a><a href="/termos">Termos de uso</a></div>
+   <div><h4>Baixar</h4><a href="/apk">Baixar para Android</a><a href="/pc">Baixar para PC</a><a href="#instalar">Como instalar</a><a href="/suporte">Ajuda e contato</a><a href="/termos">Termos de uso</a></div>
   </div>
   <div class="copy">© <span id="ano">2026</span> SerpyraToolkit. Pagamentos por Pix processados pela PurinCash.</div>
  </div>
@@ -898,39 +961,6 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div style="color:#B8BEF0;font-size:14px;margin-top:4px" id="codTxt"></div>
  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><a class="b b-menta" href="/apk" id="codBaixar">Baixar e copiar o código</a><button class="b b-linha" id="codCopiar" style="color:#fff;border-color:#3a4658">Só copiar</button></div>
 </div>
-<dialog class="compra" id="compra" aria-labelledby="cpTit">
- <div class="tb"><span>comprar.exe</span><button type="button" id="cpFechar" aria-label="Fechar">×</button></div>
- <div class="cx">
-  <div id="cp1">
-   <h3 id="cpTit">Comprar o Pro</h3>
-   <p class="s">Pague o Pix aqui e receba o código de ativação na hora. Os dias começam a contar quando você ativar no celular.</p>
-   <div class="pls" id="cpPlanos" role="radiogroup" aria-label="Plano"></div>
-   <label class="cp" for="cpEmail">Seu e-mail</label>
-   <input type="email" id="cpEmail" autocomplete="email" inputmode="email" placeholder="voce@email.com">
-   <button type="button" class="link" id="cpTemCupom">Tenho um cupom</button>
-   <div id="cpCupomBox" hidden><label class="cp" for="cpCupom">Cupom</label><div class="linha-c"><input type="text" id="cpCupom" maxlength="20" autocapitalize="characters" placeholder="CUPOM"><button type="button" class="b b-linha" id="cpAplicar">Aplicar</button></div></div>
-   <div class="msg" id="cpMsg" role="status"></div>
-   <button type="button" class="b b-menta b-grande acao" id="cpGerar">Gerar Pix</button>
-  </div>
-  <div id="cp2" hidden>
-   <h3>Pague o Pix</h3>
-   <p class="s" id="cpResumo"></p>
-   <img class="qr" id="cpQr" alt="QR Code do Pix">
-   <label class="cp" for="cpCola">Ou copie o código Pix (copia e cola)</label>
-   <textarea id="cpCola" readonly></textarea>
-   <button type="button" class="b b-linha acao" id="cpCopiar">Copiar código Pix</button>
-   <div class="espera"><i></i>Esperando o pagamento</div>
-   <p class="s" style="text-align:center;font-size:13px;margin-top:6px">Pode deixar esta janela aberta: o código aparece aqui assim que o Pix cair. Ele também vai para o seu e-mail.</p>
-  </div>
-  <div id="cp3" hidden>
-   <h3>Pagamento confirmado ✓</h3>
-   <p class="s" id="cpOkTxt"></p>
-   <div id="cpCods"></div>
-   <ol><li>Baixe o app no celular Android.</li><li>Abra <b>SerpyraToolkit Pro</b> e toque em <b>Tem um código?</b></li><li>Cole o código. O Pro liga na hora.</li></ol>
-   <a class="b b-menta b-grande acao" href="/apk">Baixar o app</a>
-  </div>
- </div>
-</dialog>
 <script>
 (function(){
   try {
@@ -991,54 +1021,6 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   passos.forEach(function(p){io.observe(p)});
 })();
 
-  // compra pelo site
-  (function(){
-    var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
-    var dlg=document.getElementById('compra'); if(!dlg||!dlg.showModal) return;
-    var $=function(i){return document.getElementById(i)};
-    var PL=[['s7','7 dias','para experimentar','R$ 4,90'],['m1','1 mês','','R$ 12,90'],['m3','3 meses','R$ 9,97/mês','R$ 29,90'],['m6','6 meses','R$ 8,32/mês','R$ 49,90'],['a1','1 ano','R$ 6,66/mês','R$ 79,90'],['vida','Vitalício','paga uma vez','R$ 119,90'],['f1','Família · 1 mês','3 códigos, 1 por celular','R$ 24,90'],['f12','Família · 1 ano','3 códigos, 1 por celular','R$ 149,90']];
-    var esc=function(t){return String(t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
-    $('cpPlanos').innerHTML=PL.map(function(p){return '<label><input type="radio" name="cpPl" value="'+p[0]+'"><b>'+esc(p[1])+'</b>'+(p[2]?'<span>'+esc(p[2])+'</span>':'')+'<strong>'+esc(p[3])+'</strong></label>'}).join('');
-    var cupom='',precoCupom='',timer=null,pedido='';
-    function plano(){var r=dlg.querySelector('input[name=cpPl]:checked');return r?r.value:'a1'}
-    function preco(){var p=PL.filter(function(x){return x[0]===plano()})[0];return precoCupom||p[3]}
-    function rotulo(){$('cpGerar').textContent='Gerar Pix de '+preco()}
-    function msg(t,tipo){$('cpMsg').textContent=t;$('cpMsg').className='msg'+(tipo?' '+tipo:'')}
-    function passo(n){['cp1','cp2','cp3'].forEach(function(i,k){$(i).hidden=k!==n-1})}
-    function abrir(pl){passo(1);msg('');var r=dlg.querySelector('input[value="'+pl+'"]');if(r)r.checked=true;precoCupom='';cupom='';rotulo();try{var e=localStorage.getItem('cp_email');if(e&&!$('cpEmail').value)$('cpEmail').value=e}catch(x){}dlg.showModal()}
-    function fechar(){if(timer){clearInterval(timer);timer=null}dlg.close()}
-    document.querySelectorAll('[data-comprar]').forEach(function(b){b.addEventListener('click',function(){abrir(b.getAttribute('data-comprar'))})});
-    $('cpFechar').onclick=function(){if(pedido&&!$('cp2').hidden&&!confirm('Fechar? Se você já pagou, o código chega no seu e-mail do mesmo jeito.'))return;fechar()};
-    dlg.addEventListener('cancel',function(e){if(timer){e.preventDefault();$('cpFechar').click()}});
-    $('cpPlanos').addEventListener('change',function(){precoCupom='';if(cupom)aplicar();rotulo()});
-    $('cpTemCupom').onclick=function(){$('cpCupomBox').hidden=false;this.hidden=true;$('cpCupom').focus()};
-    function aplicar(){var c=$('cpCupom').value.trim().toUpperCase();if(!c){cupom='';precoCupom='';rotulo();return}
-      fetch(API+'/cupom?c='+encodeURIComponent(c)+'&plano='+plano()).then(function(r){return r.json()}).then(function(j){if(j.ok&&j.tipo!=='renovacao'){cupom=c;precoCupom=j.preco;msg('Cupom aplicado: '+j.pct+'% de desconto.','ok')}else{cupom='';precoCupom='';msg(j.tipo==='renovacao'?'Esse cupom é para renovar pelo app.':'Cupom inválido ou esgotado.','erro')}rotulo()}).catch(function(){msg('Sem conexão. Tente de novo.','erro')})}
-    $('cpAplicar').onclick=aplicar;
-    $('cpGerar').onclick=function(){
-      var email=$('cpEmail').value.trim();
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg('Digite um e-mail válido: é para ele que vai o código.','erro');$('cpEmail').focus();return}
-      var b=this;b.disabled=true;msg('Gerando o Pix…');
-      try{localStorage.setItem('cp_email',email)}catch(x){}
-      fetch(API+'/pedido',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({site:true,email:email,plano:plano(),cupom:cupom})}).then(function(r){return r.json()}).then(function(j){
-        if(!j.pedido){msg(j.erro||'Não consegui gerar o Pix. Tente de novo.','erro');return}
-        pedido=j.pedido;$('cpResumo').textContent=j.plano+' · '+j.valor+' · pedido '+j.numero;
-        if(j.qr){$('cpQr').src=/^data:|^https:/.test(j.qr)?j.qr:'data:image/png;base64,'+j.qr;$('cpQr').hidden=false}else $('cpQr').hidden=true;
-        $('cpCola').value=j.brCode||'';passo(2);
-        timer=setInterval(conferir,4000);setTimeout(function(){if(timer){clearInterval(timer);timer=null}},45*60000);
-      }).catch(function(){msg('Sem conexão. Tente de novo.','erro')}).finally(function(){b.disabled=false});
-    };
-    $('cpCopiar').onclick=function(){var t=$('cpCola'),b=this;var ok=function(){b.textContent='Copiado ✓';setTimeout(function(){b.textContent='Copiar código Pix'},2000)};if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(ok).catch(function(){t.select();document.execCommand('copy');ok()});else{t.select();document.execCommand('copy');ok()}};
-    function conferir(){if(!pedido)return;fetch(API+'/status?pedido='+encodeURIComponent(pedido),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
-      if(j.status==='pago'&&j.vouchers){clearInterval(timer);timer=null;
-        var n=j.vouchers.length;$('cpOkTxt').textContent=(n>1?'Seus '+n+' códigos de ativação (um por celular)':'Seu código de ativação')+(j.email?'. Também mandamos para o seu e-mail.':'.');
-        $('cpCods').innerHTML=j.vouchers.map(function(v){return '<div class="cod"><span>'+esc(v)+'</span><button type="button" class="b b-linha" data-copiar-cod="'+esc(v)+'">Copiar</button></div>'}).join('');
-        $('cpCods').querySelectorAll('[data-copiar-cod]').forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.getAttribute('data-copiar-cod')).then(function(){b.textContent='Copiado ✓'})}});
-        passo(3);pedido='';
-      }else if(j.status&&j.status!=='pendente'&&j.status!=='pago'){clearInterval(timer);timer=null;passo(1);msg('O Pix expirou ou foi cancelado. Gere outro.','erro');pedido=''}
-    }).catch(function(){})}
-    try{var q=new URLSearchParams(location.search).get('comprar');if(q)abrir(q)}catch(x){}
-  })();
   // o dono muda partes do site pelo painel
   (function(){
     var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';

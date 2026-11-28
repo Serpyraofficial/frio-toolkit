@@ -1325,6 +1325,14 @@ async function baixarApk(env) {
   return new Response(r.body, { headers: h });
 }
 
+async function baixarPc(env) {
+  const r = await github(env, "pc/dist/SerpyraToolkit-PC.exe");
+  if (!r.ok) return json({ erro: "Programa para PC indisponível (" + r.status + ")." }, 502);
+  const h = { "content-type": "application/vnd.microsoft.portable-executable", "content-disposition": 'attachment; filename="SerpyraToolkit-PC.exe"', "cache-control": "no-store" };
+  const n = r.headers.get("content-length"); if (n) h["content-length"] = n;
+  return new Response(r.body, { headers: h });
+}
+
 async function simular(url, env) {
   if (!String(env.PURIN_KEY || "").startsWith("ps_test_")) return json({ erro: "Só funciona com a chave de teste ps_test_." }, 403);
   try { await purin(env, "POST", "/sandbox/payments/" + encodeURIComponent(url.searchParams.get("pedido") || "") + "/simulate-paid"); } catch (e) { return json({ erro: e.message }, 502); }
@@ -1372,6 +1380,8 @@ export default {
       if (m === "POST" && p === "/pesquisa") return await pesquisa(req, env);
       if (m === "GET" && p === "/versao") return await versao(env);
       if (m === "GET" && (p === "/apk" || p === "/baixar")) return await baixarApk(env);
+      if (m === "GET" && p === "/pc") return await baixarPc(env);
+      if (m === "GET" && p === "/pc/versao") { const r = await github(env, "pc/dist/versao.json"); return new Response(r.ok ? await r.text() : "{}", { status: r.ok ? 200 : 502, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...CORS } }); }
       if (m === "GET" && (p === "/" || p === "/index.html")) return Response.redirect("https://serpyratoolkit.pages.dev/", 302);
       if (p === "/saude") {
         const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL", "ADMIN_TOKEN"].filter(k => !env[k]);
