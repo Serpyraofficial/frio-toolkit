@@ -1,5 +1,7 @@
 # Onde parou, 28/11/2026
 
+**5.20 PUBLICADA em 28/11**: tirou o serviço de Acessibilidade (o Play Protect do Brasil BLOQUEIA a instalação de APK de fora da loja que declara Acessibilidade, leitura de SMS ou de notificações). NUNCA declarar esses serviços. O modo completo agora é só o passo a passo com o código na notificação.
+
 **5.19 PUBLICADA em 28/11** (modo completo sem Shizuku: Interno.kt, Automacao.kt, ServidorEntrada.kt; sem teste em celular real; falhas vão para Erros como 'modo completo: <etapa>' com o texto da tela). Próximo: corrigir pelo que aparecer em Erros e depois o espanhol.
 
 **5.18 PUBLICADA em 28/11** (servidor, site, painel e app versionCode 80). Próximo: "Ativar modo completo" sem o Shizuku (seção no fim), depois o espanhol.
