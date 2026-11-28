@@ -214,7 +214,7 @@ async function criarPedido(req, env, base) {
       valueCents: valor, description: "SerpyraToolkit Pro - " + plano.nome + (site ? " (site)" : presente ? " (presente)" : "") + " (" + numero + ")", callbackUrl: base + "/webhook",
       customer: { email, externalId: codigo }, metadata: JSON.stringify({ numero, codigo, plano: planoId, cupom: cupomCod })
     });
-  } catch (e) { return json({ erro: "Não consegui gerar o Pix agora. " + e.message }, 502); }
+  } catch (e) { return json({ erro: /\b50[234]\b/.test(e.message) ? "O sistema de pagamento Pix está fora do ar agora. Tente de novo em alguns minutos." : "Não consegui gerar o Pix agora. " + e.message }, 502); }
   const id = r.paymentId;
   await env.PCT.put("pedido:" + id, JSON.stringify({ id, numero, codigo, email, atual, valor, plano: planoId, dias: plano.dias, cupom: cupom ? cupomCod : "", presente, site: site || undefined, status: "pendente", criado: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 400 });
   return json({ pedido: id, numero, valor: reais(valor), plano: plano.nome, brCode: r.pix && r.pix.brCode, qr: r.pix && r.pix.qrCodeImage, expira: r.expiresAt, teste: String(env.PURIN_KEY || "").startsWith("ps_test_") });
