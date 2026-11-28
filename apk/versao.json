@@ -1,8 +1,8 @@
 {
- "versionCode": 85,
+ "versionCode": 84,
  "versionName": "5.22",
  "notas": "- Visual novo: mais limpo e organizado, com abas embaixo (Início, Jogos, Ferramentas e Pro)\n- Botões prontos de outros jogadores: baixe com um toque no editor de botões (Mais > Botões prontos) e publique os seus\n- Lembrete de renovação com 10% de desconto já aplicado\n- Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)\n- Versões de teste: quem quiser recebe as novidades antes (Manutenção > Versões de teste)\n- Erros corrigidos mais rápido: quando algo falha, o app avisa a gente na hora, com um print só da tela do app (dá para desligar em Manutenção > Print da tela nos erros)",
- "sha256": "4956a7b56a10a9d9d6b590e76b5d636898c3085878bb9d875a0874a482d36480",
+ "sha256": "2d5c7dbc1238a8eecd147d542ed99d86bf4b301409fc6ab4423588ac8178a288",
  "tamanho": 4892985,
- "arquivo": "SerpyraToolkit-5.22-4956a7b56a.apk"
+ "arquivo": "SerpyraToolkit-5.22-2d5c7dbc12.apk"
 }
