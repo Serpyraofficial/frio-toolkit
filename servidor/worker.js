@@ -260,7 +260,7 @@ async function liberar(env, id, valorPago) {
   await env.PCT.put("pedido:" + id, JSON.stringify(p));
   await env.PCT.put("chave:" + p.codigo, JSON.stringify({ chave: p.chave, dia, email: p.email }));
   const em = (await lerJson(env, "email:" + p.email)) || {};
-  await env.PCT.put("email:" + p.email, JSON.stringify({ codigo: p.codigo, dia, troca: em.troca || 0, otp: "" }));
+  await env.PCT.put("email:" + p.email, JSON.stringify({ codigo: p.codigo, dia, troca: em.troca || 0, otp: "", pc: em.pc, pcEm: em.pcEm }));
   if (/^IND/.test(p.cupom || "")) await premiarIndicacao(env, p.cupom.slice(3), p.codigo, p.plano);
   else if (p.cupom && p.cupom !== "RENOVA10") {
     const c = await lerJson(env, "cupom:" + p.cupom);
@@ -355,7 +355,7 @@ async function resgatarPresente(req, env) {
     g.usado = codigo; g.dia = dia; g.em = new Date().toISOString(); if (ate) g.ate = ate;
     await env.PCT.put("presente:" + v, JSON.stringify(g));
     await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia, ate: ate || undefined, email: emailValido(g.para) ? g.para : "", origem: g.de === "cortesia" ? "cortesia" : "presente" }));
-    if (emailValido(g.para)) await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "" }));
+    if (emailValido(g.para)) { const ant = (await lerJson(env, "email:" + g.para)) || {}; await env.PCT.put("email:" + g.para, JSON.stringify({ codigo, dia, troca: 0, otp: "", pc: ant.pc, pcEm: ant.pcEm })); }
   }
   return json({ ok: true, chave, validade: ate ? "até " + horaBr(ate) : validadeTxt(dia), ate: ate || undefined });
 }
@@ -812,6 +812,10 @@ async function licenca(url, env) {
   const o = await lerJson(env, "chave:" + codigo);
   if (!o) return json({ status: "nenhuma" }, 404);
   if (o.revogada) return json({ status: "revogada" }, 410);
+  if (o.origem === "pc" && o.email) {
+    const em = await lerJson(env, "email:" + o.email);
+    if (em && em.pc === codigo && em.dia > o.dia) { o.dia = em.dia; o.chave = await assinarChave(env, codigo, em.dia); await env.PCT.put("chave:" + codigo, JSON.stringify(o)); }
+  }
   if (o.dia < hoje() || (o.ate && Date.now() > o.ate)) return json({ status: "vencida", validade: o.ate ? horaBr(o.ate) : validadeTxt(o.dia) }, 404);
   return json({ status: "ativa", chave: o.chave, validade: o.ate ? "até " + horaBr(o.ate) : validadeTxt(o.dia), ate: o.ate || undefined });
 }
@@ -852,7 +856,45 @@ async function trocaConfirmar(req, env) {
   }
   const chave = await assinarChave(env, codigo, em.dia);
   await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia: em.dia, email }));
-  await env.PCT.put("email:" + email, JSON.stringify({ codigo, dia: em.dia, troca: hoje(), otp: "" }));
+  await env.PCT.put("email:" + email, JSON.stringify({ codigo, dia: em.dia, troca: hoje(), otp: "", pc: em.pc, pcEm: em.pcEm }));
+  return json({ ok: true, chave, validade: validadeTxt(em.dia) });
+}
+
+/* ---------------- PC: o mesmo Pro do celular (um PC por e-mail de compra) ---------------- */
+async function pcPedir(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const email = String(b.email || "").trim().toLowerCase(), codigo = limpaCodigo(b.codigo);
+  if (!emailValido(email) || !codigoValido(codigo)) return json({ erro: "Confira o e-mail." }, 400);
+  if (!(await limitar("pc:" + email, 4))) return json({ erro: "Muitas tentativas. Tente de novo em uma hora." }, 429);
+  const em = await lerJson(env, "email:" + email);
+  if (!em) return json({ erro: "Não encontrei Pro com esse e-mail. Use o e-mail da compra." }, 404);
+  if (em.dia < hoje()) return json({ erro: "O Pro desse e-mail venceu em " + dataBr(em.dia) + ". Renove para usar no PC." }, 410);
+  if (em.pc === codigo) { const c = await lerJson(env, "chave:" + codigo); if (c && !c.revogada) return json({ ok: true, chave: c.chave, validade: validadeTxt(c.dia), jaLigado: true }); }
+  if (em.pc && em.pcEm && hoje() - em.pcEm < TROCA_INTERVALO) return json({ erro: "Esse Pro já está em outro PC desde " + dataBr(em.pcEm) + ". Dá para trocar de PC a partir de " + dataBr(em.pcEm + TROCA_INTERVALO) + "." }, 429);
+  const otp = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+  em.pcOtp = otp; em.pcOtpPara = codigo; em.pcOtpAte = Date.now() + 15 * 60000; em.pcOtpErros = 0;
+  await env.PCT.put("email:" + email, JSON.stringify(em));
+  const html = moldura("Código para usar o Pro no PC", "Alguém pediu para ligar o seu SerpyraToolkit Pro num computador.",
+    `<div style="${CAIXA}"><div style="${ROT}">Seu código</div><div style="font-size:34px;font-weight:bold;letter-spacing:6px;color:#C8FF6B">${otp}</div><div style="color:#9AA8BA;font-size:13px;margin-top:12px">Digite no SerpyraToolkit para PC. Vale por 15 minutos. O Pro continua no seu celular. Se não foi você, ignore este e-mail.</div></div>`);
+  const st = await mandarEmail(env, email, "Seu código para usar o Pro no PC: " + otp, html, "Seu código para usar o SerpyraToolkit Pro no PC: " + otp + "\nVale por 15 minutos. Se não foi você, ignore.");
+  if (st !== "enviado") return json({ erro: "Não consegui enviar o e-mail agora. Tente mais tarde." }, 502);
+  return json({ ok: true });
+}
+async function pcConfirmar(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const email = String(b.email || "").trim().toLowerCase(), codigo = limpaCodigo(b.codigo), otp = String(b.otp || "").replace(/\D/g, "");
+  const em = await lerJson(env, "email:" + email);
+  if (!em || !em.pcOtp || em.pcOtpPara !== codigo || Date.now() > (em.pcOtpAte || 0)) return json({ erro: "Código vencido. Peça um novo." }, 410);
+  if (!igual(otp, em.pcOtp)) {
+    em.pcOtpErros = (em.pcOtpErros || 0) + 1; if (em.pcOtpErros >= 5) em.pcOtp = "";
+    await env.PCT.put("email:" + email, JSON.stringify(em));
+    return json({ erro: em.pcOtp ? "Código errado." : "Código errado várias vezes. Peça um novo." }, 401);
+  }
+  if (em.pc && em.pc !== codigo) { const velho = await lerJson(env, "chave:" + em.pc); if (velho && velho.origem === "pc") { velho.revogada = true; await env.PCT.put("chave:" + em.pc, JSON.stringify(velho)); } }
+  const chave = await assinarChave(env, codigo, em.dia);
+  await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia: em.dia, email, origem: "pc" }));
+  em.pc = codigo; em.pcEm = hoje(); em.pcOtp = ""; delete em.pcOtpPara; delete em.pcOtpAte; delete em.pcOtpErros;
+  await env.PCT.put("email:" + email, JSON.stringify(em));
   return json({ ok: true, chave, validade: validadeTxt(em.dia) });
 }
 
@@ -1304,6 +1346,8 @@ export default {
       if (m === "POST" && p === "/teste") return await testeGratis(req, env);
       if (m === "GET" && p === "/licenca") return await licenca(url, env);
       if (m === "POST" && p === "/troca/pedir") return await trocaPedir(req, env);
+      if (m === "POST" && p === "/pc/pedir") return await pcPedir(req, env);
+      if (m === "POST" && p === "/pc/confirmar") return await pcConfirmar(req, env);
       if (m === "POST" && p === "/troca/confirmar") return await trocaConfirmar(req, env);
       if (m === "POST" && p === "/simular") return await simular(url, env);
       if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
