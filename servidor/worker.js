@@ -336,7 +336,9 @@ async function db(env) {
     await env.DB.batch([
       env.DB.prepare("CREATE TABLE IF NOT EXISTS contagem (dia TEXT, tipo TEXT, chave TEXT, n INTEGER, PRIMARY KEY (dia, tipo, chave))"),
       env.DB.prepare("CREATE TABLE IF NOT EXISTS botoes (id TEXT PRIMARY KEY, pkg TEXT, jogo TEXT, nome TEXT, autor TEXT, codigo TEXT, n INTEGER, baixados INTEGER DEFAULT 0, em INTEGER, oculto INTEGER DEFAULT 0, celular TEXT)"),
-      env.DB.prepare("CREATE INDEX IF NOT EXISTS botoes_pkg ON botoes (pkg, oculto, baixados)")
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS botoes_pkg ON botoes (pkg, oculto, baixados)"),
+      env.DB.prepare("CREATE TABLE IF NOT EXISTS erros (em INTEGER, mes TEXT, sig TEXT, tipo TEXT, onde TEXT, msg TEXT, codigo TEXT, modelo TEXT, versao TEXT, android TEXT, tela TEXT, rastro TEXT, extra TEXT, print TEXT)"),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS erros_mes ON erros (mes, sig)")
     ]);
     dbPronto = true;
   }
@@ -395,25 +397,93 @@ async function avaliar(req, env) {
 async function avaliacoes(env) {
   const r = await cacheJson("avaliacoes", 300, async () => {
     const v = ((await lerJson(env, "avaliacoes")) || []).filter(a => a.visivel);
-    return { total: v.length, media: v.length ? Math.round(v.reduce((t, a) => t + a.estrelas, 0) * 10 / v.length) / 10 : 0, lista: v.slice(0, 30).map(a => ({ estrelas: a.estrelas, texto: a.texto, nome: a.nome || "", em: a.em })) };
+    const ord = v.filter(a => a.fixada).sort((a, b) => b.fixada - a.fixada).concat(v.filter(a => !a.fixada));
+    return { total: v.length, media: v.length ? Math.round(v.reduce((t, a) => t + a.estrelas, 0) * 10 / v.length) / 10 : 0, lista: ord.slice(0, 30).map(a => ({ estrelas: a.estrelas, texto: a.texto, nome: a.nome || "", em: a.em, fixada: !!a.fixada, resposta: a.resposta || "" })) };
   });
   return json(r);
+}
+async function lerSite(env) {
+  const c = (await lerJson(env, "site")) || {};
+  return { aviso: c.aviso || { ligado: false, texto: "", botao: "", link: "" }, faixa: c.faixa || [], avaliacoes: c.avaliacoes !== false, destaque: c.destaque || { ligado: false, titulo: "", texto: "", botao: "", link: "" }, em: c.em || 0 };
+}
+async function siteConfig(env) { return json(await cacheJson("site", 60, () => lerSite(env))); }
+
+/* ---------------- relatório completo (a cada 15 dias e quando o dono pedir) ---------------- */
+function mesesEntre(de, ate) { const l = []; let d = new Date(de - 3 * 3600000); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); const fim = new Date(ate - 3 * 3600000); while (d <= fim) { l.push(d.toISOString().slice(0, 7)); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); } return l; }
+function diaDe(ms) { return new Date(ms - 3 * 3600000).toISOString().slice(0, 10); }
+async function montarRelatorio(env, de, ate, auto) {
+  const nomes = await listar(env, "pedido:", 3000);
+  const pedidos = (await Promise.all(nomes.map(n => lerJson(env, n)))).filter(Boolean);
+  const pagos = pedidos.filter(p => p.status === "pago" && p.pagoEm);
+  const no = (p, a, b) => { const t = Date.parse(p.pagoEm); return t >= a && t < b; };
+  const periodo = pagos.filter(p => no(p, de, ate)), antes = pagos.filter(p => no(p, de - (ate - de), de));
+  const soma = l => l.reduce((t, p) => t + (p.valor || 0), 0);
+  const porPlano = {}, cupons = {};
+  for (const p of periodo) { const k = (PLANOS[p.plano] || PLANOS.m1).nome; porPlano[k] = porPlano[k] || { n: 0, centavos: 0 }; porPlano[k].n++; porPlano[k].centavos += p.valor || 0; if (p.cupom) cupons[p.cupom] = (cupons[p.cupom] || 0) + 1; }
+  const diasDe = []; for (let t = de; t < ate; t += DIA) diasDe.push(diaDe(t));
+  const funil = {}; for (const dd of diasDe.slice(-31)) { const f = (await lerJson(env, "funil:" + dd)) || {}; for (const [k, v] of Object.entries(f)) if (typeof v === "number") funil[k] = (funil[k] || 0) + v; }
+  let uso = null;
+  const d = await db(env);
+  if (d) { try { const r = (await d.prepare("SELECT tipo, SUM(n) AS n FROM contagem WHERE dia >= ? AND dia <= ? GROUP BY tipo").bind(diaDe(de), diaDe(ate)).all()).results || []; uso = Object.fromEntries(r.map(x => [x.tipo, x.n])); } catch (e) { } }
+  const av = ((await lerJson(env, "avaliacoes")) || []).filter(a => a.em >= de && a.em < ate);
+  const rl = ((await lerJson(env, "relatos")) || []).filter(r => r.em >= de && r.em < ate);
+  const grupos = [];
+  for (const mes of mesesEntre(de, ate)) {
+    const m = (await lerJson(env, "erros:" + mes)) || {};
+    for (const [sig, x] of Object.entries(m)) {
+      const vezes = Object.entries(x.dias || {}).filter(([dd]) => dd >= diaDe(de) && dd <= diaDe(ate)).reduce((t, [, n]) => t + n, 0);
+      const resolvidoAqui = x.resolvido && x.resolvido >= de && x.resolvido < ate;
+      if (!vezes && !resolvidoAqui) continue;
+      grupos.push({ sig, tipo: x.tipo, onde: x.onde, msg: x.msg, vezes, celulares: x.celulares.length, novo: x.primeiro >= de, resolvido: x.resolvido || 0, voltou: (x.reaberto || 0) >= de, modelos: Object.entries(x.modelos || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]), versoes: Object.keys(x.versoes || {}).slice(-3), pilha: x.pilha || "", casos: (x.casos || []).filter(c => c.em >= de - DIA).slice(0, 2).map(c => ({ em: c.em, modelo: c.modelo, versao: c.versao, android: c.android, tela: c.tela, rastro: c.rastro, extra: c.extra, print: c.print })) });
+    }
+  }
+  grupos.sort((a, b) => (b.celulares - a.celulares) || (b.vezes - a.vezes));
+  let pirata = 0; for (const mes of mesesEntre(de, ate)) { const m = await lerJson(env, "pirata:" + mes); if (m) pirata += m.total || 0; }
+  let botoes = null; if (d) { try { botoes = ((await d.prepare("SELECT COUNT(*) AS n FROM botoes WHERE em >= ? AND em < ?").bind(de, ate).first()) || {}).n || 0; } catch (e) { } }
+  const nt = ((await lerJson(env, "notas")) || {})._todos || { n: 0, soma: 0 };
+  const media = l => l.length ? Math.round(l.reduce((t, a) => t + a.estrelas, 0) * 10 / l.length) / 10 : 0;
+  return {
+    id: diaDe(ate) + (auto ? "" : "-" + idAleatorio(3).toLowerCase()), de, ate, gerado: Date.now(), auto: !!auto,
+    vendas: { n: periodo.length, centavos: soma(periodo), total: reais(soma(periodo)), antesN: antes.length, antesCentavos: soma(antes), antesTotal: reais(soma(antes)), porPlano, cupons, presentes: periodo.filter(p => p.presente).length, indicacoes: periodo.filter(p => /^IND/.test(p.cupom || "")).length, pendentes: pedidos.filter(p => p.status !== "pago" && Date.parse(p.criado || 0) >= de).length },
+    funil, uso,
+    avaliacoes: { n: av.length, media: media(av), lista: av.slice(0, 40).map(a => ({ estrelas: a.estrelas, texto: a.texto, nome: a.nome || "", em: a.em, visivel: a.visivel })) },
+    relatos: { n: rl.length, abertos: rl.filter(r => r.status === "novo").length, lista: rl.slice(0, 40).map(r => ({ em: r.em, texto: r.texto, modelo: r.modelo, versao: r.versao, pro: r.pro, contato: r.contato, status: r.status, tela: r.tela })) },
+    erros: { tipos: grupos.length, vezes: grupos.reduce((t, g) => t + g.vezes, 0), crashes: grupos.filter(g => g.tipo === "crash").reduce((t, g) => t + g.vezes, 0), novos: grupos.filter(g => g.novo).length, voltaram: grupos.filter(g => g.voltou).length, resolvidos: grupos.filter(g => g.resolvido >= de).length, abertos: grupos.filter(g => !g.resolvido).length, lista: grupos.slice(0, 25) },
+    pirataria: pirata, botoes, raiox: { n: nt.n, media: nt.n ? Math.round(nt.soma / nt.n) : 0 }
+  };
+}
+async function salvarRelatorio(env, r) {
+  await env.PCT.put("relatorio:" + r.id, JSON.stringify(r), { expirationTtl: 60 * 60 * 24 * 400 });
+  const l = ((await lerJson(env, "relatorios")) || []).filter(x => x.id !== r.id);
+  l.unshift({ id: r.id, de: r.de, ate: r.ate, auto: r.auto, vendas: r.vendas.n, total: r.vendas.total, erros: r.erros.vezes, novosErros: r.erros.novos, avaliacoes: r.avaliacoes.n, relatos: r.relatos.n });
+  await env.PCT.put("relatorios", JSON.stringify(l.slice(0, 40)));
+}
+async function mandarRelatorio(env, r) {
+  const est = n => "★".repeat(n) + "☆".repeat(5 - n);
+  const dt = ms => new Date(ms - 3 * 3600000).toISOString().slice(0, 10).split("-").reverse().join("/");
+  const varia = r.vendas.antesCentavos ? Math.round((r.vendas.centavos - r.vendas.antesCentavos) * 100 / r.vendas.antesCentavos) : null;
+  const tab = l => `<table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">` + l.map(([a, b]) => `<tr><td style="color:#9AA8BA">${esc(a)}</td><td align="right">${esc(b)}</td></tr>`).join("") + `</table>`;
+  const html = moldura("Relatório de " + dt(r.de) + " a " + dt(r.ate), r.vendas.n + " venda(s) · " + r.vendas.total + " · " + r.erros.vezes + " erro(s) · " + r.avaliacoes.n + " avaliação(ões)",
+    `<div style="${CAIXA}"><div style="${ROT}">Vendas</div>` + tab([["Vendas", String(r.vendas.n)], ["Total", r.vendas.total], ["Período anterior", r.vendas.antesTotal + (varia === null ? "" : " (" + (varia >= 0 ? "+" : "") + varia + "%)")], ["Presentes", String(r.vendas.presentes)], ["Por indicação", String(r.vendas.indicacoes)]].concat(Object.entries(r.vendas.porPlano).map(([k, v]) => [k, v.n + " · " + reais(v.centavos)]))) + `</div>` +
+    (r.uso ? `<div style="${CAIXA}"><div style="${ROT}">Uso do app</div>` + tab([["Aberturas (celular por dia)", String(r.uso.abriu || 0)], ["Modo completo ligou", String(r.uso.mc_ok || 0)], ["Modo completo falhou", String(r.uso.mc_falha || 0)]]) + `</div>` : "") +
+    `<div style="${CAIXA}"><div style="${ROT}">Erros</div>` + tab([["Ocorrências", String(r.erros.vezes)], ["Fechamentos do app", String(r.erros.crashes)], ["Tipos de erro", String(r.erros.tipos)], ["Novos", String(r.erros.novos)], ["Voltaram", String(r.erros.voltaram)], ["Ainda abertos", String(r.erros.abertos)]]) +
+    r.erros.lista.slice(0, 8).map(g => `<div style="margin-top:12px;border-top:1px solid #263142;padding-top:10px"><b>${esc(g.onde)}</b>${g.novo ? " · novo" : ""}<br><span style="color:#B8BEF0;font-size:13px">${esc(g.msg)}</span><br><span style="color:#9AA8BA;font-size:12px">${g.vezes}x em ${g.celulares} celular(es) · ${esc(g.modelos.join(", "))}</span></div>`).join("") + `</div>` +
+    `<div style="${CAIXA}"><div style="${ROT}">Avaliações do site (média ${String(r.avaliacoes.media).replace(".", ",")})</div>` + (r.avaliacoes.n ? r.avaliacoes.lista.map(a => `<div style="margin-bottom:10px"><span style="color:#FFC857">${est(a.estrelas)}</span> <b>${esc(a.nome || "Anônimo")}</b><br>${esc(a.texto)}</div>`).join("") : "Nenhuma avaliação nova.") + `</div>` +
+    `<div style="${CAIXA}"><div style="${ROT}">Relatos pelo app</div>` + (r.relatos.n ? r.relatos.lista.map(x => `<div style="margin-bottom:10px"><b>${esc(x.modelo || "?")}</b> · app ${esc(x.versao || "?")}${x.pro ? " · Pro" : ""}${x.contato ? " · " + esc(x.contato) : ""}<br>${esc(x.texto)}</div>`).join("") : "Nenhum relato novo.") + `</div>` +
+    `<a href="https://serpyratoolkit.pages.dev/painel#relatorios" style="color:#C8FF6B">Ver o relatório completo no painel</a>`);
+  const texto = "Relatório " + dt(r.de) + " a " + dt(r.ate) + "\nVendas: " + r.vendas.n + " (" + r.vendas.total + ")\nErros: " + r.erros.vezes + " (" + r.erros.novos + " novos)\nAvaliações: " + r.avaliacoes.n + "\nRelatos: " + r.relatos.n;
+  return await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, "SerpyraToolkit: relatório de " + dt(r.de) + " a " + dt(r.ate), html, texto);
 }
 async function resumoQuinzenal(env) {
   try {
     const ult = parseInt((await env.PCT.get("resumo_em")) || "0", 10) || 0;
     if (!ult) { await env.PCT.put("resumo_em", String(Date.now())); return; }
-    if (Date.now() - ult < 15 * DIA) return;
+    const dias = (await config(env)).relatorioDias || 15;
+    if (Date.now() - ult < dias * DIA - 3600000) return;
     await env.PCT.put("resumo_em", String(Date.now()));
-    const av = ((await lerJson(env, "avaliacoes")) || []).filter(a => a.em > ult);
-    const rl = ((await lerJson(env, "relatos")) || []).filter(r => r.em > ult);
-    const est = n => "★".repeat(n) + "☆".repeat(5 - n);
-    const media = av.length ? (av.reduce((t, a) => t + a.estrelas, 0) / av.length).toFixed(1).replace(".", ",") : "–";
-    const html = moldura("Resumo de 15 dias: avaliações e relatos", av.length + " avaliação(ões) no site (média " + media + ") e " + rl.length + " relato(s) pelo app.",
-      `<div style="${CAIXA}"><div style="${ROT}">Avaliações do site</div>` + (av.length ? av.map(a => `<div style="margin-bottom:12px"><span style="color:#FFC857">${est(a.estrelas)}</span> <b>${esc(a.nome || "Anônimo")}</b><br><span style="color:#E8EEF5">${esc(a.texto)}</span></div>`).join("") : "Nenhuma avaliação nova.") + `</div>` +
-      `<div style="${CAIXA}"><div style="${ROT}">Relatos pelo app</div>` + (rl.length ? rl.map(r => `<div style="margin-bottom:12px"><b>${esc(r.modelo || "?")}</b> · app ${esc(r.versao || "?")}${r.pro ? " · Pro" : ""}${r.contato ? " · " + esc(r.contato) : ""}<br>${esc(r.texto)}</div>`).join("") : "Nenhum relato novo.") + `</div><a href="https://serpyratoolkit.pages.dev/painel#relatos" style="color:#3DDC97">Abrir o painel</a>`);
-    const texto = "Avaliações (" + av.length + "):\n" + av.map(a => a.estrelas + "★ " + (a.nome || "Anônimo") + ": " + a.texto).join("\n") + "\n\nRelatos (" + rl.length + "):\n" + rl.map(r => (r.modelo || "?") + ": " + r.texto).join("\n");
-    await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, "SerpyraToolkit: avaliações e relatos dos últimos 15 dias", html, texto);
+    const r = await montarRelatorio(env, ult, Date.now(), true);
+    await salvarRelatorio(env, r);
+    await mandarRelatorio(env, r);
   } catch (e) { }
 }
 async function mensagens(env) {
@@ -473,32 +543,85 @@ async function nota(req, url, env) {
 function mesAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 7); }
 function diaAtual() { return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10); }
 
+async function config(env) { return await cacheJson("config", 60, async () => (await lerJson(env, "config")) || {}); }
+function idAleatorio(n) { const r = crypto.getRandomValues(new Uint8Array(n)); return [...r].map(x => B32[x % 32]).join(""); }
 async function registrarErro(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
   const codigo = limpaCodigo(b.codigo);
   if (!codigoValido(codigo)) return json({ ok: true });
-  if (!(await limitar("erro:" + codigo, 3)) || !(await limitar("erros-total", 12))) return json({ ok: true });
+  const d = await db(env);
+  // com o D1 cada ocorrencia vai para o banco; sem ele, o KV aguenta poucas por hora
+  if (!(await limitar("erro:" + codigo, d ? 30 : 4)) || !(await limitar("erros-total", d ? 400 : 20))) return json({ ok: true });
   const lista = Array.isArray(b.erros) ? b.erros.slice(0, 10) : [b];
   const k = "erros:" + mesAtual();
   const m = (await lerJson(env, k)) || {};
+  const mod = String(b.modelo || "?").slice(0, 40), ver = String(b.versao || "?").slice(0, 12), and = String(b.android || "?").slice(0, 6);
+  const avisos = [];
+  let printsAqui = 0;
   for (const e of lista) {
     const onde = String(e.onde || "app").slice(0, 60), msg = String(e.msg || "").slice(0, 200), tipo = e.tipo === "crash" ? "crash" : "falha";
     const sig = (tipo + "|" + onde + "|" + msg.replace(/\d+/g, "#")).slice(0, 180);
+    const novo = !m[sig];
     const x = m[sig] || { tipo, onde, msg, n: 0, celulares: [], modelos: {}, versoes: {}, primeiro: Date.now(), pilha: String(e.pilha || "").slice(0, 1500) };
     x.n++; x.ultimo = Date.now();
-    const d = diaAtual(); x.dias = x.dias || {}; x.dias[d] = (x.dias[d] || 0) + 1;
-    const ds = Object.keys(x.dias).sort(); if (ds.length > 35) ds.slice(0, ds.length - 35).forEach(k => delete x.dias[k]);
-    const and = String(b.android || "?").slice(0, 6); x.androids = x.androids || {}; x.androids[and] = (x.androids[and] || 0) + 1;
+    const dd = diaAtual(); x.dias = x.dias || {}; x.dias[dd] = (x.dias[dd] || 0) + 1;
+    const ds = Object.keys(x.dias).sort(); if (ds.length > 35) ds.slice(0, ds.length - 35).forEach(k2 => delete x.dias[k2]);
+    x.androids = x.androids || {}; x.androids[and] = (x.androids[and] || 0) + 1;
+    const voltou = !!x.resolvido;
     if (x.resolvido) { x.reaberto = Date.now(); delete x.resolvido; }
     if (!x.celulares.includes(codigo) && x.celulares.length < 50) x.celulares.push(codigo);
-    const mod = String(b.modelo || "?").slice(0, 40), ver = String(b.versao || "?").slice(0, 12);
     x.modelos[mod] = (x.modelos[mod] || 0) + 1; x.versoes[ver] = (x.versoes[ver] || 0) + 1;
+    // o caso: onde estava, o caminho até ali e o print da tela do app
+    const caso = { em: Number(e.em) > 0 && Number(e.em) < Date.now() + DIA ? Math.min(Number(e.em), Date.now()) : Date.now(), modelo: mod, versao: ver, android: and, codigo,
+      tela: String(e.tela || "").slice(0, 80), rastro: (Array.isArray(e.rastro) ? e.rastro : []).slice(-12).map(r => String(r).slice(0, 60)),
+      extra: Object.fromEntries(Object.entries(e.extra && typeof e.extra === "object" ? e.extra : {}).slice(0, 12).map(([a2, b2]) => [String(a2).slice(0, 24), String(b2).slice(0, 60)])), print: "" };
+    const img = typeof e.print === "string" ? e.print.replace(/\s+/g, "") : "";
+    if (img && img.length < 220000 && /^[A-Za-z0-9+/=]+$/.test(img) && printsAqui < 2 && (await limitar("prints", 30))) {
+      const temPrint = (x.casos || []).filter(c => c.print);
+      const ultimo = temPrint.length ? temPrint[0].em : 0;
+      if (temPrint.length < 4 || Date.now() - ultimo > 6 * 3600000 || voltou) {
+        caso.print = idAleatorio(20);
+        await env.PCT.put("print:" + caso.print, img, { expirationTtl: 60 * 60 * 24 * 60 });
+        printsAqui++;
+      }
+    }
+    x.casos = [caso].concat(x.casos || []);
+    // guarda os 6 mais recentes, mas não joga fora os que têm print enquanto houver espaço
+    if (x.casos.length > 6) { const comP = x.casos.filter(c => c.print).slice(0, 4), semP = x.casos.filter(c => !c.print); x.casos = comP.concat(semP).sort((p1, p2) => p2.em - p1.em).slice(0, 6); }
+    if (d) { try { await d.prepare("INSERT INTO erros (em, mes, sig, tipo, onde, msg, codigo, modelo, versao, android, tela, rastro, extra, print) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(caso.em, mesAtual(), sig, tipo, onde, msg, codigo, mod, ver, and, caso.tela, JSON.stringify(caso.rastro), JSON.stringify(caso.extra), caso.print).run(); } catch (e2) { } }
     m[sig] = x;
+    avisos.push({ sig, x, caso, novo, voltou });
   }
   const chaves = Object.keys(m);
-  if (chaves.length > 200) chaves.sort((a, b) => m[a].ultimo - m[b].ultimo).slice(0, chaves.length - 200).forEach(c => delete m[c]);
-  await env.PCT.put(k, JSON.stringify(m), { expirationTtl: 60 * 60 * 24 * 400 });
+  if (chaves.length > 200) chaves.sort((a2, b2) => m[a2].ultimo - m[b2].ultimo).slice(0, chaves.length - 200).forEach(c => delete m[c]);
+  // com o D1 ligado o KV só grava de vez em quando (o painel soma o resto pelo banco)
+  if (!d || avisos.some(a2 => a2.novo || a2.voltou || a2.caso.print) || (await limitar("erros-kv", 20))) await env.PCT.put(k, JSON.stringify(m), { expirationTtl: 60 * 60 * 24 * 400 });
+  for (const a2 of avisos) await avisarErro(env, a2, req.url);
   return json({ ok: true });
+}
+async function avisarErro(env, a, base) {
+  try {
+    const cfg = await config(env);
+    if (cfg.emailErro === false) return;
+    const chave = "aviso-erro:" + (await crypto.subtle.digest("SHA-1", new TextEncoder().encode(a.sig)).then(hex)).slice(0, 16);
+    if (!(await limitar(chave, 1)) || !(await limitar("aviso-erro-total", 20))) return;
+    const { x, caso } = a, origem = new URL(base).origin;
+    const ti = (x.tipo === "crash" ? "💥 O app fechou: " : "⚠️ Erro no app: ") + x.onde + (a.novo ? " (novo)" : a.voltou ? " (voltou)" : "");
+    const linhas = [["O que deu", x.msg || "—"], ["Tela", caso.tela || x.onde], ["Celular", caso.modelo + " · Android " + caso.android], ["Versão do app", caso.versao], ["Vezes este mês", String(x.n) + " em " + x.celulares.length + " celular(es)"], ["Quando", agoraBr()]].concat(Object.entries(caso.extra || {}).slice(0, 6));
+    const img = caso.print ? `<div style="${CAIXA};text-align:center"><div style="${ROT}">Print da tela do app na hora do erro</div><img src="${origem}/print?id=${caso.print}" alt="Print da tela do app" style="max-width:260px;width:100%;border-radius:14px;border:1px solid #3A3480"></div>` : "";
+    const rastro = caso.rastro && caso.rastro.length ? `<div style="${CAIXA}"><div style="${ROT}">Caminho até o erro</div>` + caso.rastro.map((r, i) => `<div style="padding:3px 0">${i + 1}. ${esc(r)}</div>`).join("") + `</div>` : "";
+    const html = moldura(ti, a.novo ? "Esse erro apareceu pela primeira vez agora." : a.voltou ? "Você tinha marcado como resolvido, mas aconteceu de novo." : "Mais uma vez (no máximo 1 e-mail por hora para o mesmo erro).",
+      `<div style="${CAIXA}"><table style="width:100%;font-size:14px;color:#E8EEF5" cellpadding="4">` + linhas.map(([l1, l2]) => `<tr><td style="color:#9AA8BA;vertical-align:top">${esc(l1)}</td><td align="right">${esc(l2)}</td></tr>`).join("") + `</table></div>` + img + rastro +
+      (x.pilha ? `<div style="${CAIXA}"><div style="${ROT}">Onde no código</div><pre style="white-space:pre-wrap;font-size:12px;margin:0;color:#B8BEF0">${esc(x.pilha)}</pre></div>` : "") + `<a href="https://serpyratoolkit.pages.dev/painel#erros" style="color:#C8FF6B">Abrir os erros no painel</a>`);
+    await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, ti, html, ti + "\n" + linhas.map(l => l.join(": ")).join("\n") + (caso.rastro && caso.rastro.length ? "\nCaminho: " + caso.rastro.join(" > ") : ""));
+  } catch (e) { }
+}
+async function verPrint(url, env) {
+  const id = String(url.searchParams.get("id") || "");
+  if (!/^[A-Z2-9]{20}$/.test(id)) return json({ erro: "Não encontrado" }, 404);
+  const b = await env.PCT.get("print:" + id);
+  if (!b) return json({ erro: "Esse print já expirou (ficam 60 dias)." }, 404);
+  return new Response(b64ToBytes(b), { headers: { "content-type": "image/jpeg", "cache-control": "private, max-age=86400", ...CORS } });
 }
 
 async function evento(req, env) {
@@ -831,6 +954,8 @@ async function admin(req, url, env) {
   if (rota === "erros" && req.method === "GET") {
     const mes = /^\d{4}-\d{2}$/.test(url.searchParams.get("mes") || "") ? url.searchParams.get("mes") : mesAtual();
     const m = (await lerJson(env, "erros:" + mes)) || {};
+    const dbe = await db(env);
+    if (dbe) { try { for (const r of ((await dbe.prepare("SELECT sig, COUNT(*) AS n, MAX(em) AS u FROM erros WHERE mes = ? GROUP BY sig").bind(mes).all()).results || [])) { const x = m[r.sig]; if (x) { x.n = Math.max(x.n, r.n); x.ultimo = Math.max(x.ultimo || 0, r.u || 0); } } } catch (e) { } }
     const hojeD = diaAtual(), semana = []; for (let k = 0; k < 7; k++) semana.push(new Date(Date.now() - 3 * 3600000 - k * DIA).toISOString().slice(0, 10));
     const nDias = (x, ds) => ds.reduce((t, d) => t + ((x.dias || {})[d] || 0), 0);
     const todos = Object.entries(m).map(([sig, x]) => ({ sig, ...x }));
@@ -839,7 +964,7 @@ async function admin(req, url, env) {
     const meses = (await listar(env, "erros:", 50)).map(n => n.slice(6)).sort().reverse();
     return json({ mes, meses: meses.length ? meses : [mes], total: l.reduce((t, x) => t + x.n, 0), celulares: new Set(l.flatMap(x => x.celulares)).size, crashes: l.filter(x => x.tipo === "crash").reduce((t, x) => t + x.n, 0),
       hoje: abertos.reduce((t, x) => t + nDias(x, [hojeD]), 0), semana: abertos.reduce((t, x) => t + nDias(x, semana), 0), abertos: abertos.length, novosHoje: abertos.filter(x => x.primeiro > Date.now() - DIA).length,
-      erros: l.slice(0, 150).map(x => ({ sig: x.sig, tipo: x.tipo, onde: x.onde, msg: x.msg, n: x.n, celulares: x.celulares.length, modelos: x.modelos, versoes: x.versoes, androids: x.androids || {}, dias: x.dias || {}, primeiro: x.primeiro, ultimo: x.ultimo, pilha: x.pilha, resolvido: x.resolvido || 0, reaberto: x.reaberto || 0 })) });
+      erros: l.slice(0, 150).map(x => ({ sig: x.sig, tipo: x.tipo, onde: x.onde, msg: x.msg, n: x.n, celulares: x.celulares.length, modelos: x.modelos, versoes: x.versoes, androids: x.androids || {}, dias: x.dias || {}, primeiro: x.primeiro, ultimo: x.ultimo, pilha: x.pilha, resolvido: x.resolvido || 0, reaberto: x.reaberto || 0, casos: (x.casos || []).map(c => ({ ...c, codigo: undefined })) })) });
   }
   if (rota === "erros" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
@@ -931,7 +1056,12 @@ async function admin(req, url, env) {
     const b = await req.json().catch(() => ({}));
     let l = (await lerJson(env, "avaliacoes")) || [];
     if (b.acao === "apagar") l = l.filter(a => a.id !== b.id);
-    else l.forEach(a => { if (a.id === b.id) a.visivel = b.acao === "mostrar"; });
+    else l.forEach(a => {
+      if (a.id !== b.id) return;
+      if (b.acao === "responder") { const r = String(b.resposta || "").replace(/\s+/g, " ").trim().slice(0, 600); if (r) { a.resposta = r; a.respondidoEm = Date.now(); } else { delete a.resposta; delete a.respondidoEm; } }
+      else if (b.acao === "fixar" || b.acao === "desafixar") { if (b.acao === "fixar") a.fixada = Date.now(); else delete a.fixada; }
+      else a.visivel = b.acao === "mostrar";
+    });
     await env.PCT.put("avaliacoes", JSON.stringify(l));
     try { await caches.default.delete(new Request("https://cache.local/avaliacoes")); } catch (e) { }
     return json({ ok: true });
@@ -971,6 +1101,57 @@ async function admin(req, url, env) {
     else await env.PCT.put("aviso", JSON.stringify({ id: Date.now(), texto, link: String(b.link || "").slice(0, 200) }));
     try { await caches.default.delete(new Request("https://aviso.local/atual")); } catch (e) { }
     return json({ ok: true });
+  }
+  if (rota === "print" && req.method === "GET") return await verPrint(url, env);
+  if (rota === "config" && req.method === "GET") return json((await lerJson(env, "config")) || {});
+  if (rota === "config" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const c = (await lerJson(env, "config")) || {};
+    if ("emailErro" in b) c.emailErro = !!b.emailErro;
+    if ("relatorioDias" in b) c.relatorioDias = [7, 15, 30].includes(Number(b.relatorioDias)) ? Number(b.relatorioDias) : 15;
+    await env.PCT.put("config", JSON.stringify(c));
+    try { await caches.default.delete(new Request("https://cache.local/config")); } catch (e) { }
+    return json({ ok: true, config: c });
+  }
+  if (rota === "site" && req.method === "GET") return json(await lerSite(env));
+  if (rota === "site" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const link = v => /^https:\/\/|^\/|^#/.test(String(v || "")) ? String(v).slice(0, 200) : "";
+    const t = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+    const sCfg = {
+      aviso: { ligado: !!(b.aviso && b.aviso.ligado), texto: t(b.aviso && b.aviso.texto, 160), botao: t(b.aviso && b.aviso.botao, 30), link: link(b.aviso && b.aviso.link) },
+      faixa: (Array.isArray(b.faixa) ? b.faixa : []).map(x => t(x, 30)).filter(Boolean).slice(0, 10),
+      avaliacoes: !(b.avaliacoes === false),
+      destaque: { ligado: !!(b.destaque && b.destaque.ligado), titulo: t(b.destaque && b.destaque.titulo, 80), texto: t(b.destaque && b.destaque.texto, 240), botao: t(b.destaque && b.destaque.botao, 30), link: link(b.destaque && b.destaque.link) },
+      em: Date.now()
+    };
+    await env.PCT.put("site", JSON.stringify(sCfg));
+    try { await caches.default.delete(new Request("https://cache.local/site")); } catch (e) { }
+    return json({ ok: true, site: sCfg });
+  }
+  if (rota === "relatorios" && req.method === "GET") return json({ relatorios: (await lerJson(env, "relatorios")) || [], proximo: parseInt((await env.PCT.get("resumo_em")) || "0", 10) || 0, dias: (await config(env)).relatorioDias || 15 });
+  if (rota === "relatorio" && req.method === "GET") {
+    const r = await lerJson(env, "relatorio:" + String(url.searchParams.get("id") || "").slice(0, 30));
+    return r ? json(r) : json({ erro: "Relatório não encontrado." }, 404);
+  }
+  if (rota === "relatorio" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    const dias = Math.min(90, Math.max(1, parseInt(b.dias, 10) || 15));
+    const r = await montarRelatorio(env, Date.now() - dias * DIA, Date.now(), false);
+    if (b.salvar) await salvarRelatorio(env, r);
+    if (b.email) await mandarRelatorio(env, r);
+    return json(r);
+  }
+  if (rota === "relatorio" && req.method === "DELETE") {
+    const id = String(url.searchParams.get("id") || "").slice(0, 30);
+    await env.PCT.delete("relatorio:" + id);
+    await env.PCT.put("relatorios", JSON.stringify(((await lerJson(env, "relatorios")) || []).filter(x => x.id !== id)));
+    return json({ ok: true });
+  }
+  if (rota === "saude" && req.method === "GET") {
+    const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL", "ADMIN_TOKEN"].filter(k => !env[k]);
+    let d1 = false; try { const d = await db(env); if (d) { await d.prepare("SELECT 1").all(); d1 = true; } } catch (e) { }
+    return json({ ok: faltando.length === 0, faltando, modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", d1, emailVendas: !!env.AVISO_POR_EMAIL, backup: !!env.BACKUP_EMAIL, avisoPara: env.AVISO_EMAIL || env.REMETENTE_EMAIL || "", config: (await lerJson(env, "config")) || {} });
   }
   return json({ erro: "Não encontrado" }, 404);
 }
@@ -1075,6 +1256,8 @@ export default {
       if (m === "GET" && p === "/aviso") return await avisoAtual(env);
       if (m === "GET" && p === "/promo") return await promoAtual(env);
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
+      if (m === "GET" && p === "/print") return await verPrint(url, env);
+      if (m === "GET" && p === "/site") return await siteConfig(env);
     if (m === "GET" && p === "/mensagens") return await mensagens(env);
     if (m === "POST" && p === "/avaliacao") return await avaliar(req, env);
     if (m === "GET" && p === "/botoes") return await botoesLista(url, env);
