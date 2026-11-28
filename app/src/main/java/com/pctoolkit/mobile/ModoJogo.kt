@@ -538,6 +538,7 @@ class GameService : Service() {
         var qAnt = Sensores.contadorQuadros(); var tAnt = System.nanoTime()
         val pmw = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         Thread.sleep(3000)
+        var ofertaFeita = false
         while (!parar) {
             Thread.sleep(2000)
             val agora = System.currentTimeMillis()
@@ -555,6 +556,16 @@ class GameService : Service() {
                 val q = Sensores.contadorQuadros()
                 val ag = System.nanoTime()
                 if (q != null) { val f = (q - (qAnt ?: q)) * 1e9 / (ag - tAnt); if (f in 1.0..250.0) { fpsLista.add(f); fpsTxt = "${f.toInt()} FPS · " }; qAnt = q; tAnt = ag }
+            }
+
+            // gratis: oferece o Pro na hora em que ele faria diferenca (1x por dia)
+            if (!ofertaFeita && !Pro.ativo()) {
+                if (b.tempC >= limite - 1) ofertaFeita = Upsell.oferecer(this, "Seu celular está esquentando: ${f1(b.tempC)} °C", "O Modo Frio do Pro segura a temperatura sem desligar o desempenho.")
+                else if (fpsLista.size >= 20) {
+                    val med = fpsLista.sorted()[fpsLista.size / 2]
+                    val ult = fpsLista.takeLast(5).average()
+                    if (med >= 30 && ult < med * 0.7) ofertaFeita = Upsell.oferecer(this, "O FPS caiu: ${ult.toInt()} (era ${med.toInt()})", "O Tuner e o Turbo do Pro deixam o FPS mais estável neste jogo.")
+                }
             }
 
             // Modo Frio
@@ -612,7 +623,7 @@ class GameService : Service() {
         }
         val b1 = Sensores.bateria(this)
         val dur = ((System.currentTimeMillis() - inicio) / 60000).toInt()
-        val o = JSONObject().put("data", agora()).put("pkg", pkg).put("nome", nome).put("dur", dur)
+        val o = JSONObject().put("data", agora()).put("em", System.currentTimeMillis()).put("pkg", pkg).put("nome", nome).put("dur", dur)
             .put("tIni", tIni).put("tMax", tMax).put("tMed", if (n > 0) tSoma / n else b1.tempC)
             .put("gasto", (nIni - b1.nivel).coerceAtLeast(0)).put("ramMin", if (ramMin == Long.MAX_VALUE) 0L else ramMin).put("termMax", termMax)
             .put("frio", nivelFrioMax).put("campeonato", d.optBoolean("mj_camp"))

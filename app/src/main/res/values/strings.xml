@@ -9,4 +9,6 @@
     <string name="at_mira_l">Mira na tela</string>
     <string name="at_raiox">Raio-X</string>
     <string name="at_raiox_l">Raio-X de desempenho</string>
+    <string name="tile_modojogo">Modo Jogo</string>
+    <string name="widget_desc">Modo Jogo, Preparar e jogar e Raio-X na tela inicial</string>
 </resources>

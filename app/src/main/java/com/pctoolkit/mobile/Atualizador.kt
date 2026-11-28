@@ -457,6 +457,9 @@ class AtualizacaoJob : android.app.job.JobService() {
         Thread {
             try { Atualizador.tentarSozinho(applicationContext) } catch (e: Throwable) { }
             try { PixAbandonado.conferir(applicationContext) } catch (e: Throwable) { }
+            try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
+            try { Semanal.conferir(applicationContext) } catch (e: Throwable) { }
+            try { Integridade.conferir() } catch (e: Throwable) { }
             try { Relatorio.enviar() } catch (e: Throwable) { }
             jobFinished(p, false)
         }.start()

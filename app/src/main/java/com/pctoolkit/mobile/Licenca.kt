@@ -38,7 +38,8 @@ object Vendedor {
     /** Endereco do servidor de vendas (Cloudflare Worker). Vazio = so o Pix manual. */
     const val SERVIDOR = "https://serpyratoolkit.officialcarloswendrik.workers.dev"
     const val PRECO = "15.00"
-    const val PRECO_TXT = "R$ 15"
+    const val PRECO_TXT = "R$ 12,90"
+    const val PARTIR_TXT = "R$ 6,66"
     const val TESTE_TXT = "1 hora"
     fun temPix() = CHAVE_PIX.isNotBlank() && NOME.isNotBlank()
     fun automatico() = SERVIDOR.startsWith("https://")
@@ -47,7 +48,7 @@ object Vendedor {
 /** Compra automatica: Pix pela PurinCash, chave por e-mail e ativacao sozinha. */
 object Compra {
     class Pedido(val id: String, val numero: String, val brCode: String, val qr: String, val teste: Boolean, val valor: String = "")
-    class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String, val voucher: String = "", val para: String = "")
+    class Status(val pago: Boolean, val chave: String, val validade: String, val emailEnviado: Boolean, val outro: String, val voucher: String = "", val para: String = "", val familia: List<String> = emptyList())
 
     private fun http(metodo: String, caminho: String, corpo: String?): Pair<Int, String> {
         val c = URL(Vendedor.SERVIDOR.trimEnd('/') + caminho).openConnection() as HttpURLConnection
@@ -59,18 +60,19 @@ object Compra {
         return Pair(code, t)
     }
 
-    class Plano(val id: String, val nome: String, val dias: Int, val centavos: Int, val vitalicio: Boolean = false) {
+    class Plano(val id: String, val nome: String, val dias: Int, val centavos: Int, val vitalicio: Boolean = false, val familia: Int = 0) {
         fun preco(c: Int = centavos) = "R$ " + String.format(Locale("pt", "BR"), "%.2f", c / 100.0).replace(".00", "").replace(",00", "")
         fun porMes() = if (dias > 0) centavos * 30 / dias else centavos
     }
-    val PLANOS_PADRAO = listOf(Plano("m1", "1 mês", 30, 1500), Plano("m3", "3 meses", 90, 3900), Plano("m6", "6 meses", 180, 6900))
+    val PLANOS_PADRAO = listOf(Plano("s7", "7 dias", 7, 490), Plano("m1", "1 mês", 30, 1290), Plano("m3", "3 meses", 90, 2990), Plano("m6", "6 meses", 180, 4990),
+        Plano("a1", "1 ano", 365, 7990), Plano("vida", "Vitalício", 0, 11990, true), Plano("f1", "Família · 1 mês", 30, 2490, false, 3), Plano("f12", "Família · 1 ano", 365, 14990, false, 3))
 
     /** Planos do servidor (com os precos atuais); sem internet usa os padroes. */
     fun planos(): List<Plano> = try {
-        val (code, t) = http("GET", "/planos?v=2", null)
+        val (code, t) = http("GET", "/planos?v=3", null)
         if (code != 200) PLANOS_PADRAO else {
             val a = org.json.JSONObject(t).getJSONArray("planos")
-            (0 until a.length()).map { a.getJSONObject(it) }.map { Plano(it.getString("id"), it.getString("nome"), it.getInt("dias"), it.getInt("centavos"), it.optBoolean("vitalicio")) }.ifEmpty { PLANOS_PADRAO }
+            (0 until a.length()).map { a.getJSONObject(it) }.map { Plano(it.getString("id"), it.getString("nome"), it.getInt("dias"), it.getInt("centavos"), it.optBoolean("vitalicio"), it.optInt("familia")) }.ifEmpty { PLANOS_PADRAO }
         }
     } catch (e: Exception) { PLANOS_PADRAO }
 
@@ -141,7 +143,10 @@ object Compra {
             val (code, t) = http("GET", "/status?pedido=" + Uri.encode(id), null)
             if (code == 404) return Status(false, "", "", false, "desconhecido")
             val o = org.json.JSONObject(t)
-            Status(o.optString("status") == "pago", o.optString("chave"), o.optString("validade"), o.optBoolean("email"), o.optString("status"), o.optString("voucher"), o.optString("para"))
+            val fa = o.optJSONArray("familia")
+            val fam = if (fa == null) emptyList() else (0 until fa.length()).map { fa.optString(it) }.filter { it.isNotBlank() }
+            if (fam.isNotEmpty()) Store.putStr("familia_codigos", fam.joinToString(","))
+            Status(o.optString("status") == "pago", o.optString("chave"), o.optString("validade"), o.optBoolean("email"), o.optString("status"), o.optString("voucher"), o.optString("para"), fam)
         } catch (e: Exception) { null }
     }
 
@@ -337,6 +342,7 @@ object Licenca {
     }
 
     fun ativo(): Boolean {
+        if (Integridade.modificado()) return false
         val d = diaValidade()
         if (d <= 0) return false
         val ft = fimTeste()
@@ -421,7 +427,7 @@ object Pro {
     fun exigir(con: Console, recurso: String): Boolean {
         if (ativo()) return true
         con.aviso("$recurso é uma função do SerpyraToolkit Pro.")
-        con.info("Pro: a partir de ${Vendedor.PRECO_TXT} por mês. Libera: " + recursos.joinToString("; "))
+        con.info("Pro: a partir de ${Vendedor.PARTIR_TXT} por mês. Libera: " + recursos.joinToString("; "))
         if (!Store.bool("teste_usado", false) && Licenca.diaValidade() <= 0) con.info("Dá para testar grátis por ${Vendedor.TESTE_TXT} na tela do Pro.")
         val d = Licenca.diaValidade()
         if (d > 0) con.info(if (Licenca.fimTeste() > 0) "Seu teste grátis de ${Vendedor.TESTE_TXT} terminou." else "Sua assinatura venceu em ${Licenca.validadeTexto()}.")
@@ -442,7 +448,7 @@ fun MainActivity.telaPro() {
     Thread { Licenca.sincronizarHora() }.start()
     val col = coluna()
     val ativo = Licenca.ativo()
-    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo && Licenca.vitalicio()) "Vitalício: não vence" else if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "Teste grátis ou a partir de ${Vendedor.PRECO_TXT} por mês"))
+    col.addView(barraTopo("SerpyraToolkit Pro", if (ativo && Licenca.vitalicio()) "Vitalício: não vence" else if (ativo) "Ativo até ${Licenca.validadeTexto()}" else "Teste grátis ou a partir de ${Vendedor.PARTIR_TXT} por mês"))
 
     // status
     val st = Ui.vertical(this)
@@ -462,6 +468,27 @@ fun MainActivity.telaPro() {
         a.setPadding(0, Ui.dp(this, 10), 0, 0); st.addView(a)
     }
     col.addView(st, Ui.linhaLp(this, 0, 6))
+
+    // codigos do plano Familia
+    val fam = Store.str("familia_codigos").split(",").filter { it.isNotBlank() }
+    if (fam.isNotEmpty()) {
+        col.addView(Ui.secao(this, "Códigos da sua família"))
+        val cf = Ui.vertical(this)
+        cf.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14))
+        cf.background = Ui.forma(this, T.surface, 18, T.outline)
+        cf.addView(Ui.texto(this, "Cada código libera o Pro em mais um celular. A pessoa baixa o app, abre o Pro e cola em “Tem um código?”.", 12.5f, T.texto2))
+        for (v in fam) {
+            val l = Ui.horizontal(this)
+            l.setPadding(0, Ui.dp(this, 10), 0, 0)
+            l.addView(Ui.texto(this, v, 18f, T.verde, Typeface.MONOSPACE), Ui.peso())
+            val b = Ui.chip(this, "Copiar", T.azul)
+            b.isClickable = true
+            b.setOnClickListener { copiar("Código da família", v) }
+            l.addView(b)
+            cf.addView(l)
+        }
+        col.addView(cf, Ui.linhaLp(this, 0, 6))
+    }
 
     if (Vendedor.automatico()) { secaoAutomatica(col, ativo); secaoChave(col); setContentView(raiz(col)); col.postDelayed({ if (!isFinishing) oferecerCopiado() }, 700); return }
 
@@ -542,7 +569,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
         ci.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 16))
         ci.background = Ui.gradiente(this, 0xFF2A2210.toInt(), 0xFF121821.toInt(), 18)
         ci.addView(Ui.texto(this, "Indique e ganhe", 16f, T.texto, Ui.negrito))
-        ci.addView(Ui.texto(this, "Seu amigo ganha 10% de desconto com o seu código. Você ganha dias de Pro a cada compra dele: 5 dias (plano de 1 mês), 10 (3 meses), 15 (6 meses) ou 30 (vitalício), até 15 dias por mês" + (if (Licenca.vitalicio()) " (você já é vitalício, mas seu amigo ainda ganha o desconto)." else "."), 12.5f, T.texto2))
+        ci.addView(Ui.texto(this, "Seu amigo ganha 10% de desconto com o seu código. Você ganha dias de Pro a cada compra dele: 5 dias (plano de 1 mês), 10 (3 meses), 15 (6 meses) ou 30 (1 ano ou vitalício), até 15 dias por mês" + (if (Licenca.vitalicio()) " (você já é vitalício, mas seu amigo ainda ganha o desconto)." else "."), 12.5f, T.texto2))
         val codInd = "IND" + Licenca.codigo()
         val ct = Ui.texto(this, codInd, 22f, T.amarelo, Typeface.MONOSPACE)
         ct.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 4)); ct.setTextIsSelectable(true)
@@ -613,9 +640,15 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             linha.background = Ui.forma(this, if (sel) Ui.alpha(T.verde, 0x22) else T.surface2, 14, if (sel) T.verde else T.outline, if (sel) 2 else 1)
             val tx = Ui.vertical(this)
             tx.addView(Ui.texto(this, pl.nome, 15f, T.texto, Ui.medio))
-            tx.addView(Ui.texto(this, if (pl.vitalicio) "Paga uma vez e usa para sempre" else if (pl.dias > 30) "${pl.preco(pl.porMes())} por mês" else "Renove quando quiser", 12f, if (pl.vitalicio) T.amarelo else T.texto3))
+            tx.addView(Ui.texto(this, when {
+                pl.familia > 0 -> "Pro em ${pl.familia} celulares: o seu + ${pl.familia - 1} códigos para a família" + if (pl.dias > 30) " · ${pl.preco(pl.porMes())} por mês" else ""
+                pl.vitalicio -> "Paga uma vez e usa para sempre"
+                pl.dias > 30 -> "${pl.preco(pl.porMes())} por mês"
+                pl.dias < 30 -> "Para experimentar uma semana inteira"
+                else -> "Renove quando quiser"
+            }, 12f, if (pl.vitalicio || pl.familia > 0) T.amarelo else T.texto3))
             linha.addView(tx, Ui.peso())
-            val eco = if (base > 0 && !pl.vitalicio) 100 - pl.porMes() * 100 / base else 0
+            val eco = if (base > 0 && !pl.vitalicio && pl.familia == 0) 100 - pl.porMes() * 100 / base else 0
             if (eco >= 5) { linha.addView(Ui.chip(this, "−$eco%", T.verde)); linha.addView(Ui.espaco(this, 10, 1)) }
             linha.addView(Ui.texto(this, pl.preco(), 16f, if (sel) T.verde else T.texto, Ui.negrito))
             linha.isClickable = true
@@ -739,9 +772,10 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
                     val (ok, m) = Licenca.ativar(st.chave)
                     Compra.limpar()
                     runOnUiThread {
-                        msg.text = (if (ok) "Pagamento confirmado! Pro ativo até ${st.validade}." else m) + if (st.emailEnviado) "\nEnviamos o pedido e a chave para o seu e-mail." else ""
+                        msg.text = (if (ok) "Pagamento confirmado! Pro ativo até ${st.validade}." else m) + (if (st.emailEnviado) "\nEnviamos o pedido e a chave para o seu e-mail." else "") +
+                            (if (st.familia.isNotEmpty()) "\nCódigos da família: " + st.familia.joinToString(", ") + " (ficam guardados na tela do Pro)" else "")
                         msg.setTextColor(if (ok) T.verde else T.amarelo)
-                        msg.postDelayed({ mostrar() }, 3500)
+                        msg.postDelayed({ mostrar() }, if (st.familia.isNotEmpty()) 9000 else 3500)
                     }
                     return@Thread
                 }

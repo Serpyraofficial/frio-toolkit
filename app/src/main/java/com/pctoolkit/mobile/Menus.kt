@@ -29,7 +29,7 @@ object Menus {
         Item("Aparência", "Fluidez e animações", A, T.roxo, acao = { Sistema.aparencia(it) }),
         Item("Manutenção", "Saúde, bateria, backup", M, T.amarelo, sub = { manutencao() }),
         Item("Acesso e permissões", "Nível: " + Acesso.nivel(), CH, T.texto2, tela = { it.abrirTela { it.telaPermissoes() } }),
-        Item("SerpyraToolkit Pro", if (Pro.ativo()) "Ativo até " + Licenca.validadeTexto() else "Teste grátis ou a partir de " + Vendedor.PRECO_TXT + " por mês", CH, T.amarelo, tela = { it.abrirTela { it.telaPro() } })
+        Item("SerpyraToolkit Pro", if (Pro.ativo()) "Ativo até " + Licenca.validadeTexto() else "Teste grátis ou a partir de " + Vendedor.PARTIR_TXT + " por mês", CH, T.amarelo, tela = { it.abrirTela { it.telaPro() } })
     )
 
     fun fps() = Menu("Desempenho e FPS", "Tudo que deixa o jogo mais fluido", F, T.verde, listOf(
@@ -37,6 +37,8 @@ object Menus {
         Item("Teclado e controles no jogo", "Botões com a tecla que quiser, toque, analógico e macro", J, T.roxo, acao = { TecladoJogo.iniciar(it) }),
         Item("Mira na tela", "Cruz, ponto ou círculo, na cor e tamanho que quiser", J, T.vermelho, "Novo", T.vermelho, acao = { MiraTela.executar(it) }),
         Item("Raio-X de desempenho", "Nota de 0 a 100 e correção com um toque", RX, T.verde, "Recomendado", T.verde, acao = { RaioX.executar(it) }),
+        Item("Preparar e jogar", "Memória, limpeza e Modo Jogo com um toque", J, T.verde, "Novo", T.verde, acao = { Preparar.executar(it, null) }),
+        Item("Calculadora de sensibilidade", "Sensibilidade do Free Fire para a sua tela", J, T.azul, "Novo", T.verde, acao = { Sensibilidade.executar(it) }),
         Item("Modo Jogo", "Silencia, libera memória, abre o jogo e vigia o calor", J, T.verde, acao = { ModoJogo.executar(it) }),
         Item("Otimizar o celular para jogos", "Passo a passo completo", F, T.verde, acao = { Fps.otimizar(it) }),
         Item("Teste de desempenho", "Força do processador e estabilidade com calor", F, T.azul, acao = { Fps.benchmark(it) }),
@@ -114,6 +116,7 @@ object Menus {
         Item("Tamanho da letra", "Deixe o texto do app maior", M, T.cinza, acao = { Letra.executar(it) }),
         Item("Avisos de venda no meu celular", if (Dono.ligado()) "Ligado: vendas e erros novos do app" else "Só para o dono do app", M, T.verde, acao = { Dono.executar(it) }),
         Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
+        Item("Relatar um problema", "Mande uma mensagem direto para a gente", M, T.azul, "Novo", T.verde, acao = { Relatar.executar(it) }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Atualizar sozinho", "Liga ou desliga a atualização automática do app", M, T.verde, acao = { Atualizador.configurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })

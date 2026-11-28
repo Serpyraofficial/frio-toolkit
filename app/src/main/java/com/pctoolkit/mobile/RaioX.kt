@@ -68,10 +68,12 @@ object RaioX {
         val pontos = itens.filter { it.ok }.sumOf { it.peso }
         val nota = if (total > 0) pontos * 100 / total else 100
         con.subtitulo("Resultado")
-        for (i in itens) if (i.ok) con.ok("${i.nome}: ${i.detalhe}") else con.erro("${i.nome}: ${i.detalhe}")
+        for (i in itens) if (i.ok) con.ok("${i.nome}: ${i.detalhe}") else con.linha("✕  ${i.nome}: ${i.detalhe}", T.vermelho)
         con.linha("")
         con.linha("NOTA: $nota/100", if (nota >= 85) T.verde else if (nota >= 60) T.amarelo else T.vermelho)
         Store.putInt("nota_fps", nota)
+        AtalhoWidget.atualizar(con.ctx)
+        Comparar.buscar(nota)?.let { con.info(Comparar.texto(it) + " (média ${it.media}).") }
         val ruins = itens.filter { !it.ok && it.corrigir != null }
         if (ruins.isEmpty()) { con.ok(if (nota >= 85) "Tudo certo para jogar." else "Os itens restantes dependem de você (ex.: tirar da tomada)."); return }
         val sel = con.varios("Corrigir agora", ruins.map { it.nome + " — " + it.detalhe }, true)
@@ -81,8 +83,10 @@ object RaioX {
             val t2 = novos.sumOf { it.peso }
             val n2 = if (t2 > 0) novos.filter { it.ok }.sumOf { it.peso } * 100 / t2 else 100
             Store.putInt("nota_fps", n2)
+            AtalhoWidget.atualizar(con.ctx)
             con.linha("")
             con.linha("NOVA NOTA: $n2/100  (antes $nota)", if (n2 >= 85) T.verde else T.amarelo)
         }
+        con.info("Dica: na tela inicial, toque em Compartilhar para mandar a sua nota aos amigos (com o seu código de 10% de desconto).")
     }
 }

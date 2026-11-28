@@ -205,7 +205,10 @@ class MainActivity : Activity() {
         if (!Modo.definido()) { boasVindas(); return }
         if (intent?.getBooleanExtra("teclado", false) == true) executar("Teclado no jogo") { TecladoJogo.iniciar(it) }
         if (intent?.getBooleanExtra("pro", false) == true) abrirTela { telaPro() }
+        intent?.getStringExtra("cupom")?.takeIf { it.isNotBlank() }?.let { Store.putStr("cupom_pendente", it) }
         when (intent?.getStringExtra("acao")) {
+            "preparar" -> executar("Preparar e jogar") { Preparar.executar(it, null) }
+            "sensibilidade" -> executar("Calculadora de sensibilidade") { Sensibilidade.executar(it) }
             "modojogo" -> executar("Modo Jogo") { ModoJogo.executar(it) }
             "mira" -> executar("Mira na tela") { MiraTela.executar(it) }
             "raiox" -> executar("Raio-X de desempenho") { RaioX.executar(it) }
@@ -220,6 +223,8 @@ class MainActivity : Activity() {
         Dono.agendar(this)
         Thread {
             Relatorio.enviar()
+            Integridade.conferir()
+            try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
             if (Promo.atualizar()) runOnUiThread { atualizarInicio() }
             if (Dono.ligado()) Dono.conferir(this)
         }.start()
@@ -284,14 +289,33 @@ class MainActivity : Activity() {
                 else con.info("Sem o Shizuku agora, o app pede as permissões quando precisar. Ative depois em Acesso e permissões.")
             }
             con.linha("")
-            con.ok("Toque em Concluir para começar. Dica: comece pelo Raio-X.")
+            con.subtitulo("Primeiro Raio-X do seu celular")
+            RaioX.executar(con)
+            if (!Pro.ativo() && Vendedor.automatico() && !Store.bool("teste_usado", false) && Licenca.diaValidade() <= 0) {
+                con.linha("")
+                con.linha("Quer ver o celular no máximo? Teste o Pro grátis por ${Vendedor.TESTE_TXT}: botões no jogo, Tuner, Modo Frio e Modo Jogo sem limite.", T.amarelo)
+                if (con.ask("Testar o Pro grátis agora?", "Testar grátis", "Depois", importante = true)) {
+                    val (ok, m) = Compra.teste()
+                    if (ok) con.ok(m) else con.aviso(m)
+                }
+            }
+            con.linha("")
+            con.ok("Tudo pronto! Toque em Concluir para começar.")
         }
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent?.getStringExtra("acao") == "atualizar" && !naTarefa) executar("Atualizar o app") { Atualizador.procurar(it) }
+        intent?.getStringExtra("cupom")?.takeIf { it.isNotBlank() }?.let { Store.putStr("cupom_pendente", it) }
         if (intent?.getStringExtra("acao") == "pro" && !naTarefa) abrirTela { telaPro() }
+        if (naTarefa) return
+        when (intent?.getStringExtra("acao")) {
+            "modojogo" -> executar("Modo Jogo") { ModoJogo.executar(it) }
+            "preparar" -> executar("Preparar e jogar") { Preparar.executar(it, null) }
+            "raiox" -> executar("Raio-X de desempenho") { RaioX.executar(it) }
+            "relatorio" -> executar("Histórico do Modo Jogo") { ModoJogo.historico(it) }
+        }
     }
 
     override fun onPause() {
@@ -476,6 +500,18 @@ class MainActivity : Activity() {
             col.addView(av, Ui.linhaLp(this, 0, 14))
         }
 
+        // copia modificada: avisa e manda baixar a original
+        if (Integridade.modificado()) {
+            val av = Ui.vertical(this)
+            av.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 16), Ui.dp(this, 12))
+            av.background = Ui.clicavel(this, Ui.forma(this, Ui.alpha(T.vermelho, 0x22), 18, T.vermelho), 18)
+            av.addView(Ui.texto(this, "Esta cópia do app foi modificada", 14.5f, T.texto, Ui.negrito))
+            av.addView(Ui.texto(this, "Cópias alteradas podem ter vírus e não liberam o Pro. Toque para baixar a original, grátis, em serpyratoolkit.pages.dev.", 12.5f, T.texto2))
+            av.isClickable = true
+            av.setOnClickListener { try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://serpyratoolkit.pages.dev"))) } catch (e: Exception) { } }
+            col.addView(av, Ui.linhaLp(this, 0, 14))
+        }
+
         // aba SHIZUKU (sempre visivel)
         col.addView(TutorialShizuku.cartao(this), Ui.linhaLp(this, 0, 14))
 
@@ -498,7 +534,18 @@ class MainActivity : Activity() {
         d.setPadding(0, Ui.dp(this, 4), 0, Ui.dp(this, 10))
         hc.addView(d)
         val cta = Ui.chip(this, if (nota < 0) "Fazer o Raio-X  ›" else "Refazer o Raio-X  ›", T.verde)
-        hc.addView(cta)
+        if (nota >= 0) {
+            val linhaCta = Ui.horizontal(this)
+            linhaCta.addView(cta)
+            linhaCta.addView(Ui.espaco(this, 8, 1))
+            val comp = Ui.chip(this, "Compartilhar", T.azul)
+            comp.isClickable = true
+            comp.setOnClickListener { Cartao.compartilhar(this, nota) }
+            linhaCta.addView(comp)
+            hc.addView(linhaCta)
+            val mq = Store.int("nota_melhor", -1)
+            if (mq >= 0) { val t = Ui.texto(this, "Melhor que $mq% " + if (Store.bool("nota_do_modelo", false)) "dos celulares iguais ao seu" else "dos celulares no app", 12f, T.verde); t.setPadding(0, Ui.dp(this, 8), 0, 0); hc.addView(t) }
+        } else hc.addView(cta)
         hero.addView(hc, Ui.peso())
         hero.isClickable = true
         hero.setOnClickListener { executar("Raio-X de desempenho") { RaioX.executar(it) } }
@@ -534,6 +581,7 @@ class MainActivity : Activity() {
         ac.addView(Ui.espaco(this, 10, 1))
         ac.addView(Ui.botao(this, "Tuner", T.verde, false, R.drawable.ic_fps) { abrirTela { telaTuner() } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         col.addView(ac)
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_jogo, T.verde, "Preparar e jogar", "Memória, limpeza e Modo Jogo no último jogo, com um toque", "", T.verde) { executar("Preparar e jogar") { Preparar.executar(it, null) } }, Ui.linhaLp(this, 10, 0))
         col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
 
         // assinatura

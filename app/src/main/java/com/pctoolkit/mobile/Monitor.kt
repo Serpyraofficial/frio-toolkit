@@ -227,6 +227,11 @@ object Dono {
                 notificar(ctx, 7500 + i, (if (e.optString("tipo") == "crash") "⚠️ O app travou: " else "⚠️ Erro novo: ") + e.optString("onde"),
                     e.optString("msg").take(120) + " · " + e.optInt("celulares") + " celular(es)", "https://serpyratoolkit.pages.dev/painel#erros")
             }
+            val rl = o.optJSONArray("relatos") ?: JSONArray()
+            for (i in 0 until rl.length()) {
+                val r = rl.getJSONObject(i)
+                notificar(ctx, 7550 + i, "💬 Relato de cliente: " + r.optString("modelo"), r.optString("texto"), "https://serpyratoolkit.pages.dev/painel#relatos")
+            }
             l.length()
         } catch (e: Exception) { 0 }
     }

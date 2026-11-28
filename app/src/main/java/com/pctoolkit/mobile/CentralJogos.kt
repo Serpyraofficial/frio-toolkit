@@ -37,7 +37,8 @@ object CentralJogos {
         val perfil = Tuner.perfil(jogo.pkg)
         val pro = if (Pro.ativo()) "" else "  (Pro)"
         val ops = arrayOf(
-            "▶  Jogar com o Modo Jogo (recomendado)",
+            "⚡  Preparar e jogar (memória, limpeza e Modo Jogo)",
+            "▶  Jogar com o Modo Jogo",
             (if (tem) "⌨  Jogar com os meus botões na tela" else "⌨  Criar botões na tela") + pro,
             "⚙  Tuner: resolução, FPS e desempenho" + pro,
             "⊕  Mira na tela" + pro,
@@ -51,12 +52,13 @@ object CentralJogos {
         android.app.AlertDialog.Builder(act).setTitle(jogo.nome + if (sub.isNotEmpty()) "\n$sub" else "")
             .setItems(ops) { _, i ->
                 when (i) {
-                    0 -> act.executar("Modo Jogo") { ModoJogo.executar(it, jogo.pkg) }
-                    1 -> act.executar("Teclado e controles") { TecladoJogo.iniciar(it, jogo.pkg) }
-                    2 -> act.abrirTela { act.telaPerfil(jogo.pkg, jogo.nome) }
-                    3 -> act.executar("Mira na tela") { con -> MiraTela.executar(con); if (MiraService.rodando) { abrir(con.ctx, jogo.pkg); con.ok("Abrindo ${jogo.nome}") } }
-                    4 -> abrir(act, jogo.pkg)
-                    5 -> act.executar("Ajustes para um jogo") { Fps.porJogo(it, jogo) }
+                    0 -> act.executar("Preparar e jogar") { Preparar.executar(it, jogo.pkg) }
+                    1 -> act.executar("Modo Jogo") { ModoJogo.executar(it, jogo.pkg) }
+                    2 -> act.executar("Teclado e controles") { TecladoJogo.iniciar(it, jogo.pkg) }
+                    3 -> act.abrirTela { act.telaPerfil(jogo.pkg, jogo.nome) }
+                    4 -> act.executar("Mira na tela") { con -> MiraTela.executar(con); if (MiraService.rodando) { abrir(con.ctx, jogo.pkg); con.ok("Abrindo ${jogo.nome}") } }
+                    5 -> abrir(act, jogo.pkg)
+                    6 -> act.executar("Ajustes para um jogo") { Fps.porJogo(it, jogo) }
                 }
             }.setNegativeButton("Fechar", null).show()
     }

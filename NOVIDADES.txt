@@ -1,2 +1,7 @@
-- Códigos de cortesia por hora (1, 3, 6 ou 12 horas) funcionam e mostram o horário certo do fim
-- Melhorias no envio de relatórios de erro para corrigirmos mais rápido
+- Preparar e jogar: memória, limpeza e Modo Jogo com um toque (também no widget da tela inicial)
+- Botão do Modo Jogo nas Configurações rápidas e widget com Modo Jogo, Preparar e Raio-X
+- Calculadora de sensibilidade para o Free Fire, feita para a sua tela
+- Compare a sua nota com celulares iguais ao seu e compartilhe o resultado
+- Relatar um problema direto pelo app
+- Novos planos do Pro: a partir de R$ 4,90, plano anual e plano Família (3 celulares)
+- Resumo da sua semana de jogos
