@@ -429,7 +429,7 @@ namespace SerpyraPC
             var vUso = bloco("USO DA CPU", "raio", T.Verde, out var sUso);
             var vGpu = bloco("PLACA DE VÍDEO", "jogo", T.Azul, out var sGpu);
             var vMem = bloco("MEMÓRIA", "memoria", T.Lilas, out var sMem);
-            var vLim = bloco("LIMITE DE DESEMPENHO", "fps", T.Vermelho, out var sLim);
+            var vLim = bloco("LIMITE DA CPU", "fps", T.Vermelho, out var sLim);
             var vTop = bloco("PESANDO AGORA", "olho", T.Texto2, out var sTop);
             vTop.FontSize = 16; vTop.FontFamily = T.Normal; vTop.FontWeight = FontWeights.SemiBold;
             col.Children.Add(ug);

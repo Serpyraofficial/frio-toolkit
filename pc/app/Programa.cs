@@ -279,14 +279,20 @@ namespace SerpyraPC
             Servicos.PromoAtual = new Servicos.Promo { Id = 1, Texto = "Black Friday: 30% no Pro anual", Cupom = "BLACK30", Cor = "verde" };
             Servicos.Mensagens.Add(new Servicos.Mensagem { Id = 2, Titulo = "Novidade no PC", Texto = "Exemplo de notificação enviada pelo painel.", Cupom = "PC10" });
             Servicos.Nova = new Servicos.Versao { Numero = "9.9" };
+            resumoCache = Servidor.Ler("{\"memLivre\":9.4,\"memTotal\":16,\"discoLivre\":212,\"discoTotal\":476,\"cpu\":\"AMD Ryzen 5 5600\",\"gpu\":\"NVIDIA GeForce RTX 3060\"}");
+            jogosCache = Ponte.L(Servidor.Ler("{\"jogos\":[{\"Nome\":\"Counter-Strike 2\",\"Origem\":\"Steam\"},{\"Nome\":\"Fortnite\",\"Origem\":\"Epic\"},{\"Nome\":\"VALORANT\",\"Origem\":\"Riot\"},{\"Nome\":\"Minecraft\",\"Origem\":\"Minecraft\"},{\"Nome\":\"Grand Theft Auto V\",\"Origem\":\"Rockstar\"}]}"), "jogos");
+            raioxCache = Servidor.Ler("{\"nota\":68,\"antes\":0,\"itens\":[{\"Nome\":\"Plano de energia\",\"Estado\":\"PROBLEMA\",\"Detalhe\":\"Equilibrado: o processador economiza durante o jogo\",\"Corrige\":true,\"Auto\":true,\"Peso\":10},{\"Nome\":\"Game DVR do Xbox\",\"Estado\":\"ATENCAO\",\"Detalhe\":\"Gravando em segundo plano\",\"Corrige\":true,\"Auto\":true,\"Peso\":6},{\"Nome\":\"Driver de vídeo\",\"Estado\":\"ATENCAO\",\"Detalhe\":\"Tem mais de 6 meses: atualize pelo app da NVIDIA\",\"Corrige\":false,\"Auto\":false,\"Peso\":5},{\"Nome\":\"Monitor no Hz máximo\",\"Estado\":\"OK\",\"Corrige\":false},{\"Nome\":\"Modo de Jogo do Windows\",\"Estado\":\"OK\",\"Corrige\":false},{\"Nome\":\"Temperatura\",\"Estado\":\"OK\",\"Corrige\":false}]}");
             var passos = new List<Action>();
             void foto(string n) => passos.Add(() => Foto(System.IO.Path.Combine(pasta, n + ".png")));
             void espera(int k) { for (int j = 0; j < k; j++) passos.Add(() => { }); }
             passos.Add(() => { Promo(); IrAba("inicio"); }); espera(3); foto("inicio");
-            passos.Add(() => IrAba("jogos")); espera(6); foto("jogos");
-            passos.Add(() => Abrir(TelaRaioX)); espera(8); foto("raiox");
+            passos.Add(() => IrAba("jogos")); espera(1); foto("jogos");
+            passos.Add(() => Abrir(TelaMeusJogos)); espera(1); foto("meusjogos");
+            passos.Add(() => Abrir(TelaRaioX)); espera(1); foto("raiox");
             passos.Add(() => Abrir(TelaTemperatura)); espera(4); foto("temperatura");
-            passos.Add(() => Abrir(TelaRede)); espera(10); foto("rede");
+            passos.Add(() => Abrir(TelaRede)); espera(1); foto("rede");
+            passos.Add(() => IrAba("seguranca")); foto("seguranca");
+            passos.Add(() => Abrir(TelaRelatar)); foto("relatar");
             passos.Add(() => IrAba("ferramentas")); foto("ferramentas");
             passos.Add(() => IrAba("pro")); espera(1); foto("pro");
             passos.Add(() => Rodar("limpeza", "Limpeza do PC", false)); espera(4); foto("menu");

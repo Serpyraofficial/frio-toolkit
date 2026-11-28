@@ -44,7 +44,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force pc/dist/telas | Out-Null
           $p = Start-Process saida/SerpyraToolkit.exe -ArgumentList '--fotos', (Resolve-Path pc/dist/telas) -PassThru
-          if (-not $p.WaitForExit(90000)) { $p.Kill(); Write-Host "o teste nao terminou" }
+          if (-not $p.WaitForExit(240000)) { $p.Kill(); Write-Host "o teste nao terminou" }
           Get-ChildItem pc/dist/telas | Format-Table Name, Length
           if (Test-Path pc/dist/telas/erros.txt) { Get-Content pc/dist/telas/erros.txt }
           # ponte: roda uma acao e confere as marcas de cor
