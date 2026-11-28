@@ -1,8 +1,8 @@
 {
- "versionCode": 82,
- "versionName": "5.20",
- "notas": "- Correção: o app volta a instalar normalmente em todos os celulares\n- Modo completo sem instalar nada: ative em 3 passos rápidos, digitando o código direto na notificação (Android 11 ou mais novo)\n- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi",
- "sha256": "caae6762cb04c38d69a8a173caf67d73a73d7fe51615bb57a141cfed620eafc0",
+ "versionCode": 83,
+ "versionName": "5.21",
+ "notas": "- Modo completo: agora aparece uma caixinha por cima das Configurações para você digitar o código de pareamento\n- Passo a passo certo para Xiaomi, Redmi e POCO (ligar a Depuração USB antes da Depuração sem fio)\n- O app confere se as notificações dele estão ligadas antes de começar",
+ "sha256": "a3bbf72e1ff3b8107ffad0a9ca4de31ac56bb01710463c83d95e5f05f48fc694",
  "tamanho": 4717883,
- "arquivo": "SerpyraToolkit-5.20-caae6762cb.apk"
+ "arquivo": "SerpyraToolkit-5.21-a3bbf72e1f.apk"
 }
