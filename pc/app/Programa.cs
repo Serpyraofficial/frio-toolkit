@@ -17,8 +17,10 @@ namespace SerpyraPC
         public const string Versao = "1.0";
 
         [STAThread]
-        public static void Main()
+        public static void Main(string[] args)
         {
+            string fotos = null;
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "--fotos") fotos = args[i + 1];
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             T.CarregarEstilos(app);
             app.DispatcherUnhandledException += (s, e) =>
@@ -27,7 +29,9 @@ namespace SerpyraPC
                 MessageBox.Show("Algo deu errado aqui. Já mandamos o aviso para corrigir.\n\n" + e.Exception.Message, "SerpyraToolkit", MessageBoxButton.OK, MessageBoxImage.Warning);
                 e.Handled = true;
             };
-            app.Run(new Principal());
+            var w = new Principal();
+            if (fotos != null) w.Fotos(fotos);
+            app.Run(w);
         }
     }
 
@@ -99,6 +103,39 @@ namespace SerpyraPC
                 if (await Licenca.Atualizar()) { Cabecalho(); if (rodando == null) Ir(abaAtual); }
             };
             Cabecalho();
+        }
+
+        /// <summary>Teste automatico (GitHub): tira foto de cada tela e de uma tarefa rodando, e fecha.</summary>
+        public void Fotos(string pasta)
+        {
+            System.IO.Directory.CreateDirectory(pasta);
+            WindowStartupLocation = WindowStartupLocation.Manual; Left = 0; Top = 0; ShowActivated = false;
+            var passos = new List<Action>();
+            foreach (var a in new[] { "inicio", "jogos", "ferramentas", "seguranca", "pro" })
+            {
+                var aba = a;
+                passos.Add(() => Ir(aba));
+                passos.Add(() => Foto(System.IO.Path.Combine(pasta, aba + ".png")));
+            }
+            passos.Add(() => Rodar("historico", "Histórico de FPS", false));
+            passos.Add(() => { });
+            passos.Add(() => { });
+            passos.Add(() => { });
+            passos.Add(() => Foto(System.IO.Path.Combine(pasta, "tarefa.png")));
+            passos.Add(() => { rodando?.Matar(); Application.Current.Shutdown(0); });
+            int i = 0;
+            var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            t.Tick += (s, e) => { if (i < passos.Count) { try { passos[i](); } catch (Exception ex) { System.IO.File.AppendAllText(System.IO.Path.Combine(pasta, "erros.txt"), ex + "\n"); } i++; } else t.Stop(); };
+            Loaded += (s, e) => t.Start();
+        }
+
+        void Foto(string arq)
+        {
+            UpdateLayout();
+            var rtb = new RenderTargetBitmap((int)ActualWidth, (int)ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(this);
+            var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(rtb));
+            using (var f = System.IO.File.Create(arq)) enc.Save(f);
         }
 
         static Path Estrela(double tam, Color cor)

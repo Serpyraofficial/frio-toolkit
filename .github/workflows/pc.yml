@@ -39,11 +39,26 @@ jobs:
         shell: pwsh
         run: dotnet build pc/app/SerpyraPC.csproj -c Release -o saida -nologo
 
+      - name: Testar (fotos das telas e a ponte com o PowerShell)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force pc/dist/telas | Out-Null
+          $p = Start-Process saida/SerpyraToolkit.exe -ArgumentList '--fotos', (Resolve-Path pc/dist/telas) -PassThru
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); Write-Host "o teste nao terminou" }
+          Get-ChildItem pc/dist/telas | Format-Table Name, Length
+          if (Test-Path pc/dist/telas/erros.txt) { Get-Content pc/dist/telas/erros.txt }
+          # ponte: roda uma acao e confere as marcas de cor
+          New-Item -ItemType Directory -Force ponte | Out-Null
+          Copy-Item pc/script/app.ps1, pc/app/gerado/toolkit.ps1 ponte/
+          $o = "`n" | powershell -NoProfile -ExecutionPolicy Bypass -File ponte/app.ps1 -Acao historico 2>&1 | Out-String
+          $o.Substring(0, [Math]::Min(1500, $o.Length)) | Set-Content pc/dist/telas/ponte.txt
+          Get-Content pc/dist/telas/ponte.txt
+
       - name: Publicar o .exe
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force pc/dist | Out-Null
-          Remove-Item pc/dist/* -Force -ErrorAction SilentlyContinue
+          Get-ChildItem pc/dist -File | Remove-Item -Force -ErrorAction SilentlyContinue
           Copy-Item saida/SerpyraToolkit.exe pc/dist/SerpyraToolkit-PC.exe
           $h = (Get-FileHash pc/dist/SerpyraToolkit-PC.exe -Algorithm SHA256).Hash.ToLower()
           $t = (Get-Item pc/dist/SerpyraToolkit-PC.exe).Length
