@@ -84,6 +84,14 @@ h1{font-weight:500;font-size:clamp(38px,5.2vw,70px);line-height:.98;letter-spaci
 .exe{position:relative;padding-top:52px!important;overflow:hidden}
 .exe:before{content:attr(data-exe);position:absolute;left:0;right:0;top:0;height:34px;background:var(--barra);border-bottom:1.5px solid var(--linha);color:#A99CFF;font-family:var(--fp);font-size:20px;line-height:34px;padding:0 14px}
 .exe:after{content:"_ □ ×";position:absolute;right:14px;top:0;line-height:34px;color:#8B90C2;font-family:var(--fp);font-size:20px;letter-spacing:4px}
+/* destaque controlado pelo painel */
+.destaque-site{margin-top:28px}
+.ds-in{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#12113A;border:1.5px solid var(--violeta);border-radius:20px;padding:22px 24px}
+.ds-in h3{font-family:var(--fd);font-weight:900;text-transform:uppercase;font-size:clamp(18px,2.2vw,24px);letter-spacing:-.02em}
+.ds-in p{color:var(--tinta2);margin-top:4px;max-width:680px}
+.aval-item .resp{margin-top:12px;padding:10px 14px;border-left:2px solid var(--violeta);background:#07081A;border-radius:0 12px 12px 0;color:var(--tinta2);font-size:15px}
+.aval-item .resp b{color:#A99CFF;display:block;font-size:13px}
+.aval-item .fix{font-family:var(--fp);font-size:17px;color:var(--lima);margin-left:8px}
 /* fatos */
 .fatos{background:var(--branco);border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
 .fatos .w{display:flex;flex-wrap:wrap;gap:12px 40px;padding-top:22px;padding-bottom:22px;font-size:15.5px;color:var(--tinta2)}
@@ -551,6 +559,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 </section>
 </div>
 <div class="faixa" aria-hidden="true"><div><span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ RAIO-X 0 A 100</span> <span>★ BOTÕES NA TELA</span> <span>★ MODO FRIO</span> <span>★ PRO POR PIX</span> <span>★ MODO JOGO</span> <span>★ SEM ROOT</span> <span>★ RAIO-X 0 A 100</span> <span>★ BOTÕES NA TELA</span> <span>★ MODO FRIO</span> <span>★ PRO POR PIX</span></div></div>
+<div class="destaque-site w" id="destaqueSite" hidden><div class="ds-in"><div><h3 id="dsTit"></h3><p id="dsTxt"></p></div><a class="b b-menta" id="dsBt" href="#" hidden></a></div></div>
 <div class="fatos">
  <div class="w">
   <span><svg aria-hidden="true"><use href="#certo"/></svg>Funciona sem root</span>
@@ -875,6 +884,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     var notas=String(v.notas||'').split('\n').map(function(l){return l.replace(/^[-•]\s*/,'').trim()}).filter(function(l){return l&&!/^Tudo d/i.test(l)});
     var curta=function(l){return l.split(/[:(]/)[0].trim()};
     var aL=document.getElementById('avL'), aC=document.getElementById('avC');
+    if(window.__avisoProprio) return;
     if(aL&&notas.length) aL.textContent='Novo na '+v.versionName+': '+notas.slice(0,2).map(curta).join(' · ')+' · Teste grátis por 1 hora.';
     if(aC) aC.textContent='Novo na '+v.versionName+' · Pro grátis por 1 hora.';
     var sec=document.getElementById('novidades'), ul=document.getElementById('novLista');
@@ -909,6 +919,31 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   },{rootMargin:'-45% 0px -45% 0px'});
   passos.forEach(function(p){io.observe(p)});
 })();
+  // o dono muda partes do site pelo painel
+  (function(){
+    var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
+    var link=function(u){u=String(u||'');return /^https:\/\/|^\/|^#/.test(u)?u:''};
+    fetch(API+'/site',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
+      if(!c) return;
+      var av=c.aviso||{};
+      if(av.ligado&&av.texto){
+        window.__avisoProprio=true;
+        var box=document.querySelector('.aviso');
+        if(box){box.innerHTML='';var t=document.createElement('span');t.textContent=av.texto;box.appendChild(t);
+          if(av.botao&&link(av.link)){box.appendChild(document.createTextNode(' '));var a=document.createElement('a');a.href=link(av.link);a.textContent=av.botao;box.appendChild(a)}}
+      }
+      var fx=(c.faixa||[]).filter(Boolean);
+      var faixa=document.querySelector('.faixa>div');
+      if(faixa&&fx.length){var h='';for(var k=0;k<2;k++)fx.forEach(function(x){var sp=document.createElement('span');sp.textContent='★ '+x.toUpperCase();h+=sp.outerHTML+' '});faixa.innerHTML=h}
+      if(c.avaliacoes===false){var sa=document.getElementById('avaliacoes');if(sa)sa.hidden=true;document.querySelectorAll('a[href="#avaliacoes"]').forEach(function(a){a.hidden=true})}
+      var d=c.destaque||{};
+      if(d.ligado&&(d.titulo||d.texto)){
+        document.getElementById('dsTit').textContent=d.titulo||'';document.getElementById('dsTxt').textContent=d.texto||'';
+        var b=document.getElementById('dsBt');if(d.botao&&link(d.link)){b.textContent=d.botao;b.href=link(d.link);b.hidden=false}
+        document.getElementById('destaqueSite').hidden=false;
+      }
+    }).catch(function(){});
+  })();
   // avaliacoes
   (function(){
     var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
@@ -918,7 +953,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     function carregar(){
       fetch(API+'/avaliacoes',{cache:'no-store'}).then(function(r){return r.json()}).then(function(a){
         if(a.total){document.getElementById('avMedia').textContent=String(a.media).replace('.',',');document.getElementById('avEst').textContent=est(a.media);document.getElementById('avQtd').textContent=a.total+(a.total===1?' avaliação':' avaliações')}
-        document.getElementById('avLista').innerHTML=(a.lista||[]).map(function(x){return '<div class="aval-item"><div class="estrelas" aria-label="'+x.estrelas+' de 5 estrelas">'+est(x.estrelas)+'</div><p>'+esc(x.texto)+'</p><div class="quem">'+esc(x.nome||'Anônimo')+' · '+quando(x.em)+'</div></div>'}).join('')||'<div class="aval-item"><p>Ainda não há avaliações. Que tal ser o primeiro?</p></div>';
+        document.getElementById('avLista').innerHTML=(a.lista||[]).map(function(x){return '<div class="aval-item"><div class="estrelas" aria-label="'+x.estrelas+' de 5 estrelas">'+est(x.estrelas)+'</div><p>'+esc(x.texto)+'</p><div class="quem">'+esc(x.nome||'Anônimo')+' · '+quando(x.em)+(x.fixada?'<span class="fix">★ destaque</span>':'')+'</div>'+(x.resposta?'<div class="resp"><b>Resposta do SerpyraToolkit</b>'+esc(x.resposta)+'</div>':'')+'</div>'}).join('')||'<div class="aval-item"><p>Ainda não há avaliações. Que tal ser o primeiro?</p></div>';
       }).catch(function(){});
     }
     carregar();
