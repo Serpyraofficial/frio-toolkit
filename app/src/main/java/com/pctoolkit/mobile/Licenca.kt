@@ -728,7 +728,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     dicaPres.visibility = ep.visibility
     cbPres.setOnCheckedChangeListener { _, marcado -> val v = if (marcado) android.view.View.VISIBLE else android.view.View.GONE; ep.visibility = v; dicaPres.visibility = v }
     c.addView(cbPres)
-    c.addView(chipPres, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(this@telaPro, 12) })
+    c.addView(chipPres, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(chipPres.context, 12) })
     c.addView(ep)
     c.addView(dicaPres)
 
