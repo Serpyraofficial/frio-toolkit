@@ -1,8 +1,8 @@
 {
- "versionCode": 85,
- "versionName": "5.22",
- "notas": "- Visual novo: mais limpo e organizado, com abas embaixo (Início, Jogos, Ferramentas e Pro)\n- Botões prontos de outros jogadores: baixe com um toque no editor de botões (Mais > Botões prontos) e publique os seus\n- Lembrete de renovação com 10% de desconto já aplicado\n- Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)\n- Versões de teste: quem quiser recebe as novidades antes (Manutenção > Versões de teste)\n- Erros corrigidos mais rápido: quando algo falha, o app avisa a gente na hora, com um print só da tela do app (dá para desligar em Manutenção > Print da tela nos erros)",
- "sha256": "d07b88f4de3ed21aceed32892bc5a53375f1a6f16bb334e98b4a9c33850de68d",
+ "versionCode": 86,
+ "versionName": "5.23",
+ "notas": "- Barra de abas embaixo arrumada: ícones e nomes alinhados e o conteúdo não aparece mais por trás dela\n- Tela do Pro mais limpa: o campo de presente só aparece quando você toca em 🎁 É presente?",
+ "sha256": "c46d4b0122655f917381261d548de3be9435331071976967702d48c9520a3ad7",
  "tamanho": 4892985,
- "arquivo": "SerpyraToolkit-5.22-d07b88f4de.apk"
+ "arquivo": "SerpyraToolkit-5.23-c46d4b0122.apk"
 }
