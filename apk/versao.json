@@ -1,8 +1,8 @@
 {
- "versionCode": 80,
- "versionName": "5.18",
- "notas": "- Preparar e jogar: memória, limpeza e Modo Jogo com um toque (também no widget da tela inicial)\n- Botão do Modo Jogo nas Configurações rápidas e widget com Modo Jogo, Preparar e Raio-X\n- Calculadora de sensibilidade para o Free Fire, feita para a sua tela\n- Compare a sua nota com celulares iguais ao seu e compartilhe o resultado\n- Relatar um problema direto pelo app\n- Novos planos do Pro: a partir de R$ 4,90, plano anual e plano Família (3 celulares)\n- Resumo da sua semana de jogos",
- "sha256": "5ee8ac9246cac18ee3477930ad302e795493d9ce4ecb9a6be00c6a36cb50e7fb",
- "tamanho": 1350621,
- "arquivo": "SerpyraToolkit-5.18-5ee8ac9246.apk"
+ "versionCode": 81,
+ "versionName": "5.19",
+ "notas": "- Modo completo sem instalar nada: um toque e o app liga tudo sozinho, sem o Shizuku (Android 11 ou mais novo)\n- Os botões no jogo, o Tuner e o Modo Frio funcionam com o modo completo\n- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi\n- Quem já usa o Shizuku continua funcionando normalmente",
+ "sha256": "3956683b36fd8782d8852820ce7a3d4f023ad60d74d99627a9280159160d5d11",
+ "tamanho": 4718007,
+ "arquivo": "SerpyraToolkit-5.19-3956683b36.apk"
 }
