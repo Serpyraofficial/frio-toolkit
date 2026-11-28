@@ -552,10 +552,10 @@ async function resumoQuinzenal(env) {
     await mandarRelatorio(env, r);
   } catch (e) { }
 }
-async function mensagens(env) {
+async function mensagens(env, pl = "android") {
   const l = await cacheJson("mensagens", 300, async () => (await lerJson(env, "mensagens")) || []);
   const agora = Date.now();
-  return json({ mensagens: l.filter(m => (!m.inicio || agora >= m.inicio) && (!m.ate || agora <= m.ate)).map(m => ({ id: m.id, titulo: m.titulo, texto: m.texto, publico: m.publico, cupom: m.cupom || "" })) });
+  return json({ mensagens: l.filter(m => (!m.inicio || agora >= m.inicio) && (!m.ate || agora <= m.ate) && ((m.plataforma || "android") === pl || m.plataforma === "todos")).map(m => ({ id: m.id, titulo: m.titulo, texto: m.texto, publico: m.publico, cupom: m.cupom || "" })) });
 }
 async function relato(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
@@ -716,7 +716,7 @@ async function evento(req, env) {
   if (!codigoValido(codigo)) return json({ ok: true });
   if (b.tipo === "abriu" || b.tipo === "mc") {
     try {
-      if (b.tipo === "abriu") { if (await limitar("abriu:" + codigo + ":" + diaAtual(), 1)) await contar(env, "abriu", b.pro ? "pro" : "gratis"); }
+      if (b.tipo === "abriu") { if (await limitar("abriu:" + codigo + ":" + diaAtual(), 1)) await contar(env, b.plataforma === "pc" ? "abriu_pc" : "abriu", b.pro ? "pro" : "gratis"); }
       else if (await limitar("mc:" + codigo, 6)) await contar(env, b.ok ? "mc_ok" : "mc_falha", String(b.marca || "?").toLowerCase().slice(0, 30) + (b.ok ? "" : "|" + String(b.etapa || "?").slice(0, 40)));
     } catch (e) { }
     return json({ ok: true });
@@ -734,13 +734,16 @@ async function evento(req, env) {
   return json({ ok: true });
 }
 
-async function promoAtual(env) {
+/* Android e PC têm avisos, promoções e notificações separados. Os apps antigos não mandam a plataforma: contam como Android. */
+function plat(url) { return url.searchParams.get("plataforma") === "pc" ? "pc" : "android"; }
+function chavePlat(base, pl) { return pl === "pc" ? base + ":pc" : base; }
+async function promoAtual(env, pl = "android") {
   const cache = caches.default;
-  const req = new Request("https://promo.local/atual");
+  const req = new Request("https://promo.local/atual" + (pl === "pc" ? "-pc" : ""));
   const r = await cache.match(req);
   let corpo = r ? await r.text() : null;
   if (corpo === null) {
-    const p = (await lerJson(env, "promo")) || {};
+    const p = (await lerJson(env, chavePlat("promo", pl))) || {};
     corpo = JSON.stringify(p);
     await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=120" } }));
   }
@@ -767,12 +770,12 @@ async function registrar(req, env) {
   return json({ ok: true });
 }
 
-async function avisoAtual(env) {
+async function avisoAtual(env, pl = "android") {
   const cache = caches.default;
-  const req = new Request("https://aviso.local/atual");
+  const req = new Request("https://aviso.local/atual" + (pl === "pc" ? "-pc" : ""));
   const r = await cache.match(req);
   if (r) return new Response(r.body, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
-  const a = (await lerJson(env, "aviso")) || {};
+  const a = (await lerJson(env, chavePlat("aviso", pl))) || {};
   const corpo = JSON.stringify(a);
   await cache.put(req, new Response(corpo, { headers: { "cache-control": "max-age=300" } }));
   return new Response(corpo, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
@@ -1121,16 +1124,19 @@ async function admin(req, url, env) {
   if (rota === "promo" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
     const texto = String(b.texto || "").trim().slice(0, 200);
-    if (!texto) await env.PCT.delete("promo");
-    else {
-      const horas = Math.min(24 * 60, Math.max(0, parseInt(b.horas, 10) || 0));
-      const ini = Math.max(Date.now(), parseInt(b.inicio, 10) || 0);
-    await env.PCT.put("promo", JSON.stringify({ id: Date.now(), texto, cupom: limpaCupom(b.cupom), cor: /^(verde|amarelo|vermelho|azul)$/.test(b.cor) ? b.cor : "verde", inicio: ini > Date.now() + 60000 ? ini : 0, ate: horas ? ini + horas * 3600000 : 0 }));
+    const alvos = b.plataforma === "pc" ? ["pc"] : b.plataforma === "todos" ? ["android", "pc"] : ["android"];
+    for (const pl of alvos) {
+      if (!texto) await env.PCT.delete(chavePlat("promo", pl));
+      else {
+        const horas = Math.min(24 * 60, Math.max(0, parseInt(b.horas, 10) || 0));
+        const ini = Math.max(Date.now(), parseInt(b.inicio, 10) || 0);
+        await env.PCT.put(chavePlat("promo", pl), JSON.stringify({ id: Date.now(), texto, cupom: limpaCupom(b.cupom), cor: /^(verde|amarelo|vermelho|azul)$/.test(b.cor) ? b.cor : "verde", inicio: ini > Date.now() + 60000 ? ini : 0, ate: horas ? ini + horas * 3600000 : 0 }));
+      }
+      try { await caches.default.delete(new Request("https://promo.local/atual" + (pl === "pc" ? "-pc" : ""))); } catch (e) { }
     }
-    try { await caches.default.delete(new Request("https://promo.local/atual")); } catch (e) { }
     return json({ ok: true });
   }
-  if (rota === "promo" && req.method === "GET") return json((await lerJson(env, "promo")) || {});
+  if (rota === "promo" && req.method === "GET") return json({ ...((await lerJson(env, "promo")) || {}), android: (await lerJson(env, "promo")) || {}, pc: (await lerJson(env, "promo:pc")) || {} });
   if (rota === "mensagem" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
     const titulo = String(b.titulo || "").trim().slice(0, 60), texto = String(b.texto || "").trim().slice(0, 240);
@@ -1138,7 +1144,7 @@ async function admin(req, url, env) {
     const publico = ["todos", "gratis", "pro", "vencidos"].includes(b.publico) ? b.publico : "todos";
     const ini = Math.max(Date.now(), parseInt(b.inicio, 10) || 0), horas = Math.min(24 * 30, Math.max(1, parseInt(b.horas, 10) || 48));
     const l = (await lerJson(env, "mensagens")) || [];
-    l.unshift({ id: Date.now(), titulo, texto, publico, cupom: limpaCupom(b.cupom), inicio: ini > Date.now() + 60000 ? ini : 0, ate: ini + horas * 3600000, criado: Date.now() });
+    l.unshift({ id: Date.now(), titulo, texto, publico, plataforma: ["android", "pc", "todos"].includes(b.plataforma) ? b.plataforma : "android", cupom: limpaCupom(b.cupom), inicio: ini > Date.now() + 60000 ? ini : 0, ate: ini + horas * 3600000, criado: Date.now() });
     await env.PCT.put("mensagens", JSON.stringify(l.filter(m => !m.ate || m.ate > Date.now() - 7 * DIA).slice(0, 30)));
     try { await caches.default.delete(new Request("https://cache.local/mensagens")); } catch (e) { }
     return json({ ok: true });
@@ -1167,7 +1173,8 @@ async function admin(req, url, env) {
     const soma = async (tipo, dias) => ((await d.prepare("SELECT chave, SUM(n) AS n FROM contagem WHERE tipo = ? AND dia >= ? GROUP BY chave ORDER BY n DESC LIMIT 40").bind(tipo, desde(dias)).all()).results || []);
     const ab = async dias => (await soma("abriu", dias)).reduce((t, x) => t + x.n, 0);
     const porDia = ((await d.prepare("SELECT dia, SUM(n) AS n FROM contagem WHERE tipo = 'abriu' AND dia >= ? GROUP BY dia ORDER BY dia").bind(desde(29)).all()).results || []);
-    return json({ hoje: await ab(0), semana: await ab(6), mes: await ab(29), proHoje: ((await soma("abriu", 0)).find(x => x.chave === "pro") || { n: 0 }).n, porDia, mcOk: await soma("mc_ok", 29), mcFalha: await soma("mc_falha", 29) });
+    const abPc = async dias => (await soma("abriu_pc", dias)).reduce((t, x) => t + x.n, 0);
+    return json({ pc: { hoje: await abPc(0), semana: await abPc(6), mes: await abPc(29) }, hoje: await ab(0), semana: await ab(6), mes: await ab(29), proHoje: ((await soma("abriu", 0)).find(x => x.chave === "pro") || { n: 0 }).n, porDia, mcOk: await soma("mc_ok", 29), mcFalha: await soma("mc_falha", 29) });
   }
   if (rota === "botoes" && req.method === "GET") {
     const d = await db(env); if (!d) return json({ botoes: [] });
@@ -1226,11 +1233,15 @@ async function admin(req, url, env) {
   if (rota === "aviso" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
     const texto = String(b.texto || "").trim().slice(0, 240);
-    if (!texto) { await env.PCT.delete("aviso"); }
-    else await env.PCT.put("aviso", JSON.stringify({ id: Date.now(), texto, link: String(b.link || "").slice(0, 200) }));
-    try { await caches.default.delete(new Request("https://aviso.local/atual")); } catch (e) { }
+    const alvos = b.plataforma === "pc" ? ["pc"] : b.plataforma === "todos" ? ["android", "pc"] : ["android"];
+    for (const pl of alvos) {
+      if (!texto) { await env.PCT.delete(chavePlat("aviso", pl)); }
+      else await env.PCT.put(chavePlat("aviso", pl), JSON.stringify({ id: Date.now(), texto, link: String(b.link || "").slice(0, 200) }));
+      try { await caches.default.delete(new Request("https://aviso.local/atual" + (pl === "pc" ? "-pc" : ""))); } catch (e) { }
+    }
     return json({ ok: true });
   }
+  if (rota === "aviso" && req.method === "GET") return json({ android: (await lerJson(env, "aviso")) || {}, pc: (await lerJson(env, "aviso:pc")) || {} });
   if (rota === "print" && req.method === "GET") return await verPrint(url, env);
   if (rota === "config" && req.method === "GET") { const c = (await lerJson(env, "config")) || {}; return json({ ...c, donoChave: undefined, donoChaveDefinida: !!c.donoChave }); }
   if (rota === "config" && req.method === "POST") {
@@ -1394,14 +1405,14 @@ export default {
       if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
       if (m === "POST" && p === "/chave/usar") return await usarChave(req, env);
       if (m === "POST" && p === "/registrar") return await registrar(req, env);
-      if (m === "GET" && p === "/aviso") return await avisoAtual(env);
-      if (m === "GET" && p === "/promo") return await promoAtual(env);
+      if (m === "GET" && p === "/aviso") return await avisoAtual(env, plat(url));
+      if (m === "GET" && p === "/promo") return await promoAtual(env, plat(url));
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
       if (m === "GET" && p === "/print") return await verPrint(url, env);
       if (m === "POST" && p === "/dono/entrar") return await donoEntrar(req, env);
       if (m === "GET" && (p === "/dono/novas" || p === "/dono/saude")) return await donoRota(req, url, env);
       if (m === "GET" && p === "/site") return await siteConfig(env);
-    if (m === "GET" && p === "/mensagens") return await mensagens(env);
+    if (m === "GET" && p === "/mensagens") return await mensagens(env, plat(url));
     if (m === "POST" && p === "/avaliacao") return await avaliar(req, env);
     if (m === "GET" && p === "/botoes") return await botoesLista(url, env);
     if (m === "GET" && p === "/botoes/um") return await botoesUm(url, env);
