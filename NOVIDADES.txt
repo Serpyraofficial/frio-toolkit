@@ -1,4 +1,3 @@
-- Modo completo sem instalar nada: um toque e o app liga tudo sozinho, sem o Shizuku (Android 11 ou mais novo)
-- Os botões no jogo, o Tuner e o Modo Frio funcionam com o modo completo
+- Correção: o app volta a instalar normalmente em todos os celulares
+- Modo completo sem instalar nada: ative em 3 passos rápidos, digitando o código direto na notificação (Android 11 ou mais novo)
 - Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi
-- Quem já usa o Shizuku continua funcionando normalmente

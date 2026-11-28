@@ -142,12 +142,7 @@ object ModoCompleto {
             con.abrirEEsperar(Intent(Settings.ACTION_WIFI_SETTINGS))
             if (Rede.tipo(ctx) != "Wi-Fi") { con.erro("Ainda sem Wi-Fi. Tente de novo quando estiver conectado."); return false }
         }
-        con.linha("O app vai ligar sozinho a Depuração sem fio e se conectar a ela. Você só precisa dar uma permissão.", T.texto2)
-        if (!AutoService.ativo(ctx)) ligarAcessibilidade(con)
-        val ok = if (AutoService.ativo(ctx)) automatico(con) else false
-        if (ok) return true
-        con.linha("")
-        con.subtitulo("Vamos pelo passo a passo")
+        con.linha("São 3 passos rápidos, só na primeira vez. Depois o app se reconecta sozinho.", T.texto2)
         return guiado(con)
     }
 
