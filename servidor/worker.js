@@ -328,6 +328,55 @@ async function resgatarPresente(req, env) {
 }
 
 /* ---------------- mensagens, relatos, pirataria e notas ---------------- */
+/* ---------------- banco D1 (100 mil gravações por dia no plano grátis) ---------------- */
+let dbPronto = false;
+async function db(env) {
+  if (!env.DB) return null;
+  if (!dbPronto) {
+    await env.DB.batch([
+      env.DB.prepare("CREATE TABLE IF NOT EXISTS contagem (dia TEXT, tipo TEXT, chave TEXT, n INTEGER, PRIMARY KEY (dia, tipo, chave))"),
+      env.DB.prepare("CREATE TABLE IF NOT EXISTS botoes (id TEXT PRIMARY KEY, pkg TEXT, jogo TEXT, nome TEXT, autor TEXT, codigo TEXT, n INTEGER, baixados INTEGER DEFAULT 0, em INTEGER, oculto INTEGER DEFAULT 0, celular TEXT)"),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS botoes_pkg ON botoes (pkg, oculto, baixados)")
+    ]);
+    dbPronto = true;
+  }
+  return env.DB;
+}
+async function contar(env, tipo, chave) {
+  const d = await db(env); if (!d) return;
+  await d.prepare("INSERT INTO contagem (dia, tipo, chave, n) VALUES (?, ?, ?, 1) ON CONFLICT (dia, tipo, chave) DO UPDATE SET n = n + 1").bind(diaAtual(), tipo, String(chave).slice(0, 80)).run();
+}
+async function botoesLista(url, env) {
+  const d = await db(env); if (!d) return json({ botoes: [] });
+  const pkg = String(url.searchParams.get("jogo") || "").slice(0, 120);
+  if (!pkg) return json({ botoes: [] });
+  const r = await cacheJson("botoes:" + pkg, 600, async () => (await d.prepare("SELECT id, nome, autor, n, baixados, em FROM botoes WHERE pkg = ? AND oculto = 0 ORDER BY baixados DESC, em DESC LIMIT 30").bind(pkg).all()).results || []);
+  return json({ botoes: r });
+}
+async function botoesUm(url, env) {
+  const d = await db(env); if (!d) return json({ erro: "Indisponível agora." }, 503);
+  const id = String(url.searchParams.get("id") || "").slice(0, 20);
+  const b = await d.prepare("SELECT codigo, nome FROM botoes WHERE id = ? AND oculto = 0").bind(id).first();
+  if (!b) return json({ erro: "Não encontrado." }, 404);
+  await d.prepare("UPDATE botoes SET baixados = baixados + 1 WHERE id = ?").bind(id).run();
+  return json({ codigo: b.codigo, nome: b.nome });
+}
+async function botoesPublicar(req, env) {
+  const d = await db(env); if (!d) return json({ erro: "Indisponível agora. Tente mais tarde." }, 503);
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const celular = limpaCodigo(b.celular), pkg = String(b.pkg || "").slice(0, 120), codigo = String(b.botoes || "");
+  if (!codigoValido(celular) || !pkg) return json({ erro: "Pedido inválido." }, 400);
+  if (!codigo.startsWith("SERPYRA-BOTOES:") || codigo.length > 20000) return json({ erro: "Botões inválidos." }, 400);
+  const nome = String(b.nome || "").replace(/\s+/g, " ").trim().slice(0, 40), autor = String(b.autor || "").replace(/\s+/g, " ").trim().slice(0, 30);
+  if (nome.length < 2) return json({ erro: "Dê um nome para os seus botões." }, 400);
+  if (/https?:\/\/|www\./i.test(nome + autor)) return json({ erro: "Não use links." }, 400);
+  if (!(await limitar("botpub:" + celular, 3)) || !(await limitar("botpub-total", 60))) return json({ erro: "Muitas publicações agora. Tente mais tarde." }, 429);
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  await d.prepare("INSERT INTO botoes (id, pkg, jogo, nome, autor, codigo, n, em, celular) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(id, pkg, String(b.jogo || "").slice(0, 60), nome, autor, codigo, parseInt(b.n, 10) || 0, Date.now(), celular).run();
+  try { await caches.default.delete(new Request("https://cache.local/" + encodeURIComponent("botoes:" + pkg))); } catch (e) { }
+  return json({ ok: true, id });
+}
+
 async function avaliar(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
   if (b.site) return json({ ok: true });
@@ -454,8 +503,17 @@ async function registrarErro(req, env) {
 
 async function evento(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ ok: true }); }
-  const codigo = limpaCodigo(b.codigo), tipo = b.tipo === "pro" ? "pro" : "";
-  if (!codigoValido(codigo) || !tipo) return json({ ok: true });
+  const codigo = limpaCodigo(b.codigo);
+  if (!codigoValido(codigo)) return json({ ok: true });
+  if (b.tipo === "abriu" || b.tipo === "mc") {
+    try {
+      if (b.tipo === "abriu") { if (await limitar("abriu:" + codigo + ":" + diaAtual(), 1)) await contar(env, "abriu", b.pro ? "pro" : "gratis"); }
+      else if (await limitar("mc:" + codigo, 6)) await contar(env, b.ok ? "mc_ok" : "mc_falha", String(b.marca || "?").toLowerCase().slice(0, 30) + (b.ok ? "" : "|" + String(b.etapa || "?").slice(0, 40)));
+    } catch (e) { }
+    return json({ ok: true });
+  }
+  const tipo = b.tipo === "pro" ? "pro" : "";
+  if (!tipo) return json({ ok: true });
   // uma vez por celular por dia, e no maximo 400 gravacoes por dia no total
   if (!(await limitar("ev:" + tipo + ":" + codigo + ":" + diaAtual(), 1))) return json({ ok: true });
   const n = await contarCache("evc:" + tipo + ":" + diaAtual());
@@ -848,6 +906,26 @@ async function admin(req, url, env) {
     await env.PCT.put("relatos", JSON.stringify(l));
     return json({ ok: true });
   }
+  if (rota === "uso" && req.method === "GET") {
+    const d = await db(env);
+    if (!d) return json({ semBanco: true });
+    const desde = n => new Date(Date.now() - 3 * 3600000 - n * DIA).toISOString().slice(0, 10);
+    const soma = async (tipo, dias) => ((await d.prepare("SELECT chave, SUM(n) AS n FROM contagem WHERE tipo = ? AND dia >= ? GROUP BY chave ORDER BY n DESC LIMIT 40").bind(tipo, desde(dias)).all()).results || []);
+    const ab = async dias => (await soma("abriu", dias)).reduce((t, x) => t + x.n, 0);
+    const porDia = ((await d.prepare("SELECT dia, SUM(n) AS n FROM contagem WHERE tipo = 'abriu' AND dia >= ? GROUP BY dia ORDER BY dia").bind(desde(29)).all()).results || []);
+    return json({ hoje: await ab(0), semana: await ab(6), mes: await ab(29), proHoje: ((await soma("abriu", 0)).find(x => x.chave === "pro") || { n: 0 }).n, porDia, mcOk: await soma("mc_ok", 29), mcFalha: await soma("mc_falha", 29) });
+  }
+  if (rota === "botoes" && req.method === "GET") {
+    const d = await db(env); if (!d) return json({ botoes: [] });
+    return json({ botoes: (await d.prepare("SELECT id, pkg, jogo, nome, autor, n, baixados, em, oculto FROM botoes ORDER BY em DESC LIMIT 200").all()).results || [] });
+  }
+  if (rota === "botoes" && req.method === "POST") {
+    const d = await db(env); if (!d) return json({ erro: "Sem banco." }, 503);
+    const b = await req.json().catch(() => ({}));
+    if (b.acao === "apagar") await d.prepare("DELETE FROM botoes WHERE id = ?").bind(String(b.id)).run();
+    else await d.prepare("UPDATE botoes SET oculto = ? WHERE id = ?").bind(b.acao === "ocultar" ? 1 : 0, String(b.id)).run();
+    return json({ ok: true });
+  }
   if (rota === "avaliacoes" && req.method === "GET") return json({ avaliacoes: (await lerJson(env, "avaliacoes")) || [] });
   if (rota === "avaliacoes" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
@@ -999,6 +1077,9 @@ export default {
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
     if (m === "GET" && p === "/mensagens") return await mensagens(env);
     if (m === "POST" && p === "/avaliacao") return await avaliar(req, env);
+    if (m === "GET" && p === "/botoes") return await botoesLista(url, env);
+    if (m === "GET" && p === "/botoes/um") return await botoesUm(url, env);
+    if (m === "POST" && p === "/botoes") return await botoesPublicar(req, env);
     if (m === "GET" && p === "/avaliacoes") return await avaliacoes(env);
     if (m === "POST" && p === "/relato") return await relato(req, env);
     if (m === "POST" && p === "/pirata") return await pirata(req, env);
