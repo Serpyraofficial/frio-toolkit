@@ -1,0 +1,14 @@
+# Publicado sozinho pelo GitHub (.github/workflows/servidor.yml).
+# As senhas (ADMIN_TOKEN, BREVO_KEY, LICENCA_PRIV, PURIN_KEY) ficam só no Cloudflare: o deploy não mexe nelas.
+name = "serpyratoolkit"
+main = "worker.js"
+compatibility_date = "2026-11-22"
+workers_dev = true
+keep_vars = true
+
+[[kv_namespaces]]
+binding = "PCT"
+id = "72a94a3ba43c41e19a9f65380d190ddf"
+
+[triggers]
+crons = ["13 6 * * *"]
