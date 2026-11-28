@@ -1,4 +1,8 @@
-# Onde parou (5.18), 23/11/2026
+# Onde parou, 28/11/2026
+
+**5.18 PUBLICADA em 28/11** (servidor, site, painel e app versionCode 80). Próximo: "Ativar modo completo" sem o Shizuku (seção no fim), depois o espanhol.
+
+## Histórico da 5.18 (já feito)
 
 Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versão 2faa020f, o app é a 5.17.
 
