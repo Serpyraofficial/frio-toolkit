@@ -335,6 +335,7 @@ class MainActivity : Activity() {
         super.onResume()
         Atualizador.visivel = true
         Atualizador.tela = java.lang.ref.WeakReference(this)
+        Relatorio.tela = java.lang.ref.WeakReference(this)
         if (Modo.definido()) Atualizador.aoAbrir(this)
         voltaLatch?.countDown()
         if (!naTarefa && pilha.isNotEmpty()) mostrar()
@@ -404,6 +405,7 @@ class MainActivity : Activity() {
     var abaAtual = "inicio"
     fun irAba(a: String) {
         abaAtual = a
+        Relatorio.passo(when (a) { "jogos" -> "Jogos"; "ferramentas" -> "Ferramentas"; "pro" -> "Pro"; else -> "Início" })
         pilha.clear()
         pilha.add(when (a) { "jogos" -> { { telaJogos() } }; "ferramentas" -> { { telaFerramentas() } }; "pro" -> { { telaPro() } }; else -> { { telaInicio() } } })
         mostrar()
@@ -478,6 +480,7 @@ class MainActivity : Activity() {
     }
 
     fun barraTopo(titulo: String, sub: String, podeVoltar: Boolean = true): View {
+        Relatorio.passo(titulo)
         val l = Ui.horizontal(this)
         l.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 14))
         if (podeVoltar) {
@@ -535,6 +538,7 @@ class MainActivity : Activity() {
     }
 
     private fun telaInicio() {
+        Relatorio.passo("Início")
         val col = coluna()
         // cabecalho: estrela, nome cromado e selo do Pro / acesso
         val cab = Ui.horizontal(this)
@@ -885,6 +889,7 @@ class MainActivity : Activity() {
         col.addView(Ui.espaco(this, 1, 12))
         val con = Console(this, tv, sv)
         con.tarefa = titulo
+        Relatorio.passo("▶ $titulo")
         val barra = FrameLayout(this)
         val parar = Ui.botao(this, "Parar", T.vermelho, false) {
             con.cancelado = true

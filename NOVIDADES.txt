@@ -3,3 +3,4 @@
 - Lembrete de renovação com 10% de desconto já aplicado
 - Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)
 - Versões de teste: quem quiser recebe as novidades antes (Manutenção > Versões de teste)
+- Erros corrigidos mais rápido: quando algo falha, o app avisa a gente na hora, com um print só da tela do app (dá para desligar em Manutenção > Print da tela nos erros)

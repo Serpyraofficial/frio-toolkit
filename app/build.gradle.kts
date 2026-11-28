@@ -11,7 +11,7 @@ android {
         applicationId = "com.serpyra.toolkit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 84
+        versionCode = 85
         versionName = "5.22"
     }
 
