@@ -1,2 +1,1 @@
-- Barra de abas embaixo arrumada: ícones e nomes alinhados e o conteúdo não aparece mais por trás dela
-- Tela do Pro mais limpa: o campo de presente só aparece quando você toca em 🎁 É presente?
+- Correções e melhorias
