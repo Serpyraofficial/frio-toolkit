@@ -1,8 +1,8 @@
 {
- "versionCode": 81,
- "versionName": "5.19",
- "notas": "- Modo completo sem instalar nada: um toque e o app liga tudo sozinho, sem o Shizuku (Android 11 ou mais novo)\n- Os botões no jogo, o Tuner e o Modo Frio funcionam com o modo completo\n- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi\n- Quem já usa o Shizuku continua funcionando normalmente",
- "sha256": "3956683b36fd8782d8852820ce7a3d4f023ad60d74d99627a9280159160d5d11",
- "tamanho": 4718007,
- "arquivo": "SerpyraToolkit-5.19-3956683b36.apk"
+ "versionCode": 82,
+ "versionName": "5.20",
+ "notas": "- Correção: o app volta a instalar normalmente em todos os celulares\n- Modo completo sem instalar nada: ative em 3 passos rápidos, digitando o código direto na notificação (Android 11 ou mais novo)\n- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi",
+ "sha256": "caae6762cb04c38d69a8a173caf67d73a73d7fe51615bb57a141cfed620eafc0",
+ "tamanho": 4717883,
+ "arquivo": "SerpyraToolkit-5.20-caae6762cb.apk"
 }
