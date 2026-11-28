@@ -282,6 +282,11 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 .hero-provas svg{width:20px;height:20px;color:#C8FF6B}
 .palco{position:relative;min-height:620px;display:flex;align-items:flex-end;justify-content:center}
 .placa{position:absolute;left:12%;right:-200px;bottom:0;height:58%;background:radial-gradient(ellipse at 60% 40%,rgba(140,123,255,.55),rgba(7,8,26,0) 70%);border-radius:26px 0 0 0}
+.app-mini{flex:none;transform:scale(var(--k,.7436));transform-origin:0 0;line-height:1.3;text-align:left}
+.app-mini *{box-sizing:border-box}
+.cromo-txt{background:linear-gradient(180deg,#FFFFFF 0%,#C9D4FF 38%,#6E7BB8 52%,#E9EEFF 70%,#9AA8E0 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cel-hero .cel-tela{background:#07081A}
+@media(max-width:900px){.cel-hero .app-mini{--k:.6154}}
 .cel-hero{width:310px;margin-bottom:46px;transform:rotate(-3deg);box-shadow:0 50px 90px -30px rgba(0,0,0,.85),0 0 0 1px #3A3480}
 @media(max-width:900px){.palco{min-height:0;padding-top:24px}.placa{left:8%}.cel-hero{width:260px}.hero-txt{padding-bottom:0}}
 
@@ -354,6 +359,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   .hero-provas{gap:8px 16px;font-size:14px}
   .palco{padding-top:34px}
   .cel-hero{width:300px;zoom:.86;margin-bottom:40px}
+  .cel-hero .app-mini{--k:.718}
   .placa{left:4%;height:52%}
   .fatos .w{flex-direction:column;gap:10px;font-size:15px;padding-top:18px;padding-bottom:18px}
   .sec{padding:72px 0}
@@ -440,24 +446,84 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   <div class="palco" aria-hidden="true">
    <div class="placa"></div>
    <div class="cel cel-hero"><div class="cel-tela">
-    <div class="tela tela-fixa" style="padding-top:40px">
-     <div style="display:flex;justify-content:space-between;align-items:center"><h4>SerpyraToolkit</h4><span style="font-size:10px;font-weight:600;color:#C8FF6B;background:rgba(61,220,151,.14);padding:3px 9px;border-radius:99px">Pro ativo</span></div>
-     <div class="bloco medidor" style="background:linear-gradient(150deg,#0F2A22,#101C30)">
-      <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#1C1A52" stroke-width="3.6"/><circle cx="18" cy="18" r="15" fill="none" stroke="#C8FF6B" stroke-width="3.6" stroke-linecap="round" pathLength="100" stroke-dasharray="87 100" transform="rotate(-90 18 18)"/><text x="18" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="system-ui">87</text></svg>
-      <div><b style="font-size:13px">Raio-X de desempenho</b><div class="sub" style="margin:2px 0 0">Pronto para jogar. 2 ajustes aplicados agora.</div></div>
-     </div>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-      <div style="background:#C8FF6B;color:#07081A;border-radius:14px;padding:12px 10px;font-weight:700"><svg viewBox="0 0 24 24" style="width:20px;height:20px;margin-bottom:6px" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10a4.5 4.5 0 0 1 4.4 5.4l-.6 3a2.6 2.6 0 0 1-4.5 1.2L14.5 15h-5l-1.8 1.6a2.6 2.6 0 0 1-4.5-1.2l-.6-3A4.5 4.5 0 0 1 7 7z"/><path d="M8 10v3M6.5 11.5h3"/></svg>Modo Jogo</div>
-      <div class="bloco" style="font-weight:700;padding:12px 10px"><svg viewBox="0 0 24 24" style="width:20px;height:20px;margin-bottom:6px;color:#C8FF6B" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-7"/><circle cx="12" cy="17" r="1.8"/></svg>Tuner</div>
-     </div>
-     <div style="display:flex;gap:8px">
-      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">38°C</b><span class="sub" style="margin:0">bateria</span></div>
-      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">120 Hz</b><span class="sub" style="margin:0">tela</span></div>
-      <div class="bloco" style="flex:1;padding:9px"><b style="font-size:15px;display:block">3,1 GB</b><span class="sub" style="margin:0">RAM livre</span></div>
-     </div>
-     <div class="linha-ui"><i style="background:rgba(181,123,255,.16);color:#A99CFF">⌨</i><div><b>Teclado e controles</b><span>Botões por cima do jogo</span></div></div>
-     <div class="linha-ui"><i style="background:rgba(56,214,232,.14);color:#38D6E8">❄</i><div><b>Modo Frio</b><span>Segura o calor sem perder o boost</span></div></div>
-     <div class="linha-ui"><i style="background:rgba(76,141,255,.15);color:#8C7BFF">◔</i><div><b>Rede para jogos</b><span>Ping, jitter e DNS mais rápido</span></div></div>
+    <div class="tela tela-fixa" style="padding:0">
+<div class="app-mini" style="width:390px;height:844px;box-sizing:border-box;background:#07081A;font-family:'Space Grotesk',sans-serif;color:#E9ECFF;position:relative;overflow:hidden;display:flex;flex-direction:column">
+  <div aria-hidden="true" style="position:absolute;inset:0;background-image:linear-gradient(rgba(123,92,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(123,92,255,.14) 1px,transparent 1px);background-size:26px 26px"></div>
+  <div aria-hidden="true" style="position:absolute;width:340px;height:340px;left:120px;top:-120px;border-radius:50%;background:radial-gradient(circle,rgba(92,107,255,.55),rgba(7,8,26,0) 70%)"></div>
+
+  <div style="position:relative;padding:22px 20px 0;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 14 10 23 12 14 14 12 23 10 14 1 12 10 10Z" fill="#C8FF6B"/></svg>
+      <span class="cromo-txt" style="font-family:Unbounded,sans-serif;font-weight:900;font-size:19px;letter-spacing:-.02em">SERPYRA</span>
+    </div>
+    <span style="font-family:VT323,monospace;font-size:17px;color:#07081A;background:#C8FF6B;padding:2px 10px;border-radius:99px">PRO ATIVO</span>
+  </div>
+
+  <div style="position:relative;margin:18px 16px 0;border:1.5px solid #3A3480;border-radius:22px;background:#12113A;padding:18px;display:flex;gap:16px;align-items:center">
+    <div style="position:relative;width:112px;height:112px;flex:none">
+      <svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true">
+        <circle cx="56" cy="56" r="46" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/>
+        <circle cx="56" cy="56" r="46" fill="none" stroke="#C8FF6B" stroke-width="12" stroke-linecap="round" stroke-dasharray="251 289" transform="rotate(-90 56 56)"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="cromo-txt" style="font-family:Unbounded,sans-serif;font-weight:900;font-size:38px;line-height:1">87</span>
+        <span style="font-family:VT323,monospace;font-size:15px;color:#B8BEF0">/100</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+      <span style="font-family:VT323,monospace;font-size:17px;color:#A99CFF">RAIO-X</span>
+      <span style="font-family:Unbounded,sans-serif;font-weight:700;font-size:17px;line-height:1.15">Pronto pra jogar</span>
+      <span style="font-size:13px;color:#B8BEF0;line-height:1.35">Melhor que 72% dos celulares iguais ao seu</span>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;border:0;border-radius:12px;padding:9px 12px;background:#C8FF6B;color:#07081A;min-height:36px">Corrigir</span>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;border:1.5px solid #8C7BFF;border-radius:12px;padding:9px 12px;background:transparent;color:#E9ECFF;min-height:36px">Compartilhar</span>
+      </div>
+    </div>
+  </div>
+
+  <div  style="position:relative;margin:14px 16px 0;text-decoration:none;color:#E9ECFF;border-radius:22px;padding:16px 18px;background:#8C7BFF;display:flex;align-items:center;justify-content:space-between;min-height:64px;box-sizing:border-box">
+    <div style="display:flex;flex-direction:column">
+      <span style="font-family:Unbounded,sans-serif;font-weight:900;font-size:20px;color:#07081A;letter-spacing:-.01em">PREPARAR E JOGAR</span>
+      <span style="font-size:13px;color:#1C1650">Free Fire · memória, limpeza e Modo Jogo</span>
+    </div>
+    <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#07081A"/><path d="M10 8l6 4-6 4z" fill="#C8FF6B"/></svg>
+  </div>
+
+  <div style="position:relative;margin:18px 16px 8px;display:flex;align-items:center;gap:8px">
+    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 14 10 23 12 14 14 12 23 10 14 1 12 10 10Z" fill="#8C7BFF"/></svg>
+    <span style="font-family:VT323,monospace;font-size:19px;color:#A99CFF;letter-spacing:.04em">AÇÕES RÁPIDAS</span>
+  </div>
+  <div style="position:relative;margin:0 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+    <div style="border:1.5px solid #3A3480;border-radius:16px;background:#0F1036;overflow:hidden">
+      <div style="background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:4px 10px;display:flex;justify-content:space-between;font-family:VT323,monospace;font-size:15px;color:#A99CFF"><span>modo_jogo.exe</span><span>×</span></div>
+      <div style="padding:12px 12px 14px"><div style="font-weight:700;font-size:16px">Modo Jogo</div><div style="font-size:12.5px;color:#B8BEF0;margin-top:2px">FPS e calor na tela</div></div>
+    </div>
+    <div style="border:1.5px solid #3A3480;border-radius:16px;background:#0F1036;overflow:hidden">
+      <div style="background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:4px 10px;display:flex;justify-content:space-between;font-family:VT323,monospace;font-size:15px;color:#A99CFF"><span>botoes.exe</span><span>×</span></div>
+      <div style="padding:12px 12px 14px"><div style="font-weight:700;font-size:16px">Botões no jogo</div><div style="font-size:12.5px;color:#B8BEF0;margin-top:2px">Como num emulador</div></div>
+    </div>
+    <div style="border:1.5px solid #3A3480;border-radius:16px;background:#0F1036;overflow:hidden">
+      <div style="background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:4px 10px;display:flex;justify-content:space-between;font-family:VT323,monospace;font-size:15px;color:#A99CFF"><span>frio.exe</span><span>×</span></div>
+      <div style="padding:12px 12px 14px"><div style="font-weight:700;font-size:16px">Modo Frio</div><div style="font-size:12.5px;color:#B8BEF0;margin-top:2px">Bateria a 38 °C</div></div>
+    </div>
+    <div style="border:1.5px solid #3A3480;border-radius:16px;background:#0F1036;overflow:hidden">
+      <div style="background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:4px 10px;display:flex;justify-content:space-between;font-family:VT323,monospace;font-size:15px;color:#A99CFF"><span>tuner.exe</span><span>×</span></div>
+      <div style="padding:12px 12px 14px"><div style="font-weight:700;font-size:16px">Tuner</div><div style="font-size:12.5px;color:#B8BEF0;margin-top:2px">120 Hz · 3,1 GB livres</div></div>
+    </div>
+  </div>
+
+  <div style="position:relative;margin:14px 16px 0;border-radius:16px;border:1.5px solid #3A3480;background:#0F1036;padding:12px 14px;display:flex;align-items:center;gap:12px">
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5Z" fill="none" stroke="#C8FF6B" stroke-width="1.6"/></svg>
+    <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14.5px">Modo completo ligado</div><div style="font-size:12.5px;color:#B8BEF0">Sem Shizuku · reconecta sozinho no Wi-Fi</div></div>
+  </div>
+
+  <div style="position:absolute;left:12px;right:12px;bottom:12px;height:64px;border-radius:22px;background:#12113A;border:1.5px solid #3A3480;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;text-align:center;font-size:11.5px;color:#B8BEF0">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:#C8FF6B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11 12 4l9 7v9H3z"/></svg>Início</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="5"/><path d="M8 11v3M6.5 12.5h3M16 12h.01M18 13h.01"/></svg>Jogos</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Ferramentas</div>
+    <div  style="display:flex;flex-direction:column;align-items:center;gap:3px;color:#B8BEF0;text-decoration:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2 14.5 9.5 22 12 14.5 14.5 12 22 9.5 14.5 2 12 9.5 9.5Z"/></svg>Pro</div>
+  </div>
+</div>
     </div>
    </div></div>
   </div>
