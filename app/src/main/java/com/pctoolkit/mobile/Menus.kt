@@ -103,7 +103,8 @@ object Menus {
         Item("Último relatório", "Resultado da última verificação", S, T.cinza, acao = { Seguranca.ultimoRelatorio(it) })
     ))
 
-    fun manutencao() = Menu("Manutenção", "Saúde, backup e restauração", M, T.amarelo, listOf(
+    fun manutencao() = Menu("Manutenção", "Saúde, backup e restauração", M, T.amarelo, listOfNotNull(
+        if (Admin.ativo()) Item("Área do dono", "Só aparece para você: avisos de venda, print dos erros", M, T.verde, "Dono", T.verde, acao = { Admin.executar(it) }) else null,
         Item("Saúde do celular", "Bateria, ciclos, tempo ligado e armazenamento", M, T.amarelo, acao = { Sistema.saude(it) }),
         Item("Atualizações", "Sistema e apps", M, T.amarelo, acao = { Sistema.atualizacoes(it) }),
         Item("Backup", Store.str("ultimo_backup").ifEmpty { "Copiar fotos e arquivos com conferência" }, B, T.azul, acao = { Sistema.backup(it) }),
@@ -114,12 +115,10 @@ object Menus {
         Item("Restaurar backup das configurações", "Traz tudo de volta neste ou em outro celular", B, T.verde, acao = { Backup.importar(it) }),
         Item("Cuidados automáticos", listOfNotNull(if (Automatico.limpezaLigada()) "limpeza semanal" else null, if (Automatico.calorLigado()) "alerta de calor" else null, if (Automatico.pesadoLigado()) "app pesado" else null).joinToString(", ").ifEmpty { "Limpeza semanal e alertas de calor e app pesado" }, M, T.verde, "Novo", T.verde, acao = { Automatico.executar(it) }),
         Item("Tamanho da letra", "Deixe o texto do app maior", M, T.cinza, acao = { Letra.executar(it) }),
-        Item("Avisos de venda no meu celular", if (Dono.ligado()) "Ligado: vendas e erros novos do app" else "Só para o dono do app", M, T.verde, acao = { Dono.executar(it) }),
         Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
         Item("Relatar um problema", "Mande uma mensagem direto para a gente", M, T.azul, "Novo", T.verde, acao = { Relatar.executar(it) }),
         Item("Avaliar o app", "Dê sua nota e comente no site", M, T.amarelo, acao = { Avaliar.abrir(it.ctx); it.ok("Abrindo a página de avaliações") }),
         Item("Versões de teste", "Receba as novidades antes, para ajudar a testar", M, T.texto2, acao = { Testes.configurar(it) }),
-        Item("Print da tela nos erros", if (Relatorio.printLigado()) "Ligado: ajuda a corrigir erros mais rápido" else "Desligado", M, T.texto2, acao = { Relatorio.configurar(it) }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Atualizar sozinho", "Liga ou desliga a atualização automática do app", M, T.verde, acao = { Atualizador.configurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })

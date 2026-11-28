@@ -384,7 +384,7 @@ object Dono {
             }
             return
         }
-        val tok = con.texto("Token do painel", "O mesmo que você usa para entrar em serpyratoolkit.pages.dev/painel") ?: return
+        val tok = Admin.token().ifEmpty { con.texto("Token do painel", "O mesmo que você usa para entrar em serpyratoolkit.pages.dev/painel", secreto = true) ?: return }
         if (tok.isBlank()) return
         con.linha("Conferindo o token…", T.texto2)
         val (code, t) = try { Servidor.http("GET", "/admin/novas?desde=0", null, tok.trim()) } catch (e: Exception) { Pair(0, "") }
@@ -396,6 +396,39 @@ object Dono {
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
         con.ok("Pronto! A cada venda chega uma notificação aqui (em até 15 minutos).")
         con.info("Dica: deixe o SerpyraToolkit sem restrição de bateria para o aviso não atrasar.")
+    }
+}
+
+/** Area do dono: so aparece depois de digitar o token do painel neste celular (segurar o nome no topo do Inicio). */
+object Admin {
+    fun token() = Store.str("admin_token").ifEmpty { Store.str("dono_token") }
+    fun ativo() = token().isNotEmpty()
+
+    fun executar(con: Console) {
+        con.titulo("Área do dono")
+        if (!ativo()) {
+            con.linha("Só para o dono do app. Digite o token do painel (o mesmo de serpyratoolkit.pages.dev/painel). Ele fica guardado só neste celular.", T.texto2)
+            val tok = (con.texto("Token do painel", "Token do painel", secreto = true) ?: return).trim()
+            if (tok.isEmpty()) return
+            con.linha("Conferindo…", T.texto2)
+            val (code, _) = try { Servidor.http("GET", "/admin/saude", null, tok) } catch (e: Exception) { Pair(0, "") }
+            if (code == 401) { con.aviso("Token errado."); return }
+            if (code != 200) { con.aviso("Sem conexão com o servidor. Tente de novo."); return }
+            Store.putStr("admin_token", tok)
+            con.ok("Pronto: este celular é do dono. A Área do dono aparece em Ferramentas > Manutenção.")
+        }
+        when (con.escolher("O que fazer?", listOf(
+            "Avisos de venda e erros neste celular" + if (Dono.ligado()) " (ligado)" else "",
+            "Print da tela nos erros dos clientes" + if (Relatorio.printLigado()) " (ligado)" else " (desligado)",
+            "Abrir o painel",
+            "Sair da área do dono neste celular"))) {
+            0 -> Dono.executar(con)
+            1 -> Relatorio.configurar(con)
+            2 -> { try { con.ctx.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://serpyratoolkit.pages.dev/painel")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }; con.ok("Abrindo o painel") }
+            3 -> if (con.ask("Sair da área do dono? Os avisos de venda neste celular também param.", "Sair", "Cancelar")) {
+                Store.putStr("admin_token", ""); Store.putStr("dono_token", ""); Dono.agendar(con.ctx); con.ok("Pronto: a área do dono sumiu deste celular.")
+            }
+        }
     }
 }
 

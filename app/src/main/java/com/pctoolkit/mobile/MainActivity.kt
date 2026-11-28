@@ -122,9 +122,10 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
             .setOnCancelListener { cb(emptyList()) }.show()
     }
 
-    fun texto(titulo: String, dica: String = "", padrao: String = ""): String? = naUi<String?>(null) { cb ->
+    fun texto(titulo: String, dica: String = "", padrao: String = "", secreto: Boolean = false): String? = naUi<String?>(null) { cb ->
         val et = EditText(act)
         et.setText(padrao); et.hint = dica
+        if (secreto) et.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
         val box = FrameLayout(act)
         box.setPadding(Ui.dp(act, 22), Ui.dp(act, 8), Ui.dp(act, 22), 0)
@@ -552,7 +553,18 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         cab.addView(Ui.estrela(this, T.verde, 22))
         cab.addView(Ui.espaco(this, 8, 1))
-        cab.addView(Ui.tituloCromo(this, "SerpyraToolkit", 20f), Ui.peso())
+        val nome = Ui.tituloCromo(this, "SerpyraToolkit", 20f)
+        // entrada escondida da area do dono: segurar o nome por 2 segundos
+        nome.isLongClickable = true
+        nome.setOnTouchListener(object : View.OnTouchListener {
+            val h = android.os.Handler(android.os.Looper.getMainLooper())
+            val r = Runnable { executar("Área do dono") { Admin.executar(it) } }
+            override fun onTouch(v: View, e: android.view.MotionEvent): Boolean {
+                when (e.actionMasked) { android.view.MotionEvent.ACTION_DOWN -> h.postDelayed(r, 2000); android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> h.removeCallbacks(r) }
+                return true
+            }
+        })
+        cab.addView(nome, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = if (Pro.ativo()) Ui.texto(this, "PRO", 17f, T.bg, Ui.pixel).also { it.background = Ui.forma(this, T.verde, 50); it.setPadding(Ui.dp(this, 10), Ui.dp(this, 1), Ui.dp(this, 10), Ui.dp(this, 1)) }
             else Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
