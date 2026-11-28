@@ -1,0 +1,39 @@
+name: Publicar servidor
+
+on:
+  push:
+    branches: [android-app]
+    paths: ["servidor/worker.js", "servidor/wrangler.toml"]
+  workflow_dispatch:
+
+concurrency:
+  group: servidor
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir o token
+        id: tk
+        env:
+          TK: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TK" ]; then echo "Sem CLOUDFLARE_API_TOKEN nos segredos do GitHub: nada publicado."; echo "ok=0" >> $GITHUB_OUTPUT; else echo "ok=1" >> $GITHUB_OUTPUT; fi
+      - name: Conferir a sintaxe
+        if: steps.tk.outputs.ok == '1'
+        run: node --check servidor/worker.js || node -e "import('./servidor/worker.js').then(()=>console.log('ok'))"
+      - name: Publicar no Cloudflare
+        if: steps.tk.outputs.ok == '1'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: f060b4f72273d897fb21b18c200548dc
+          workingDirectory: servidor
+          command: deploy
+      - name: Conferir se está no ar
+        if: steps.tk.outputs.ok == '1'
+        run: |
+          sleep 5
+          curl -sf https://serpyratoolkit.officialcarloswendrik.workers.dev/saude | tee /dev/stderr | grep -q '"ok":true'
