@@ -189,17 +189,20 @@ async function limitar(chave, max) {
 
 async function criarPedido(req, env, base) {
   let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
-  const codigo = limpaCodigo(b.codigo);
+  // compra pelo site: sem celular ainda; a pessoa recebe um código de ativação por e-mail
+  const site = !!b.site;
+  const codigo = site ? "WEB" + idAleatorio(5) : limpaCodigo(b.codigo);
   const email = String(b.email || "").trim().toLowerCase();
-  const atual = parseInt(b.atual || "0", 10) || 0;
+  const atual = site ? 0 : (parseInt(b.atual || "0", 10) || 0);
   const planoId = PLANOS[b.plano] ? b.plano : "m1";
   const plano = PLANOS[planoId];
   if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
   if (!emailValido(email)) return json({ erro: "E-mail inválido." }, 400);
-  if (!(await limitar("pix:" + codigo, 6))) return json({ erro: "Muitos pedidos seguidos. Tente de novo em alguns minutos." }, 429);
+  if (!(await limitar("pix:" + (site ? "site:" + (req.headers.get("cf-connecting-ip") || "x") : codigo), 6))) return json({ erro: "Muitos pedidos seguidos. Tente de novo em alguns minutos." }, 429);
   const cupomCod = limpaCupom(b.cupom);
   const cupom = cupomCod ? await cupomValido(env, cupomCod, codigo) : null;
-  const presente = b.presente ? String(b.presente).trim().toLowerCase() : "";
+  const presente = site ? email : (b.presente ? String(b.presente).trim().toLowerCase() : "");
+  if (site && cupom && cupom.especial === "renovacao") return json({ erro: "Esse cupom é para renovar pelo app." }, 400);
   if (presente && !emailValido(presente)) return json({ erro: "E-mail de quem vai ganhar o presente é inválido." }, 400);
   if (presente && cupom && cupom.especial === "renovacao") return json({ erro: "Esse cupom é só para renovar o seu próprio Pro." }, 400);
   if (cupomCod && !cupom) return json({ erro: "Cupom inválido ou esgotado." }, 400);
@@ -208,12 +211,12 @@ async function criarPedido(req, env, base) {
   let r;
   try {
     r = await purin(env, "POST", "/payments", {
-      valueCents: valor, description: "SerpyraToolkit Pro - " + plano.nome + (presente ? " (presente)" : "") + " (" + numero + ")", callbackUrl: base + "/webhook",
+      valueCents: valor, description: "SerpyraToolkit Pro - " + plano.nome + (site ? " (site)" : presente ? " (presente)" : "") + " (" + numero + ")", callbackUrl: base + "/webhook",
       customer: { email, externalId: codigo }, metadata: JSON.stringify({ numero, codigo, plano: planoId, cupom: cupomCod })
     });
   } catch (e) { return json({ erro: "Não consegui gerar o Pix agora. " + e.message }, 502); }
   const id = r.paymentId;
-  await env.PCT.put("pedido:" + id, JSON.stringify({ id, numero, codigo, email, atual, valor, plano: planoId, dias: plano.dias, cupom: cupom ? cupomCod : "", presente, status: "pendente", criado: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 400 });
+  await env.PCT.put("pedido:" + id, JSON.stringify({ id, numero, codigo, email, atual, valor, plano: planoId, dias: plano.dias, cupom: cupom ? cupomCod : "", presente, site: site || undefined, status: "pendente", criado: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 400 });
   return json({ pedido: id, numero, valor: reais(valor), plano: plano.nome, brCode: r.pix && r.pix.brCode, qr: r.pix && r.pix.qrCodeImage, expira: r.expiresAt, teste: String(env.PURIN_KEY || "").startsWith("ps_test_") });
 }
 
@@ -293,7 +296,36 @@ function emailPresente(p, plano) {
   return { assunto: "Você ganhou um presente: SerpyraToolkit Pro", html, texto: "Você ganhou o SerpyraToolkit Pro (" + plano.nome + ") de " + p.email + ".\nCódigo de presente: " + p.voucher + "\nBaixe em serpyratoolkit.pages.dev, abra SerpyraToolkit Pro > Tenho um código de presente." };
 }
 
+function emailSite(p, plano) {
+  const cods = p.vouchers || [p.voucher];
+  const lista = cods.map((v, i) => `<div style="font-size:24px;font-weight:bold;letter-spacing:3px;color:#C8FF6B;margin:6px 0">${esc(v)}</div>` + (cods.length > 1 ? `<div style="color:#9AA8BA;font-size:12px;margin-bottom:8px">${i === 0 ? "para o seu celular" : "para mais um celular da família"}</div>` : "")).join("");
+  const html = moldura("Seu SerpyraToolkit Pro chegou ✅", "Pagamento confirmado · " + esc(plano.nome) + " · pedido " + esc(p.numero) + ".",
+    `<div style="${CAIXA}"><div style="${ROT}">${cods.length > 1 ? "Seus códigos de ativação (um por celular)" : "Seu código de ativação"}</div>${lista}` +
+    `<div style="color:#9AA8BA;font-size:13px;margin-top:12px">1. Baixe o app em <a style="color:#C8FF6B" href="https://serpyratoolkit.pages.dev/apk">serpyratoolkit.pages.dev</a> no celular Android<br>2. Abra <b>SerpyraToolkit Pro</b> e toque em <b>Tem um código?</b><br>3. Cole o código acima. O Pro liga na hora.</div></div><div style="color:#9AA8BA;font-size:12px">Os dias começam a contar quando você ativar no celular. Guarde este e-mail.</div>`);
+  return { assunto: "Seu código do SerpyraToolkit Pro (pedido " + p.numero + ")", html, texto: "Pagamento confirmado: " + plano.nome + ".\nCódigo(s) de ativação: " + cods.join(", ") + "\nBaixe em serpyratoolkit.pages.dev, abra SerpyraToolkit Pro > Tem um código? e cole o código." };
+}
 async function liberarPresente(env, id, p, plano) {
+  if (p.site) {
+    if (!p.vouchers) {
+      p.vouchers = [];
+      for (let i = 0; i < (plano.familia || 1); i++) {
+        const v = novoVoucher();
+        await env.PCT.put("presente:" + v, JSON.stringify({ plano: p.plano, dias: p.dias, vitalicio: !!plano.vitalicio, de: p.email, para: p.email, familia: !!plano.familia || undefined, site: true, usado: "", criado: new Date().toISOString() }));
+        p.vouchers.push(v);
+      }
+      p.voucher = p.vouchers[0];
+    }
+    p.status = "pago"; p.pagoEm = new Date().toISOString(); p.dia = 0;
+    const m = emailSite(p, plano);
+    p.email_status = await mandarEmail(env, p.email, m.assunto, m.html, m.texto);
+    await avisarDono(env, p, plano.nome + " (site)");
+    if (p.cupom && p.cupom !== "RENOVA10" && !/^IND/.test(p.cupom)) {
+      const c = await lerJson(env, "cupom:" + p.cupom);
+      if (c) { c.usos = (c.usos || 0) + 1; c.receita = (c.receita || 0) + p.valor; c.comissaoTotal = (c.comissaoTotal || 0) + Math.round(p.valor * (c.comissao != null ? c.comissao : COMISSAO_PADRAO) / 100); await env.PCT.put("cupom:" + p.cupom, JSON.stringify(c)); }
+    }
+    await env.PCT.put("pedido:" + id, JSON.stringify(p));
+    return p;
+  }
   p.voucher = p.voucher || novoVoucher();
   p.status = "pago"; p.pagoEm = new Date().toISOString(); p.dia = 0;
   await env.PCT.put("presente:" + p.voucher, JSON.stringify({ plano: p.plano, dias: p.dias, vitalicio: !!plano.vitalicio, de: p.email, para: p.presente, usado: "" }));
@@ -737,6 +769,7 @@ async function status(url, env) {
       else if (r.status && r.status !== "pending") return json({ status: r.status });
     } catch (e) { }
   }
+  if (p.status === "pago" && p.site) return json({ status: "pago", site: true, vouchers: p.vouchers || [p.voucher], numero: p.numero, email: p.email_status === "enviado" });
   if (p.status === "pago" && p.presente) return json({ status: "pago", presente: true, voucher: p.voucher, para: p.presente, numero: p.numero, email: p.email_status === "enviado" });
   if (p.status === "pago") return json({ status: "pago", chave: p.chave, numero: p.numero, validade: validadeTxt(p.dia), email: p.email_status === "enviado", familia: p.familia || [] });
   return json({ status: "pendente" });
@@ -1187,7 +1220,7 @@ async function reenviarEmails(env) {
     const p = await lerJson(env, n);
     if (!p || p.status !== "pago" || p.email_status === "enviado") continue;
     if (p.presente && p.voucher) {
-      const pm = emailPresente(p, PLANOS[p.plano] || PLANOS.m1);
+      const pm = p.site ? emailSite(p, PLANOS[p.plano] || PLANOS.m1) : emailPresente(p, PLANOS[p.plano] || PLANOS.m1);
       p.email_status = await mandarEmail(env, p.presente, pm.assunto, pm.html, pm.texto);
       if (p.email_status === "enviado") { enviados++; await env.PCT.put(n, JSON.stringify(p)); } else faltam++;
       continue;

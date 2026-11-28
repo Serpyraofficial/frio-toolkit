@@ -202,7 +202,43 @@ h2{font-weight:500;font-size:clamp(28px,3.6vw,46px);line-height:1.04;letter-spac
 .plano .desc{color:var(--tinta2)}
 .plano.pro .desc{color:#B7C0CF}
 .opcoes{display:grid;gap:8px;margin-top:20px}
-.opcoes div{display:flex;align-items:center;gap:10px;border:1px solid #2A3850;border-radius:14px;padding:11px 14px}
+.opcoes div,.opcoes button{display:flex;align-items:center;gap:10px;border:1px solid #3A3480;border-radius:14px;padding:11px 14px;width:100%;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.opcoes button:hover,.opcoes button:focus-visible{border-color:var(--lima);background:rgba(200,255,107,.06)}
+.compra-bts{display:grid;gap:10px}
+/* compra pelo site */
+dialog.compra{border:1.5px solid var(--violeta);border-radius:20px;background:#0F1036;color:var(--tinta);padding:0;width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto}
+dialog.compra::backdrop{background:rgba(7,8,26,.82)}
+.compra .tb{display:flex;align-items:center;justify-content:space-between;background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:6px 8px 6px 16px;font-family:var(--fp);font-size:20px;color:#A99CFF;position:sticky;top:0}
+.compra .tb button{background:none;border:0;color:#B8BEF0;font-size:26px;line-height:1;cursor:pointer;padding:4px 10px;border-radius:8px}
+.compra .cx{padding:20px}
+.compra h3{font-family:var(--fd);font-weight:900;text-transform:uppercase;font-size:20px;letter-spacing:-.02em;margin-bottom:6px}
+.compra p.s{color:var(--tinta2);font-size:15px}
+.compra .pls{display:grid;gap:8px;margin:16px 0}
+.compra .pls label{display:flex;align-items:center;gap:10px;border:1.5px solid #3A3480;border-radius:12px;padding:10px 12px;cursor:pointer}
+.compra .pls label:has(input:checked){border-color:var(--lima);background:rgba(200,255,107,.07)}
+.compra .pls input{accent-color:#C8FF6B;width:18px;height:18px}
+.compra .pls b{flex:1;font-weight:600}
+.compra .pls span{color:var(--tinta2);font-size:13px}
+.compra .pls strong{white-space:nowrap}
+.compra .cp{display:block;font-size:14px;font-weight:600;margin:12px 0 6px}
+.compra input[type=email],.compra input[type=text]{width:100%;font:inherit;font-size:16px;border:1.5px solid #3A3480;border-radius:12px;padding:11px 12px;background:#07081A;color:var(--tinta);caret-color:var(--lima)}
+.compra input:focus{outline:none;border-color:var(--violeta);box-shadow:0 0 0 3px rgba(140,123,255,.25)}
+.compra .linha-c{display:flex;gap:8px}
+.compra .linha-c input{flex:1}
+.compra .link{background:none;border:0;color:#A99CFF;text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;padding:0;margin-top:10px}
+.compra .msg{margin-top:10px;font-size:14px;min-height:1em}
+.compra .msg.erro{color:#FF7A86}.compra .msg.ok{color:var(--lima)}
+.compra .acao{width:100%;margin-top:16px}
+.compra .qr{display:block;width:220px;height:220px;margin:14px auto;background:#fff;border-radius:14px;padding:8px}
+.compra textarea{width:100%;font-family:ui-monospace,monospace;font-size:12px;background:#07081A;color:var(--tinta2);border:1.5px solid #3A3480;border-radius:12px;padding:10px;height:84px;resize:none}
+.compra .espera{display:flex;align-items:center;gap:10px;justify-content:center;font-family:var(--fp);font-size:20px;color:#A99CFF;margin-top:12px}
+.compra .espera i{width:10px;height:10px;border-radius:50%;background:var(--lima);animation:pisca 1s ease-in-out infinite}
+@keyframes pisca{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.compra .espera i{animation:none}}
+.compra .cod{flex-wrap:wrap;overflow-wrap:anywhere;font-family:var(--fp);font-size:clamp(22px,7vw,30px);letter-spacing:2px;color:var(--lima);background:#07081A;border:1.5px dashed #4C6A2A;border-radius:12px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+.compra .cod button{font-family:var(--f);font-size:13px}
+.compra ol{margin:12px 0 0 20px;color:var(--tinta2);font-size:15px}
+.compra ol li{margin:4px 0}
 .opcoes b{font-weight:600;flex:1}
 .opcoes span{color:#9FB0C5;font-size:14px}
 .opcoes strong{font-weight:650;font-size:18px;white-space:nowrap}
@@ -715,14 +751,14 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
     <div class="preco">R$ 6,66<small> por mês no plano anual</small></div>
     <p class="desc">Teste grátis por 1 hora, sem cadastro. Depois escolha:</p>
     <div class="opcoes">
-     <div><b>7 dias</b><span>para experimentar</span><strong>R$ 4,90</strong></div>
-     <div><b>1 mês</b><strong>R$ 12,90</strong></div>
-     <div><b>3 meses</b><span>R$ 9,97/mês</span><span class="eco">−22%</span><strong>R$ 29,90</strong></div>
-     <div><b>6 meses</b><span>R$ 8,32/mês</span><span class="eco">−35%</span><strong>R$ 49,90</strong></div>
-     <div><b>1 ano</b><span>R$ 6,66/mês</span><span class="eco">−48%</span><strong>R$ 79,90</strong></div>
-     <div class="vida"><b>Vitalício</b><span>paga uma vez</span><strong>R$ 119,90</strong></div>
-     <div><b>Família · 1 mês</b><span>3 celulares</span><strong>R$ 24,90</strong></div>
-     <div><b>Família · 1 ano</b><span>3 celulares, R$ 4,16 cada por mês</span><strong>R$ 149,90</strong></div>
+     <button type="button" data-comprar="s7"><b>7 dias</b><span>para experimentar</span><strong>R$ 4,90</strong></button>
+     <button type="button" data-comprar="m1"><b>1 mês</b><strong>R$ 12,90</strong></button>
+     <button type="button" data-comprar="m3"><b>3 meses</b><span>R$ 9,97/mês</span><span class="eco">−22%</span><strong>R$ 29,90</strong></button>
+     <button type="button" data-comprar="m6"><b>6 meses</b><span>R$ 8,32/mês</span><span class="eco">−35%</span><strong>R$ 49,90</strong></button>
+     <button type="button" data-comprar="a1"><b>1 ano</b><span>R$ 6,66/mês</span><span class="eco">−48%</span><strong>R$ 79,90</strong></button>
+     <button type="button" data-comprar="vida" class="vida"><b>Vitalício</b><span>paga uma vez</span><strong>R$ 119,90</strong></button>
+     <button type="button" data-comprar="f1"><b>Família · 1 mês</b><span>3 celulares</span><strong>R$ 24,90</strong></button>
+     <button type="button" data-comprar="f12"><b>Família · 1 ano</b><span>3 celulares, R$ 4,16 cada por mês</span><strong>R$ 149,90</strong></button>
     </div>
     <ul>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Tudo do plano grátis, sem limites</li>
@@ -737,8 +773,8 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Seus botões abrem sozinhos junto com o jogo</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Limpeza avançada (duplicados, arquivos grandes, apps esquecidos) e Blindagem contra vírus</li>
     </ul>
-    <a class="b b-menta b-grande" href="/apk">Baixar e testar grátis</a>
-    <p class="nota">Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
+    <div class="compra-bts"><button type="button" class="b b-menta b-grande" data-comprar="a1">Comprar pelo site</button><a class="b b-linha b-grande" href="/apk">Baixar e testar grátis</a></div>
+    <p class="nota">Toque num plano para comprar pelo site: você paga o Pix aqui e recebe o código de ativação na hora e no e-mail. Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
    </div>
   </div>
   <div class="extras-pro">
@@ -862,6 +898,39 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div style="color:#B8BEF0;font-size:14px;margin-top:4px" id="codTxt"></div>
  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><a class="b b-menta" href="/apk" id="codBaixar">Baixar e copiar o código</a><button class="b b-linha" id="codCopiar" style="color:#fff;border-color:#3a4658">Só copiar</button></div>
 </div>
+<dialog class="compra" id="compra" aria-labelledby="cpTit">
+ <div class="tb"><span>comprar.exe</span><button type="button" id="cpFechar" aria-label="Fechar">×</button></div>
+ <div class="cx">
+  <div id="cp1">
+   <h3 id="cpTit">Comprar o Pro</h3>
+   <p class="s">Pague o Pix aqui e receba o código de ativação na hora. Os dias começam a contar quando você ativar no celular.</p>
+   <div class="pls" id="cpPlanos" role="radiogroup" aria-label="Plano"></div>
+   <label class="cp" for="cpEmail">Seu e-mail</label>
+   <input type="email" id="cpEmail" autocomplete="email" inputmode="email" placeholder="voce@email.com">
+   <button type="button" class="link" id="cpTemCupom">Tenho um cupom</button>
+   <div id="cpCupomBox" hidden><label class="cp" for="cpCupom">Cupom</label><div class="linha-c"><input type="text" id="cpCupom" maxlength="20" autocapitalize="characters" placeholder="CUPOM"><button type="button" class="b b-linha" id="cpAplicar">Aplicar</button></div></div>
+   <div class="msg" id="cpMsg" role="status"></div>
+   <button type="button" class="b b-menta b-grande acao" id="cpGerar">Gerar Pix</button>
+  </div>
+  <div id="cp2" hidden>
+   <h3>Pague o Pix</h3>
+   <p class="s" id="cpResumo"></p>
+   <img class="qr" id="cpQr" alt="QR Code do Pix">
+   <label class="cp" for="cpCola">Ou copie o código Pix (copia e cola)</label>
+   <textarea id="cpCola" readonly></textarea>
+   <button type="button" class="b b-linha acao" id="cpCopiar">Copiar código Pix</button>
+   <div class="espera"><i></i>Esperando o pagamento</div>
+   <p class="s" style="text-align:center;font-size:13px;margin-top:6px">Pode deixar esta janela aberta: o código aparece aqui assim que o Pix cair. Ele também vai para o seu e-mail.</p>
+  </div>
+  <div id="cp3" hidden>
+   <h3>Pagamento confirmado ✓</h3>
+   <p class="s" id="cpOkTxt"></p>
+   <div id="cpCods"></div>
+   <ol><li>Baixe o app no celular Android.</li><li>Abra <b>SerpyraToolkit Pro</b> e toque em <b>Tem um código?</b></li><li>Cole o código. O Pro liga na hora.</li></ol>
+   <a class="b b-menta b-grande acao" href="/apk">Baixar o app</a>
+  </div>
+ </div>
+</dialog>
 <script>
 (function(){
   try {
@@ -921,6 +990,55 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   },{rootMargin:'-45% 0px -45% 0px'});
   passos.forEach(function(p){io.observe(p)});
 })();
+
+  // compra pelo site
+  (function(){
+    var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
+    var dlg=document.getElementById('compra'); if(!dlg||!dlg.showModal) return;
+    var $=function(i){return document.getElementById(i)};
+    var PL=[['s7','7 dias','para experimentar','R$ 4,90'],['m1','1 mês','','R$ 12,90'],['m3','3 meses','R$ 9,97/mês','R$ 29,90'],['m6','6 meses','R$ 8,32/mês','R$ 49,90'],['a1','1 ano','R$ 6,66/mês','R$ 79,90'],['vida','Vitalício','paga uma vez','R$ 119,90'],['f1','Família · 1 mês','3 códigos, 1 por celular','R$ 24,90'],['f12','Família · 1 ano','3 códigos, 1 por celular','R$ 149,90']];
+    var esc=function(t){return String(t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+    $('cpPlanos').innerHTML=PL.map(function(p){return '<label><input type="radio" name="cpPl" value="'+p[0]+'"><b>'+esc(p[1])+'</b>'+(p[2]?'<span>'+esc(p[2])+'</span>':'')+'<strong>'+esc(p[3])+'</strong></label>'}).join('');
+    var cupom='',precoCupom='',timer=null,pedido='';
+    function plano(){var r=dlg.querySelector('input[name=cpPl]:checked');return r?r.value:'a1'}
+    function preco(){var p=PL.filter(function(x){return x[0]===plano()})[0];return precoCupom||p[3]}
+    function rotulo(){$('cpGerar').textContent='Gerar Pix de '+preco()}
+    function msg(t,tipo){$('cpMsg').textContent=t;$('cpMsg').className='msg'+(tipo?' '+tipo:'')}
+    function passo(n){['cp1','cp2','cp3'].forEach(function(i,k){$(i).hidden=k!==n-1})}
+    function abrir(pl){passo(1);msg('');var r=dlg.querySelector('input[value="'+pl+'"]');if(r)r.checked=true;precoCupom='';cupom='';rotulo();try{var e=localStorage.getItem('cp_email');if(e&&!$('cpEmail').value)$('cpEmail').value=e}catch(x){}dlg.showModal()}
+    function fechar(){if(timer){clearInterval(timer);timer=null}dlg.close()}
+    document.querySelectorAll('[data-comprar]').forEach(function(b){b.addEventListener('click',function(){abrir(b.getAttribute('data-comprar'))})});
+    $('cpFechar').onclick=function(){if(pedido&&!$('cp2').hidden&&!confirm('Fechar? Se você já pagou, o código chega no seu e-mail do mesmo jeito.'))return;fechar()};
+    dlg.addEventListener('cancel',function(e){if(timer){e.preventDefault();$('cpFechar').click()}});
+    $('cpPlanos').addEventListener('change',function(){precoCupom='';if(cupom)aplicar();rotulo()});
+    $('cpTemCupom').onclick=function(){$('cpCupomBox').hidden=false;this.hidden=true;$('cpCupom').focus()};
+    function aplicar(){var c=$('cpCupom').value.trim().toUpperCase();if(!c){cupom='';precoCupom='';rotulo();return}
+      fetch(API+'/cupom?c='+encodeURIComponent(c)+'&plano='+plano()).then(function(r){return r.json()}).then(function(j){if(j.ok&&j.tipo!=='renovacao'){cupom=c;precoCupom=j.preco;msg('Cupom aplicado: '+j.pct+'% de desconto.','ok')}else{cupom='';precoCupom='';msg(j.tipo==='renovacao'?'Esse cupom é para renovar pelo app.':'Cupom inválido ou esgotado.','erro')}rotulo()}).catch(function(){msg('Sem conexão. Tente de novo.','erro')})}
+    $('cpAplicar').onclick=aplicar;
+    $('cpGerar').onclick=function(){
+      var email=$('cpEmail').value.trim();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg('Digite um e-mail válido: é para ele que vai o código.','erro');$('cpEmail').focus();return}
+      var b=this;b.disabled=true;msg('Gerando o Pix…');
+      try{localStorage.setItem('cp_email',email)}catch(x){}
+      fetch(API+'/pedido',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({site:true,email:email,plano:plano(),cupom:cupom})}).then(function(r){return r.json()}).then(function(j){
+        if(!j.pedido){msg(j.erro||'Não consegui gerar o Pix. Tente de novo.','erro');return}
+        pedido=j.pedido;$('cpResumo').textContent=j.plano+' · '+j.valor+' · pedido '+j.numero;
+        if(j.qr){$('cpQr').src=/^data:|^https:/.test(j.qr)?j.qr:'data:image/png;base64,'+j.qr;$('cpQr').hidden=false}else $('cpQr').hidden=true;
+        $('cpCola').value=j.brCode||'';passo(2);
+        timer=setInterval(conferir,4000);setTimeout(function(){if(timer){clearInterval(timer);timer=null}},45*60000);
+      }).catch(function(){msg('Sem conexão. Tente de novo.','erro')}).finally(function(){b.disabled=false});
+    };
+    $('cpCopiar').onclick=function(){var t=$('cpCola'),b=this;var ok=function(){b.textContent='Copiado ✓';setTimeout(function(){b.textContent='Copiar código Pix'},2000)};if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(ok).catch(function(){t.select();document.execCommand('copy');ok()});else{t.select();document.execCommand('copy');ok()}};
+    function conferir(){if(!pedido)return;fetch(API+'/status?pedido='+encodeURIComponent(pedido),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+      if(j.status==='pago'&&j.vouchers){clearInterval(timer);timer=null;
+        var n=j.vouchers.length;$('cpOkTxt').textContent=(n>1?'Seus '+n+' códigos de ativação (um por celular)':'Seu código de ativação')+(j.email?'. Também mandamos para o seu e-mail.':'.');
+        $('cpCods').innerHTML=j.vouchers.map(function(v){return '<div class="cod"><span>'+esc(v)+'</span><button type="button" class="b b-linha" data-copiar-cod="'+esc(v)+'">Copiar</button></div>'}).join('');
+        $('cpCods').querySelectorAll('[data-copiar-cod]').forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.getAttribute('data-copiar-cod')).then(function(){b.textContent='Copiado ✓'})}});
+        passo(3);pedido='';
+      }else if(j.status&&j.status!=='pendente'&&j.status!=='pago'){clearInterval(timer);timer=null;passo(1);msg('O Pix expirou ou foi cancelado. Gere outro.','erro');pedido=''}
+    }).catch(function(){})}
+    try{var q=new URLSearchParams(location.search).get('comprar');if(q)abrir(q)}catch(x){}
+  })();
   // o dono muda partes do site pelo painel
   (function(){
     var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
