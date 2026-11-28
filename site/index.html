@@ -78,6 +78,29 @@ h1{font-weight:500;font-size:clamp(44px,6.4vw,84px);line-height:.98;letter-spaci
 
 /* títulos de seção */
 .sec{padding:120px 0}
+/* avaliacoes */
+.aval-g{display:grid;grid-template-columns:320px 1fr;gap:48px;align-items:start}
+.aval-resumo{background:var(--branco);border:1px solid var(--linha);border-radius:20px;padding:28px}
+.aval-media{font-size:64px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.estrelas{color:#F2B01E;letter-spacing:2px;font-size:20px}
+.aval-qtd{color:var(--tinta3);font-size:15px;margin-top:6px}
+.aval-form{margin-top:24px;border-top:1px solid var(--linha);padding-top:20px}
+.aval-form label{display:block;font-size:15px;font-weight:600;margin:14px 0 6px}
+.aval-form input[type=text],.aval-form textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--linha);border-radius:12px;padding:10px 12px;background:var(--papel)}
+.aval-form textarea{min-height:110px;resize:vertical}
+.escolha{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}
+.escolha input{position:absolute;opacity:0;width:1px;height:1px}
+.escolha label{margin:0;font-size:32px;line-height:1;color:#D5D9E0;cursor:pointer}
+.escolha input:checked~label,.escolha label:hover,.escolha label:hover~label{color:#F2B01E}
+.escolha input:focus-visible+label{outline:3px solid var(--azul);outline-offset:2px;border-radius:6px}
+.aval-msg{margin-top:12px;font-size:15px}
+.aval-lista{display:grid;gap:14px}
+.aval-item{background:var(--branco);border:1px solid var(--linha);border-radius:16px;padding:18px 20px}
+.aval-item p{margin-top:6px;color:var(--tinta)}
+.aval-item .quem{color:var(--tinta3);font-size:14px;margin-top:8px}
+.oculto{position:absolute;left:-9999px}
+@media (max-width:860px){.aval-g{grid-template-columns:1fr;gap:28px}}
+
 h2{font-weight:500;font-size:clamp(34px,4.4vw,56px);line-height:1.04;letter-spacing:-.03em;font-variation-settings:"opsz" 72,"wdth" 90}
 .sec-cab{text-align:center;max-width:720px;margin:0 auto 72px}
 .sec-cab p{margin-top:18px;color:var(--tinta2);font-size:18px}
@@ -373,7 +396,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  <div class="nav-in">
   <a class="logo" href="#topo"><svg aria-hidden="true"><use href="#logo"/></svg>SerpyraToolkit</a>
   <nav class="nav-links" aria-label="Seções">
-   <a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a>
+   <a href="#como">Como funciona</a><a href="#partida">Na partida</a><a href="#planos">Planos</a><a href="#avaliacoes">Avaliações</a><a href="#duvidas">Dúvidas</a>
   </nav>
   <div class="nav-acoes">
    <a class="b b-linha so-desk" href="#planos">Ver planos</a>
@@ -627,7 +650,7 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
    <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
   </div>
   <div class="aviso-inst">
-   <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema pelo Shizuku. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
+   <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
    <div><b>Só para Android</b><p>O app funciona em celulares Android 8 ou mais novos. Não existe versão para iPhone: o iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz.</p></div>
   </div>
  </div>
@@ -643,15 +666,48 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  </div>
 </section>
 
+<section class="sec" id="avaliacoes">
+ <div class="w">
+  <div class="sec-cab"><h2>O que os jogadores acham</h2><p>Avaliações de quem usa o SerpyraToolkit. Conte a sua: elogio, reclamação ou ideia de melhoria.</p></div>
+  <div class="aval-g">
+   <div class="aval-resumo">
+    <div class="aval-media" id="avMedia">–</div>
+    <div class="estrelas" id="avEst" aria-hidden="true">☆☆☆☆☆</div>
+    <div class="aval-qtd" id="avQtd">Seja o primeiro a avaliar</div>
+    <form class="aval-form" id="avForm" novalidate>
+     <fieldset style="border:0;padding:0;margin:0">
+      <legend style="font-size:15px;font-weight:600">Sua nota</legend>
+      <div class="escolha">
+       <input type="radio" name="est" id="e5" value="5"><label for="e5" title="5 estrelas">★</label>
+       <input type="radio" name="est" id="e4" value="4"><label for="e4" title="4 estrelas">★</label>
+       <input type="radio" name="est" id="e3" value="3"><label for="e3" title="3 estrelas">★</label>
+       <input type="radio" name="est" id="e2" value="2"><label for="e2" title="2 estrelas">★</label>
+       <input type="radio" name="est" id="e1" value="1"><label for="e1" title="1 estrela">★</label>
+      </div>
+     </fieldset>
+     <label for="avTexto">Comentário</label>
+     <textarea id="avTexto" maxlength="600" placeholder="O que você achou? O que podemos melhorar?"></textarea>
+     <label for="avNome">Seu nome (opcional)</label>
+     <input type="text" id="avNome" maxlength="40" placeholder="Como quer aparecer">
+     <input type="text" id="avSite" class="oculto" tabindex="-1" autocomplete="off" aria-hidden="true">
+     <button class="b b-escuro" type="submit" style="margin-top:16px;width:100%">Enviar avaliação</button>
+     <div class="aval-msg" id="avMsg" role="status"></div>
+    </form>
+   </div>
+   <div class="aval-lista" id="avLista"></div>
+  </div>
+ </div>
+</section>
+
 <section class="sec" id="duvidas">
  <div class="w">
   <div class="sec-cab"><h2>Dúvidas frequentes</h2></div>
   <div class="faq">
-   <details><summary>Precisa de root?</summary><p>Não. Para os ajustes avançados o app usa o Shizuku, que é gratuito e é ativado pelo próprio celular, sem computador. Se o seu celular tiver root, o app também aproveita.</p></details>
+   <details><summary>Precisa de root?</summary><p>Não. Para os ajustes avançados o app tem o modo completo: você ativa em poucos passos pelo próprio celular, sem instalar nada e sem computador (Android 11 ou mais novo). Quem prefere ainda pode usar o Shizuku, e se o celular tiver root o app também aproveita.</p></details>
    <details><summary>Funciona no iPhone?</summary><p>Não. O SerpyraToolkit é só para Android 8 ou mais novo. O iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz, então não existe versão para iPhone.</p></details>
-   <details><summary>O celular disse que o app é suspeito. É perigoso?</summary><p>Não. Esse aviso aparece para apps instalados fora da Play Store que pedem permissões avançadas, como mostrar botões por cima do jogo e ajustar o sistema pelo Shizuku. São essas permissões que fazem o app funcionar por completo. Toque em Mais detalhes e em Instalar mesmo assim, e baixe sempre por este site.</p></details>
+   <details><summary>O celular disse que o app é suspeito. É perigoso?</summary><p>Não. Esse aviso aparece para apps instalados fora da Play Store que pedem permissões avançadas, como mostrar botões por cima do jogo e ajustar o sistema. São essas permissões que fazem o app funcionar por completo. Toque em Mais detalhes e em Instalar mesmo assim, e baixe sempre por este site.</p></details>
    <details><summary>Funciona no meu celular?</summary><p>Funciona em Android 8 ou mais novo. Algumas opções dependem do fabricante, como a taxa de atualização da tela. Nesses casos o app mostra o que é possível no seu aparelho.</p></details>
-   <details><summary>Como pago o Pro?</summary><p>Na tela do Pro, escolha o plano (1, 3 ou 6 meses), digite seu e-mail e, se tiver, um cupom de desconto. Pague o Pix e o Pro ativa sozinho assim que o pagamento é confirmado. A chave também chega no seu e-mail. Não existe cobrança automática.</p></details>
+   <details><summary>Como pago o Pro?</summary><p>Na tela do Pro, escolha o plano (7 dias, 1, 3 ou 6 meses, 1 ano, vitalício ou Família), digite seu e-mail e, se tiver, um cupom de desconto. Pague o Pix e o Pro ativa sozinho assim que o pagamento é confirmado. A chave também chega no seu e-mail. Não existe cobrança automática.</p></details>
    <details><summary>Dá para testar antes de pagar?</summary><p>Sim. Na tela do Pro, toque em Começar o teste grátis: você usa tudo do Pro por 1 hora, sem pagar e sem cadastro. O teste vale uma vez por celular e por internet (Wi-Fi ou dados).</p></details>
    <details><summary>Troquei de celular. E agora?</summary><p>No celular novo, abra a tela do Pro, vá em Trocou de celular? e digite o e-mail da compra. Enviamos um código para esse e-mail e, ao confirmar, o Pro passa para o aparelho novo com os mesmos dias. Dá para trocar uma vez a cada 30 dias.</p></details>
    <details><summary>Se eu atualizar ou reinstalar, perco o Pro?</summary><p>Ao atualizar pelo app, o Pro continua ativo. Se reinstalar, toque em Já comprei: recuperar meu Pro, ou cole a chave que chegou no seu e-mail. A chave vale para o celular em que a compra foi feita.</p></details>
@@ -751,6 +807,31 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   },{rootMargin:'-45% 0px -45% 0px'});
   passos.forEach(function(p){io.observe(p)});
 })();
+  // avaliacoes
+  (function(){
+    var API='https://serpyratoolkit.officialcarloswendrik.workers.dev';
+    function esc(t){return String(t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+    function est(n){n=Math.round(n);return '★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n)}
+    function quando(ms){var d=Math.floor((Date.now()-ms)/86400000);return d<1?'hoje':d===1?'ontem':d<30?'há '+d+' dias':new Date(ms).toLocaleDateString('pt-BR')}
+    function carregar(){
+      fetch(API+'/avaliacoes',{cache:'no-store'}).then(function(r){return r.json()}).then(function(a){
+        if(a.total){document.getElementById('avMedia').textContent=String(a.media).replace('.',',');document.getElementById('avEst').textContent=est(a.media);document.getElementById('avQtd').textContent=a.total+(a.total===1?' avaliação':' avaliações')}
+        document.getElementById('avLista').innerHTML=(a.lista||[]).map(function(x){return '<div class="aval-item"><div class="estrelas" aria-label="'+x.estrelas+' de 5 estrelas">'+est(x.estrelas)+'</div><p>'+esc(x.texto)+'</p><div class="quem">'+esc(x.nome||'Anônimo')+' · '+quando(x.em)+'</div></div>'}).join('')||'<div class="aval-item"><p>Ainda não há avaliações. Que tal ser o primeiro?</p></div>';
+      }).catch(function(){});
+    }
+    carregar();
+    document.getElementById('avForm').addEventListener('submit',function(e){
+      e.preventDefault();
+      var m=document.getElementById('avMsg'),sel=document.querySelector('input[name=est]:checked'),t=document.getElementById('avTexto').value.trim();
+      if(!sel){m.textContent='Escolha de 1 a 5 estrelas.';m.style.color='#C2410C';return}
+      if(t.length<3){m.textContent='Escreva um comentário.';m.style.color='#C2410C';return}
+      var b=this.querySelector('button');b.disabled=true;m.textContent='Enviando…';m.style.color='';
+      fetch(API+'/avaliacao',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({estrelas:sel.value,texto:t,nome:document.getElementById('avNome').value,site:document.getElementById('avSite').value})})
+        .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.erro||'Não deu para enviar agora.');return j})})
+        .then(function(){m.textContent='Obrigado! Sua avaliação já aparece aqui.';m.style.color='#14A86A';document.getElementById('avForm').reset();setTimeout(carregar,600)})
+        .catch(function(x){m.textContent=x.message;m.style.color='#C2410C'}).finally(function(){b.disabled=false});
+    });
+  })();
 </script>
 </body>
 </html>

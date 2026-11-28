@@ -328,6 +328,45 @@ async function resgatarPresente(req, env) {
 }
 
 /* ---------------- mensagens, relatos, pirataria e notas ---------------- */
+async function avaliar(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  if (b.site) return json({ ok: true });
+  const estrelas = parseInt(b.estrelas, 10), texto = String(b.texto || "").replace(/\s+/g, " ").trim().slice(0, 600), nome = String(b.nome || "").replace(/\s+/g, " ").trim().slice(0, 40);
+  if (!(estrelas >= 1 && estrelas <= 5)) return json({ erro: "Escolha de 1 a 5 estrelas." }, 400);
+  if (texto.length < 3) return json({ erro: "Escreva um comentário." }, 400);
+  if (/https?:\/\/|www\./i.test(texto + nome)) return json({ erro: "Não use links no comentário." }, 400);
+  const ip = req.headers.get("cf-connecting-ip") || "x";
+  if (!(await limitar("aval:" + ip, 2)) || !(await limitar("aval-total", 20))) return json({ erro: "Muitas avaliações agora. Tente de novo mais tarde." }, 429);
+  const l = (await lerJson(env, "avaliacoes")) || [];
+  l.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), em: Date.now(), estrelas, texto, nome, visivel: true });
+  await env.PCT.put("avaliacoes", JSON.stringify(l.slice(0, 500)));
+  try { await caches.default.delete(new Request("https://cache.local/avaliacoes")); } catch (e) { }
+  return json({ ok: true });
+}
+async function avaliacoes(env) {
+  const r = await cacheJson("avaliacoes", 300, async () => {
+    const v = ((await lerJson(env, "avaliacoes")) || []).filter(a => a.visivel);
+    return { total: v.length, media: v.length ? Math.round(v.reduce((t, a) => t + a.estrelas, 0) * 10 / v.length) / 10 : 0, lista: v.slice(0, 30).map(a => ({ estrelas: a.estrelas, texto: a.texto, nome: a.nome || "", em: a.em })) };
+  });
+  return json(r);
+}
+async function resumoQuinzenal(env) {
+  try {
+    const ult = parseInt((await env.PCT.get("resumo_em")) || "0", 10) || 0;
+    if (!ult) { await env.PCT.put("resumo_em", String(Date.now())); return; }
+    if (Date.now() - ult < 15 * DIA) return;
+    await env.PCT.put("resumo_em", String(Date.now()));
+    const av = ((await lerJson(env, "avaliacoes")) || []).filter(a => a.em > ult);
+    const rl = ((await lerJson(env, "relatos")) || []).filter(r => r.em > ult);
+    const est = n => "★".repeat(n) + "☆".repeat(5 - n);
+    const media = av.length ? (av.reduce((t, a) => t + a.estrelas, 0) / av.length).toFixed(1).replace(".", ",") : "–";
+    const html = moldura("Resumo de 15 dias: avaliações e relatos", av.length + " avaliação(ões) no site (média " + media + ") e " + rl.length + " relato(s) pelo app.",
+      `<div style="${CAIXA}"><div style="${ROT}">Avaliações do site</div>` + (av.length ? av.map(a => `<div style="margin-bottom:12px"><span style="color:#FFC857">${est(a.estrelas)}</span> <b>${esc(a.nome || "Anônimo")}</b><br><span style="color:#E8EEF5">${esc(a.texto)}</span></div>`).join("") : "Nenhuma avaliação nova.") + `</div>` +
+      `<div style="${CAIXA}"><div style="${ROT}">Relatos pelo app</div>` + (rl.length ? rl.map(r => `<div style="margin-bottom:12px"><b>${esc(r.modelo || "?")}</b> · app ${esc(r.versao || "?")}${r.pro ? " · Pro" : ""}${r.contato ? " · " + esc(r.contato) : ""}<br>${esc(r.texto)}</div>`).join("") : "Nenhum relato novo.") + `</div><a href="https://serpyratoolkit.pages.dev/painel#relatos" style="color:#3DDC97">Abrir o painel</a>`);
+    const texto = "Avaliações (" + av.length + "):\n" + av.map(a => a.estrelas + "★ " + (a.nome || "Anônimo") + ": " + a.texto).join("\n") + "\n\nRelatos (" + rl.length + "):\n" + rl.map(r => (r.modelo || "?") + ": " + r.texto).join("\n");
+    await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, "SerpyraToolkit: avaliações e relatos dos últimos 15 dias", html, texto);
+  } catch (e) { }
+}
 async function mensagens(env) {
   const l = await cacheJson("mensagens", 300, async () => (await lerJson(env, "mensagens")) || []);
   const agora = Date.now();
@@ -809,6 +848,16 @@ async function admin(req, url, env) {
     await env.PCT.put("relatos", JSON.stringify(l));
     return json({ ok: true });
   }
+  if (rota === "avaliacoes" && req.method === "GET") return json({ avaliacoes: (await lerJson(env, "avaliacoes")) || [] });
+  if (rota === "avaliacoes" && req.method === "POST") {
+    const b = await req.json().catch(() => ({}));
+    let l = (await lerJson(env, "avaliacoes")) || [];
+    if (b.acao === "apagar") l = l.filter(a => a.id !== b.id);
+    else l.forEach(a => { if (a.id === b.id) a.visivel = b.acao === "mostrar"; });
+    await env.PCT.put("avaliacoes", JSON.stringify(l));
+    try { await caches.default.delete(new Request("https://cache.local/avaliacoes")); } catch (e) { }
+    return json({ ok: true });
+  }
   if (rota === "pirataria" && req.method === "GET") {
     const nomes = (await listar(env, "pirata:", 24)).sort().reverse();
     const m = nomes.length ? await lerJson(env, nomes[0]) : null;
@@ -850,6 +899,7 @@ async function admin(req, url, env) {
 
 /* ---------------- e-mails que falharam: reenvio diário ---------------- */
 async function reenviarEmails(env) {
+  await resumoQuinzenal(env);
   const nomes = await listar(env, "pedido:", 3000);
   let enviados = 0, faltam = 0;
   for (const n of nomes) {
@@ -948,6 +998,8 @@ export default {
       if (m === "GET" && p === "/promo") return await promoAtual(env);
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
     if (m === "GET" && p === "/mensagens") return await mensagens(env);
+    if (m === "POST" && p === "/avaliacao") return await avaliar(req, env);
+    if (m === "GET" && p === "/avaliacoes") return await avaliacoes(env);
     if (m === "POST" && p === "/relato") return await relato(req, env);
     if (m === "POST" && p === "/pirata") return await pirata(req, env);
     if (p === "/nota") return await nota(req, url, env);
