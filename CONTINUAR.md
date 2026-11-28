@@ -98,3 +98,9 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 - Pendente: atualização automática do programa de PC, botão no site, certificado de assinatura (aviso do Windows).
 - 2026-11-28 15:05: site duplo Android + PC no ar (hero 'Um Pro. Dois mundos.', seção #pc, instalar no PC, dúvidas de PC). Compra pelo site removida do site (código no servidor continua, sem uso). /pc entrega pc/dist/SerpyraToolkit-PC.exe.
 - 2026-11-28 15:30: 5.24 (87) + PC 1.1 + servidor com chave compartilhada (/chave/usar; PRE vale em vários aparelhos com a mesma validade). Atenção: commit com [skip ci] no topo não publica o site no Pages.
+
+## PC 2.0 (branch wip-pc2, ainda NAO lancado)
+- Telas nativas: Inicio (atualizacao, aviso, notificacoes, Raio-X, resumo do PC, Preparar e jogar, acoes rapidas, meus jogos), Raio-X com correcao por item, Meus jogos, Temperatura ao vivo, Rede; Ferramentas/Seguranca com icones; Relatar; Pro com presente, cupom da promo e Indique e ganhe.
+- Menus numerados do PC-Toolkit viram botoes (Execucao.cs).
+- Servicos.cs: /aviso, /promo, /mensagens com ?plataforma=pc; /pc/versao -> atualizacao automatica com sha256.
+- Lancar = merge wip-pc2 -> android-app (o CI publica pc/dist/versao.json 2.0). So com o ok do dono.
