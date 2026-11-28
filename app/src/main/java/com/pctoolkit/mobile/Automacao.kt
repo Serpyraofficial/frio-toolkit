@@ -235,20 +235,108 @@ object ModoCompleto {
     /** Passo a passo com o codigo digitado na notificacao (funciona em qualquer marca). */
     fun guiado(con: Console): Boolean {
         val ctx = con.ctx
-        if (!Interno.opcoesDevLigadas(ctx)) {
-            con.linha("1. Ligue as Opções do desenvolvedor: na tela que vai abrir, toque 7 vezes em “Número da versão” (na Xiaomi, “Versão do MIUI” ou “Versão do SO”; na Samsung, fica em Informações do software).", T.azul)
-            con.abrirEEsperar(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS))
+        val xiaomi = Build.MANUFACTURER.lowercase().let { it.contains("xiaomi") || it.contains("redmi") || it.contains("poco") }
+        // onde digitar o codigo: caixinha por cima das Configuracoes (melhor) e notificacao (reserva)
+        if (!Acesso.notificacoes()) { con.info("Permita as notificações do app: o campo do código também aparece nelas."); con.garantirNome("Notificações") }
+        if (!ctx.getSystemService(android.app.NotificationManager::class.java).areNotificationsEnabled()) {
+            con.linha("As notificações do SerpyraToolkit estão desligadas neste celular. Ligue na tela que vai abrir e volte.", T.azul)
+            con.abrirEEsperar(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName))
         }
-        con.linha("2. Nas Opções do desenvolvedor, entre em “Depuração sem fio”, ligue a chave e toque em “Parear o dispositivo com um código de pareamento”.", T.azul)
-        con.linha("3. Com o código na tela, puxe a notificação do SerpyraToolkit e toque em “Digitar o código”. Escreva os 6 números.", T.azul)
+        if (!Settings.canDrawOverlays(ctx)) { con.info("Permita “Sobrepor a outros apps”: assim aparece uma caixinha por cima das Configurações para você digitar o código."); con.garantirNome("Sobrepor a outros apps") }
+        con.subtitulo("Passo 1")
+        if (!Interno.opcoesDevLigadas(ctx)) {
+            con.linha(if (xiaomi) "Ligue as Opções do desenvolvedor: em Configurações > Sobre o telefone, toque 7 vezes em “Versão do SO” (ou “Versão do MIUI”/“Versão do HyperOS”)." else "Ligue as Opções do desenvolvedor: na tela que vai abrir, toque 7 vezes em “Número da versão” (na Samsung, fica em Informações do software).", T.azul)
+            con.abrirEEsperar(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS))
+        } else con.ok("Opções do desenvolvedor já ligadas")
+        con.subtitulo("Passo 2")
+        if (xiaomi) con.linha("Nas Opções do desenvolvedor (Configurações > Configurações adicionais > Opções do desenvolvedor), ligue primeiro a “Depuração USB”. Depois ligue a “Depuração sem fio” e toque no nome dela para entrar.", T.azul)
+        else con.linha("Nas Opções do desenvolvedor, ligue a “Depuração sem fio” e toque no nome dela para entrar.", T.azul)
+        con.subtitulo("Passo 3")
+        con.linha("Toque em “Parear o dispositivo com um código de pareamento”. Com os 6 números na tela, digite-os na caixinha do SerpyraToolkit que aparece por cima (ou na notificação do app).", T.azul)
         Interno.pedirCodigoNaNotificacao(ctx)
+        CodigoFlutuante.mostrar(ctx)
         try { ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
         con.linha("Aguardando o código… (até 5 minutos)", T.texto2)
         val fim = System.currentTimeMillis() + 5 * 60_000L
         while (System.currentTimeMillis() < fim && !con.cancelado) { if (Interno.pronto()) break; con.sleep(1000) }
-        if (Interno.pronto()) { con.ok("Modo completo ativado! O app agora faz tudo sozinho, sem o Shizuku."); return true }
+        CodigoFlutuante.fechar()
+        if (Interno.pronto()) {
+            try { ctx.getSystemService(android.app.NotificationManager::class.java).cancel(Interno.NOTIF) } catch (e: Exception) { }
+            con.ok("Modo completo ativado! O app agora faz tudo sozinho, sem o Shizuku.")
+            return true
+        }
         con.aviso("Não conectou ainda. Você pode tentar de novo em Acesso e permissões > Ativar modo completo.")
         falhou("guiado sem conexao")
         return false
+    }
+}
+
+/** Caixinha por cima das Configuracoes para digitar o codigo de pareamento sem sair da tela do codigo. */
+object CodigoFlutuante {
+    private var vista: android.view.View? = null
+    private val ui = android.os.Handler(android.os.Looper.getMainLooper())
+
+    fun mostrar(ctx: Context) {
+        if (!Settings.canDrawOverlays(ctx)) return
+        ui.post {
+            if (vista != null) return@post
+            try {
+                val wm = ctx.getSystemService(android.view.WindowManager::class.java)
+                val caixa = android.widget.LinearLayout(ctx)
+                caixa.orientation = android.widget.LinearLayout.VERTICAL
+                val p = Ui.dp(ctx, 14)
+                caixa.setPadding(p, p, p, p)
+                caixa.background = Ui.forma(ctx, 0xF2101C30.toInt(), 18, T.verde)
+                val topo = android.widget.LinearLayout(ctx)
+                topo.addView(Ui.texto(ctx, "SerpyraToolkit · código de pareamento", 13.5f, T.texto, Ui.negrito), Ui.peso())
+                val x = Ui.texto(ctx, "  ✕  ", 16f, T.texto2, Ui.negrito)
+                x.setOnClickListener { fechar() }
+                topo.addView(x)
+                caixa.addView(topo)
+                val msg = Ui.texto(ctx, "Digite os 6 números que aparecem na tela e toque em Conectar.", 12f, T.texto2)
+                caixa.addView(msg)
+                val linha = android.widget.LinearLayout(ctx)
+                val et = android.widget.EditText(ctx)
+                et.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                et.hint = "000000"; et.textSize = 20f
+                et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
+                et.filters = arrayOf(android.text.InputFilter.LengthFilter(6))
+                linha.addView(et, Ui.peso())
+                val bt = Ui.chip(ctx, "Conectar", T.verde)
+                bt.isClickable = true
+                bt.setOnClickListener {
+                    val cod = et.text.toString().filter { it.isDigit() }
+                    if (cod.length != 6) { msg.text = "O código tem 6 números."; msg.setTextColor(T.amarelo); return@setOnClickListener }
+                    msg.text = "Conectando…"; msg.setTextColor(T.azul); bt.isEnabled = false
+                    Thread {
+                        val ok = Interno.parear(ctx.applicationContext, cod)
+                        ui.post {
+                            if (ok) { msg.text = "Pronto! Modo completo ativado."; msg.setTextColor(T.verde); ui.postDelayed({ fechar(); try { ctx.startActivity(Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)) } catch (e: Exception) { } }, 1500) }
+                            else { msg.text = "Não deu certo. Confira se a janela do código ainda está aberta (o código muda a cada vez) e tente de novo."; msg.setTextColor(T.vermelho); bt.isEnabled = true; et.setText("") }
+                        }
+                    }.start()
+                }
+                linha.addView(bt)
+                caixa.addView(linha)
+                val lp = android.view.WindowManager.LayoutParams(
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT, android.view.WindowManager.LayoutParams.WRAP_CONTENT,
+                    android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or android.view.WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                    android.graphics.PixelFormat.TRANSLUCENT)
+                lp.gravity = android.view.Gravity.TOP
+                lp.y = Ui.dp(ctx, 40)
+                lp.softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+                wm.addView(caixa, lp)
+                vista = caixa
+            } catch (e: Exception) { Relatorio.falha("modo completo: caixinha", e) }
+        }
+    }
+
+    fun fechar() {
+        ui.post {
+            val v = vista ?: return@post
+            try { v.context.getSystemService(android.view.WindowManager::class.java).removeView(v) } catch (e: Exception) { }
+            vista = null
+        }
     }
 }

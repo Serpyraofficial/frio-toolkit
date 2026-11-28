@@ -1,3 +1,3 @@
-- Correção: o app volta a instalar normalmente em todos os celulares
-- Modo completo sem instalar nada: ative em 3 passos rápidos, digitando o código direto na notificação (Android 11 ou mais novo)
-- Depois de reiniciar o celular, o app se reconecta sozinho quando estiver no Wi-Fi
+- Modo completo: agora aparece uma caixinha por cima das Configurações para você digitar o código de pareamento
+- Passo a passo certo para Xiaomi, Redmi e POCO (ligar a Depuração USB antes da Depuração sem fio)
+- O app confere se as notificações dele estão ligadas antes de começar
