@@ -432,3 +432,33 @@ class AtalhoWidget : AppWidgetProvider() {
         }
     }
 }
+
+// ============================================================
+// Convite discreto para avaliar no site (de vez em quando, nunca insistente)
+// ============================================================
+object Avaliar {
+    const val LINK = "https://serpyratoolkit.pages.dev/#avaliacoes"
+    private const val DIA = 86_400_000L
+
+    fun abrir(ctx: Context) {
+        Store.putBool("avaliou", true)
+        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LINK)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+    }
+
+    /** Mostra o convite? So depois de uns dias de uso, no maximo 3 vezes, com 20 dias entre uma e outra. */
+    fun mostrar(): Boolean {
+        val agora = System.currentTimeMillis()
+        val inicio = Store.str("inst_em").toLongOrNull() ?: run { Store.putStr("inst_em", agora.toString()); return false }
+        if (Store.bool("avaliou", false) || Store.int("aval_vezes", 0) >= 3) return false
+        if (agora - inicio < 4 * DIA) return false
+        val usou = Store.lerArr("sessoes.json").length() >= 2 || Store.int("nota_fps", -1) >= 0
+        if (!usou) return false
+        val ult = Store.str("aval_fechou").toLongOrNull() ?: 0L
+        return agora - ult >= 20 * DIA
+    }
+
+    fun fechar() {
+        Store.putStr("aval_fechou", System.currentTimeMillis().toString())
+        Store.putInt("aval_vezes", Store.int("aval_vezes", 0) + 1)
+    }
+}

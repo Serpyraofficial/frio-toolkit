@@ -1,5 +1,9 @@
 # Onde parou, 28/11/2026
 
+**Ramo wip-5.22 (NÃO lançar até o dono pedir):** juntando mudanças do app para lançar de uma vez. Já tem: convite discreto para avaliar no site (Avaliar em Novos.kt; card na tela inicial depois de 4 dias de uso, no máximo 3 vezes, 20 dias entre elas) e item Manutenção > Avaliar o app. No lançamento: subir versionCode/versionName, revisar NOVIDADES.txt, fazer merge em android-app.
+
+**5.21 PUBLICADA em 28/11** (caixinha flutuante do código de pareamento, passo a passo Xiaomi/POCO). Avaliações no site e resumo por e-mail a cada 15 dias já no ar (servidor e site).
+
 **5.20 PUBLICADA em 28/11**: tirou o serviço de Acessibilidade (o Play Protect do Brasil BLOQUEIA a instalação de APK de fora da loja que declara Acessibilidade, leitura de SMS ou de notificações). NUNCA declarar esses serviços. O modo completo agora é só o passo a passo com o código na notificação.
 
 **5.19 PUBLICADA em 28/11** (modo completo sem Shizuku: Interno.kt, Automacao.kt, ServidorEntrada.kt; sem teste em celular real; falhas vão para Erros como 'modo completo: <etapa>' com o texto da tela). Próximo: corrigir pelo que aparecer em Erros e depois o espanhol.

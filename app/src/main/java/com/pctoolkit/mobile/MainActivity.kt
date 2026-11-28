@@ -589,6 +589,23 @@ class MainActivity : Activity() {
         if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "SerpyraToolkit Pro", "Botões no jogo, Tuner, mira e Modo Frio · teste grátis", "Testar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
         else if (Licenca.diasRestantes() <= 3) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Seu Pro vence em ${Licenca.diasRestantes()} dia(s)", "Renove para não perder as funções", "Renovar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
 
+        // convite discreto para avaliar no site
+        if (Avaliar.mostrar()) {
+            val av = Ui.horizontal(this)
+            av.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 6), Ui.dp(this, 10))
+            av.background = Ui.clicavel(this, Ui.forma(this, T.surface, 16, T.outline), 16)
+            av.addView(Ui.texto(this, "★  Gostando do app? Conte o que achou no site.", 13f, T.texto2), Ui.peso())
+            val bt = Ui.texto(this, "Avaliar", 13f, T.amarelo, Ui.negrito)
+            bt.setPadding(Ui.dp(this, 8), 0, Ui.dp(this, 4), 0)
+            av.addView(bt)
+            val x = Ui.texto(this, "  ✕  ", 14f, T.texto3, Ui.negrito)
+            x.setOnClickListener { Avaliar.fechar(); mostrar() }
+            av.addView(x)
+            av.isClickable = true
+            av.setOnClickListener { Avaliar.abrir(this); mostrar() }
+            col.addView(av, Ui.linhaLp(this, 14, 0))
+        }
+
         // ferramentas
         col.addView(Ui.secao(this, "Ferramentas"))
         val cats = Menus.categorias()

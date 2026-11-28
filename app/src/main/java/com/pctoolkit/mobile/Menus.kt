@@ -117,6 +117,7 @@ object Menus {
         Item("Avisos de venda no meu celular", if (Dono.ligado()) "Ligado: vendas e erros novos do app" else "Só para o dono do app", M, T.verde, acao = { Dono.executar(it) }),
         Item("Ajuda e contato", "Perguntas frequentes e falar com o suporte", M, T.azul, acao = { Suporte.executar(it) }),
         Item("Relatar um problema", "Mande uma mensagem direto para a gente", M, T.azul, "Novo", T.verde, acao = { Relatar.executar(it) }),
+        Item("Avaliar o app", "Dê sua nota e comente no site", M, T.amarelo, acao = { Avaliar.abrir(it.ctx); it.ok("Abrindo a página de avaliações") }),
         Item("Procurar atualização", "Versão nova do app, sem perder o Pro", M, T.verde, acao = { Atualizador.procurar(it) }),
         Item("Atualizar sozinho", "Liga ou desliga a atualização automática do app", M, T.verde, acao = { Atualizador.configurar(it) }),
         Item("Sobre", "Versão e níveis de acesso", M, T.cinza, acao = { Sistema.info(it) })

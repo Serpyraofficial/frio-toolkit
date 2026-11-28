@@ -1,3 +1,1 @@
-- Modo completo: agora aparece uma caixinha por cima das Configurações para você digitar o código de pareamento
-- Passo a passo certo para Xiaomi, Redmi e POCO (ligar a Depuração USB antes da Depuração sem fio)
-- O app confere se as notificações dele estão ligadas antes de começar
+- Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)
