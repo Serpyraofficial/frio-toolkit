@@ -3,7 +3,7 @@ name: Gerar APK
 on:
   push:
     branches: [ android-app ]
-    paths-ignore: [ 'site/**', 'servidor/**', '*.md' ]
+    paths-ignore: [ 'site/**', 'servidor/**', 'pc/**', '*.md' ]
   workflow_dispatch: {}
 
 permissions:

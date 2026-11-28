@@ -1,0 +1,56 @@
+name: Gerar PC
+
+on:
+  push:
+    branches: [ wip-pc, android-app ]
+    paths: [ 'pc/**', '.github/workflows/pc.yml' ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar o script do PC-Toolkit
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force pc/app/gerado | Out-Null
+          python pc/ferramentas/preparar.py pc/script/PC-Toolkit.ps1 pc/app/gerado/toolkit.ps1
+
+      - name: Conferir o PowerShell (erros de sintaxe)
+        shell: powershell
+        run: |
+          $erros = $null
+          foreach ($f in @('pc/app/gerado/toolkit.ps1', 'pc/script/app.ps1')) {
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$null, [ref]$erros)
+            if ($erros.Count -gt 0) { $erros | ForEach-Object { Write-Host "$f : $($_.Extent.StartLineNumber): $($_.Message)" }; exit 1 }
+          }
+          Write-Host "PowerShell ok"
+
+      - name: Compilar
+        shell: pwsh
+        run: dotnet build pc/app/SerpyraPC.csproj -c Release -o saida -nologo
+
+      - name: Publicar o .exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force pc/dist | Out-Null
+          Remove-Item pc/dist/* -Force -ErrorAction SilentlyContinue
+          Copy-Item saida/SerpyraToolkit.exe pc/dist/SerpyraToolkit-PC.exe
+          $h = (Get-FileHash pc/dist/SerpyraToolkit-PC.exe -Algorithm SHA256).Hash.ToLower()
+          $t = (Get-Item pc/dist/SerpyraToolkit-PC.exe).Length
+          @{ versao = '1.0'; sha256 = $h; tamanho = $t; arquivo = 'SerpyraToolkit-PC.exe' } | ConvertTo-Json | Set-Content pc/dist/versao.json -Encoding utf8
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add pc/dist
+          git commit -m "PC: .exe gerado [skip ci]" ; if ($LASTEXITCODE -ne 0) { exit 0 }
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}
