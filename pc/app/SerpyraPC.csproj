@@ -10,7 +10,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>icone.ico</ApplicationIcon>
     <StartupObject>SerpyraPC.Programa</StartupObject>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>SerpyraToolkit para PC</Product>
     <Company>SerpyraToolkit</Company>
     <Copyright>SerpyraToolkit</Copyright>

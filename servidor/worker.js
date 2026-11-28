@@ -337,6 +337,28 @@ async function liberarPresente(env, id, p, plano) {
   return p;
 }
 
+/* chave PCT de outro aparelho: libera este aparelho com a mesma validade (o prazo corre igual para todos) */
+async function usarChave(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const codigo = limpaCodigo(b.codigo);
+  if (!codigoValido(codigo)) return json({ erro: "Código do aparelho inválido." }, 400);
+  if (!(await limitar("usarchave:" + codigo, 10))) return json({ erro: "Muitas tentativas. Tente de novo em uma hora." }, 429);
+  const k = await conferirChave(b.chave);
+  if (!k) return json({ erro: "Chave inválida. Confira se copiou ela inteira." }, 400);
+  if (k.codigo === codigo) return json({ ok: true, chave: String(b.chave).trim(), validade: validadeTxt(k.dia) });
+  const orig = await lerJson(env, "chave:" + k.codigo);
+  if (orig && orig.revogada) return json({ erro: "Essa chave foi bloqueada." }, 410);
+  const ate = orig && orig.dia === k.dia && orig.ate ? orig.ate : 0;
+  if (ate && Date.now() > ate) return json({ erro: "Essa chave já venceu." }, 410);
+  if (k.dia < hoje()) return json({ erro: "Essa chave venceu em " + dataBr(k.dia) + "." }, 410);
+  const atual = await validadeAtual(env, codigo);
+  if (atual > k.dia) return json({ erro: "Este aparelho já tem o Pro até " + validadeTxt(atual) + ", mais do que esta chave." }, 409);
+  const chave = await assinarChave(env, codigo, k.dia);
+  await env.PCT.put("chave:" + codigo, JSON.stringify({ chave, dia: k.dia, ate: ate || undefined, origem: "compartilhada", de: k.codigo, email: orig && orig.email ? orig.email : undefined }));
+  if (orig) { orig.aparelhos = (orig.aparelhos || []).filter(x => x !== codigo).concat([codigo]).slice(-100); await env.PCT.put("chave:" + k.codigo, JSON.stringify(orig)); }
+  return json({ ok: true, chave, validade: ate ? "até " + horaBr(ate) : validadeTxt(k.dia), ate: ate || undefined });
+}
+
 async function resgatarPresente(req, env) {
   let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
   const codigo = limpaCodigo(b.codigo);
@@ -346,7 +368,18 @@ async function resgatarPresente(req, env) {
   const cfgD = (await lerJson(env, "config")) || {};
   const g = cfgD.donoChave && igual(v, cfgD.donoChave) ? null : await lerJson(env, "presente:" + v);
   if (!g) return json({ erro: "Código de presente não encontrado. Confira as letras." }, 404);
-  if (g.usado && g.usado !== codigo) return json({ erro: "Esse presente já foi usado em outro celular." }, 409);
+  // o mesmo código vale em outros aparelhos (celular e PC), com a mesma validade: o prazo corre igual para todos
+  if (g.usado && g.usado !== codigo) {
+    if (g.ate && Date.now() > g.ate) return json({ erro: "Esse código já venceu." }, 410);
+    if (!g.vitalicio && g.dia && g.dia < hoje()) return json({ erro: "Esse código venceu em " + dataBr(g.dia) + "." }, 410);
+    const atual = await validadeAtual(env, codigo);
+    if (atual > g.dia) return json({ erro: "Este aparelho já tem o Pro até " + validadeTxt(atual) + ", mais do que este código." }, 409);
+    const ch = await assinarChave(env, codigo, g.dia);
+    await env.PCT.put("chave:" + codigo, JSON.stringify({ chave: ch, dia: g.dia, ate: g.ate || undefined, origem: "compartilhada", de: v }));
+    g.aparelhos = (g.aparelhos || []).filter(x => x !== codigo).concat([codigo]).slice(-100);
+    await env.PCT.put("presente:" + v, JSON.stringify(g));
+    return json({ ok: true, chave: ch, validade: g.ate ? "até " + horaBr(g.ate) : validadeTxt(g.dia), ate: g.ate || undefined, compartilhado: true });
+  }
   if (!g.usado && !g.vitalicio) { const atual = await validadeAtual(env, codigo); if (atual >= hoje()) return json({ erro: "Você já tem o Pro ativo até " + validadeTxt(atual) + ". Use este código quando ele acabar: ele continua guardado para você." }, 409); }
   const ate = g.usado ? (g.ate || 0) : (g.horas && !g.vitalicio ? Date.now() + g.horas * 3600000 : 0);
   const dia = g.vitalicio ? DIA_VITALICIO : (g.usado ? g.dia : ate ? Math.floor(ate / DIA) : Math.max(hoje(), await validadeAtual(env, codigo)) + (g.dias || 30));
@@ -1359,6 +1392,7 @@ export default {
       if (m === "POST" && p === "/troca/confirmar") return await trocaConfirmar(req, env);
       if (m === "POST" && p === "/simular") return await simular(url, env);
       if (m === "POST" && p === "/presente") return await resgatarPresente(req, env);
+      if (m === "POST" && p === "/chave/usar") return await usarChave(req, env);
       if (m === "POST" && p === "/registrar") return await registrar(req, env);
       if (m === "GET" && p === "/aviso") return await avisoAtual(env);
       if (m === "GET" && p === "/promo") return await promoAtual(env);

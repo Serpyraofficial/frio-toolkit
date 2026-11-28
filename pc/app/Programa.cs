@@ -14,7 +14,7 @@ namespace SerpyraPC
 {
     public static class Programa
     {
-        public const string Versao = "1.0";
+        public const string Versao = "1.1";
 
         [STAThread]
         public static void Main(string[] args)
@@ -453,7 +453,7 @@ namespace SerpyraPC
         {
             var sp = new StackPanel();
             sp.Children.Add(T.Txt("Tem um código?", 18, T.Texto, FontWeights.Bold));
-            sp.Children.Add(T.Txt("Código de ativação do site (PRE…), presente, cortesia ou chave (PCT-…).", 14, T.Texto2));
+            sp.Children.Add(T.Txt("Chave do Pro (PCT-…), mesmo a do celular, ou código de presente e cortesia (PRE…).", 14, T.Texto2));
             var cod = T.Campo("Código"); cod.Margin = new Thickness(0, 12, 0, 0);
             var m = T.Txt("", 14, T.Texto2); m.Margin = new Thickness(0, 8, 0, 0);
             Button b = null;
@@ -465,7 +465,10 @@ namespace SerpyraPC
                 if (c.StartsWith("PCT-", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Licenca.Conferir(c) > 0) { Licenca.Guardar(c); Cabecalho(); Ir("pro"); return; }
-                    m.Text = "Essa chave não é deste PC. Chaves do celular não servem aqui: use \"Já tenho o Pro no celular\"."; m.Foreground = T.B(T.Vermelho);
+                    // chave de outro aparelho (celular ou outro PC): vale aqui com a mesma validade
+                    var r = await Servidor.Chamar("POST", "/chave/usar", new Dictionary<string, object> { ["codigo"] = Licenca.Codigo, ["chave"] = c });
+                    if (r.Ok && Licenca.Conferir(r.Str("chave")) > 0) { long.TryParse(r.Str("ate"), out var ate2); Licenca.Guardar(r.Str("chave"), ate2); Cabecalho(); Ir("pro"); return; }
+                    m.Text = r.Erro; m.Foreground = T.B(T.Vermelho);
                 }
                 else
                 {
@@ -485,7 +488,7 @@ namespace SerpyraPC
         {
             var sp = new StackPanel();
             sp.Children.Add(T.Txt("Assinar com Pix", 18, T.Texto, FontWeights.Bold));
-            sp.Children.Add(T.Txt("Sem cobrança automática: cada Pix libera os dias do plano. O mesmo Pro vale no celular: no app, use \"Trocou de celular?\" com este e-mail.", 14, T.Texto2));
+            sp.Children.Add(T.Txt("Sem cobrança automática: cada Pix libera os dias do plano. A chave chega no seu e-mail e vale também no celular: cole em \"Tem um código?\" no app.", 14, T.Texto2));
             var planos = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
             var carregando = T.Txt("Carregando os planos…", 14, T.Texto3); planos.Children.Add(carregando);
             var email = T.Campo("Seu e-mail");

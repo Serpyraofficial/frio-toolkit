@@ -209,6 +209,17 @@ object Compra {
         }
     }
 
+    /** Chave de outro aparelho: vale aqui com a mesma validade (o prazo corre igual para todos). */
+    fun usarChave(chave: String): Pair<Boolean, String> {
+        val (code, t) = try { http("POST", "/chave/usar", org.json.JSONObject().put("codigo", Licenca.codigo()).put("chave", Licenca.normalizar(chave) ?: chave.trim()).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
+        val o = try { org.json.JSONObject(t) } catch (e: Exception) { org.json.JSONObject() }
+        if (code != 200) return Pair(false, o.optString("erro", "Não deu certo."))
+        val nova = o.optString("chave"); val ate = o.optLong("ate", 0L)
+        if (ate > 0) { Store.putStr("lic_teste_chave", nova.trim()); Store.putStr("lic_teste_ate", ate.toString()); Store.putStr("lic_ate_tipo", "cortesia") }
+        val (ok, m) = Licenca.ativar(nova)
+        return Pair(ok, if (ok) "Chave ativada neste aparelho! Pro válido ${if (ate > 0) "" else "até "}${o.optString("validade")}." else m)
+    }
+
     /** Resgata um codigo de presente neste celular. */
     fun resgatar(voucher: String): Pair<Boolean, String> {
         val (code, t) = try { http("POST", "/presente", org.json.JSONObject().put("codigo", Licenca.codigo()).put("voucher", voucher).toString()) } catch (e: Exception) { return Pair(false, "Sem conexão. Tente de novo.") }
@@ -902,6 +913,12 @@ private fun MainActivity.usarCodigo(texto: String, msg: android.widget.TextView)
     val c = texto.trim().uppercase().replace(" ", "")
     when (Compra.tipoCodigo(c)) {
         "chave" -> {
+            if (Licenca.conferir(texto) == -2) {
+                // chave de outro aparelho (celular ou PC): o servidor libera este aparelho com a mesma validade
+                msg.text = "Conferindo a chave…"; msg.setTextColor(T.texto2)
+                Thread { val (ok, m) = Compra.usarChave(texto); runOnUiThread { msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho); if (ok) window.decorView.postDelayed({ mostrar() }, 1500) } }.start()
+                return
+            }
             val (ok, m) = Licenca.ativar(texto)
             msg.text = m; msg.setTextColor(if (ok) T.verde else T.vermelho)
             if (ok) { Thread { Compra.registrar() }.start(); window.decorView.postDelayed({ mostrar() }, 1200) }
