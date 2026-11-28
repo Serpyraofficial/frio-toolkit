@@ -1,8 +1,8 @@
 {
- "versionCode": 79,
- "versionName": "5.17",
- "notas": "- Códigos de cortesia por hora (1, 3, 6 ou 12 horas) funcionam e mostram o horário certo do fim\n- Melhorias no envio de relatórios de erro para corrigirmos mais rápido",
- "sha256": "a9546f49ff39fd97dba175e10ed62ef34fc799a0f0ca529f908a6fd21ad61285",
- "tamanho": 1332853,
- "arquivo": "SerpyraToolkit-5.17-a9546f49ff.apk"
+ "versionCode": 80,
+ "versionName": "5.18",
+ "notas": "- Preparar e jogar: memória, limpeza e Modo Jogo com um toque (também no widget da tela inicial)\n- Botão do Modo Jogo nas Configurações rápidas e widget com Modo Jogo, Preparar e Raio-X\n- Calculadora de sensibilidade para o Free Fire, feita para a sua tela\n- Compare a sua nota com celulares iguais ao seu e compartilhe o resultado\n- Relatar um problema direto pelo app\n- Novos planos do Pro: a partir de R$ 4,90, plano anual e plano Família (3 celulares)\n- Resumo da sua semana de jogos",
+ "sha256": "5ee8ac9246cac18ee3477930ad302e795493d9ce4ecb9a6be00c6a36cb50e7fb",
+ "tamanho": 1350621,
+ "arquivo": "SerpyraToolkit-5.18-5ee8ac9246.apk"
 }
