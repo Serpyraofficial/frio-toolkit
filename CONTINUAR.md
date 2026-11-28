@@ -76,3 +76,9 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 - Celular do topo do site = tela inicial nova do app (Main.dc.html, escalada com .app-mini --k).
 - Branch wip-site já mesclada em android-app.
 - Pendente: o texto da ajuda (suporte.html) ainda fala em Shizuku para os botões; o app 5.22 segue só no beta.
+
+## 2026-11-28 (tarde): painel novo, erros com print, D1 ligado
+- CLOUDFLARE_API_TOKEN criado (pelo dono) e guardado no GitHub: servidor publica sozinho pelo workflow "Publicar servidor"; D1 "serpyra-dados" (5e6a8e15-…) ligado.
+- Servidor: /erro aceita print (KV print:<id>, 60 dias), tela, rastro, extra; e-mail na hora (1/h por erro, 20/h total, desliga em config.emailErro); com D1 grava cada ocorrência na tabela erros. /print?id= público (id aleatório de 20). /site público; /admin/site, /admin/config, /admin/relatorio(s), /admin/saude; avaliações com resposta e fixada. Relatório automático (config.relatorioDias, padrão 15) salvo em relatorio:<id> e índice "relatorios".
+- Painel: visual Y2K, abas Relatórios e Site, prints com lupa, CSV de vendas. Site lê /site (aviso, faixa, destaque, seção de avaliações).
+- App wip-5.22 (versionCode 85, também no beta): Relatorio tira print só da tela do app (EditText, e-mails e chaves cobertos), rastro das telas, manda na hora; Manutenção > Print da tela nos erros. Privacidade atualizada.
