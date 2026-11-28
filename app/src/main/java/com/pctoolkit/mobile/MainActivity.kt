@@ -122,9 +122,10 @@ class Console(private val act: MainActivity, private val tv: TextView, private v
             .setOnCancelListener { cb(emptyList()) }.show()
     }
 
-    fun texto(titulo: String, dica: String = "", padrao: String = ""): String? = naUi<String?>(null) { cb ->
+    fun texto(titulo: String, dica: String = "", padrao: String = "", secreto: Boolean = false): String? = naUi<String?>(null) { cb ->
         val et = EditText(act)
         et.setText(padrao); et.hint = dica
+        if (secreto) et.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         et.setTextColor(T.texto); et.setHintTextColor(T.texto3)
         val box = FrameLayout(act)
         box.setPadding(Ui.dp(act, 22), Ui.dp(act, 8), Ui.dp(act, 22), 0)
@@ -393,6 +394,10 @@ class MainActivity : Activity() {
             f.addView(sv)
         } else f.addView(conteudo)
         if (comAbas) {
+            // faixa escura atras da barra: o conteudo nao aparece por baixo dela
+            val sombra = View(this)
+            sombra.background = android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP, intArrayOf(T.bg, T.bg, 0x0007081A))
+            f.addView(sombra, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 120), Gravity.BOTTOM))
             val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 66), Gravity.BOTTOM)
             lp.setMargins(Ui.dp(this, 12), 0, Ui.dp(this, 12), Ui.dp(this, 12))
             f.addView(barraAbas(), lp)
@@ -419,10 +424,14 @@ class MainActivity : Activity() {
             val cor = if (id == abaAtual) T.verde else T.texto2
             val it = Ui.vertical(this)
             it.gravity = Gravity.CENTER
-            it.addView(Ui.icone(this, ic, cor, 22))
+            val icv = Ui.icone(this, ic, cor, 22)
+            it.addView(icv, LinearLayout.LayoutParams(Ui.dp(this, 24), Ui.dp(this, 24)).apply { gravity = Gravity.CENTER_HORIZONTAL })
             val t = Ui.texto(this, rot, 11.5f, cor, if (id == abaAtual) Ui.negrito else Ui.medio)
             t.setPadding(0, Ui.dp(this, 3), 0, 0)
-            it.addView(t)
+            t.gravity = Gravity.CENTER
+            t.maxLines = 1
+            t.ellipsize = android.text.TextUtils.TruncateAt.END
+            it.addView(t, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             it.background = Ui.clicavel(this, Ui.forma(this, 0x00000000, 18), 18)
             it.isClickable = true
             it.contentDescription = rot
@@ -544,7 +553,18 @@ class MainActivity : Activity() {
         val cab = Ui.horizontal(this)
         cab.addView(Ui.estrela(this, T.verde, 22))
         cab.addView(Ui.espaco(this, 8, 1))
-        cab.addView(Ui.tituloCromo(this, "SerpyraToolkit", 20f), Ui.peso())
+        val nome = Ui.tituloCromo(this, "SerpyraToolkit", 20f)
+        // entrada escondida da area do dono: segurar o nome por 2 segundos
+        nome.isLongClickable = true
+        nome.setOnTouchListener(object : View.OnTouchListener {
+            val h = android.os.Handler(android.os.Looper.getMainLooper())
+            val r = Runnable { executar("Área do dono") { Admin.executar(it) } }
+            override fun onTouch(v: View, e: android.view.MotionEvent): Boolean {
+                when (e.actionMasked) { android.view.MotionEvent.ACTION_DOWN -> h.postDelayed(r, 2000); android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> h.removeCallbacks(r) }
+                return true
+            }
+        })
+        cab.addView(nome, Ui.peso())
         val nivel = Acesso.nivel()
         val chip = if (Pro.ativo()) Ui.texto(this, "PRO", 17f, T.bg, Ui.pixel).also { it.background = Ui.forma(this, T.verde, 50); it.setPadding(Ui.dp(this, 10), Ui.dp(this, 1), Ui.dp(this, 10), Ui.dp(this, 1)) }
             else Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)

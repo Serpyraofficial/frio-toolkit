@@ -26,11 +26,12 @@ import java.net.URL
 
 /** Conversa simples com o servidor (sem travar a tela: chame fora da thread principal). */
 object Servidor {
-    fun http(metodo: String, rota: String, corpo: String?, admin: String? = null): Pair<Int, String> {
+    fun http(metodo: String, rota: String, corpo: String?, admin: String? = null, dono: String? = null): Pair<Int, String> {
         val c = URL(Vendedor.SERVIDOR + rota).openConnection() as HttpURLConnection
         c.requestMethod = metodo; c.connectTimeout = 12000; c.readTimeout = 15000
         c.setRequestProperty("content-type", "application/json")
         if (admin != null) c.setRequestProperty("x-admin", admin)
+        if (dono != null) c.setRequestProperty("x-dono", dono)
         if (corpo != null) { c.doOutput = true; c.outputStream.use { it.write(corpo.toByteArray()) } }
         val code = c.responseCode
         val t = try { (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: "" } catch (e: Exception) { "" }
@@ -336,7 +337,8 @@ object Dono {
         val tok = Store.str("dono_token"); if (tok.isEmpty()) return 0
         val desde = Store.str("dono_desde").toLongOrNull() ?: System.currentTimeMillis()
         return try {
-            val (code, t) = Servidor.http("GET", "/admin/novas?desde=$desde", null, tok)
+            val (code, t) = if (tok == "passe") Servidor.http("GET", "/dono/novas?desde=$desde&codigo=${Licenca.codigo()}", null, null, Store.str("dono_passe"))
+                else Servidor.http("GET", "/admin/novas?desde=$desde", null, tok)
             if (code == 401) { notificar(ctx, 7600, "Aviso de venda desligado", "O token do painel mudou. Ligue de novo em Manutenção > Avisos de venda.", null); Store.putStr("dono_token", ""); return 0 }
             if (code != 200) return 0
             val o = JSONObject(t)
@@ -384,10 +386,10 @@ object Dono {
             }
             return
         }
-        val tok = con.texto("Token do painel", "O mesmo que você usa para entrar em serpyratoolkit.pages.dev/painel") ?: return
+        val tok = Admin.token().ifEmpty { con.texto("Token do painel", "O mesmo que você usa para entrar em serpyratoolkit.pages.dev/painel", secreto = true) ?: return }
         if (tok.isBlank()) return
         con.linha("Conferindo o token…", T.texto2)
-        val (code, t) = try { Servidor.http("GET", "/admin/novas?desde=0", null, tok.trim()) } catch (e: Exception) { Pair(0, "") }
+        val (code, t) = try { if (tok == "passe") Servidor.http("GET", "/dono/novas?desde=0&codigo=${Licenca.codigo()}", null, null, Store.str("dono_passe")) else Servidor.http("GET", "/admin/novas?desde=0", null, tok.trim()) } catch (e: Exception) { Pair(0, "") }
         if (code == 401) { con.erro("Token errado. Confira e tente de novo."); return }
         if (code != 200) { con.erro("Sem conexão com o servidor. Tente de novo."); return }
         Store.putStr("dono_token", tok.trim())
@@ -396,6 +398,45 @@ object Dono {
         if (!Acesso.notificacoes()) con.garantirNome("Notificações")
         con.ok("Pronto! A cada venda chega uma notificação aqui (em até 15 minutos).")
         con.info("Dica: deixe o SerpyraToolkit sem restrição de bateria para o aviso não atrasar.")
+    }
+}
+
+/** Area do dono: so aparece depois de digitar o token do painel neste celular (segurar o nome no topo do Inicio). */
+object Admin {
+    /** Token do painel (se o dono digitou) ou "passe" (entrou com a chave do dono). */
+    fun token() = Store.str("admin_token").ifEmpty { Store.str("dono_token").takeIf { it != "passe" } ?: "" }.ifEmpty { if (Store.str("dono_passe").isNotEmpty()) "passe" else "" }
+    fun ativo() = token().isNotEmpty()
+
+    fun executar(con: Console) {
+        con.titulo("Área do dono")
+        if (!ativo()) {
+            con.linha("Só para o dono do app. Digite a chave do dono (ou o token do painel). Fica guardado só neste celular.", T.texto2)
+            val tok = (con.texto("Chave do dono", "Chave do dono", secreto = true) ?: return).trim()
+            if (tok.isEmpty()) return
+            con.linha("Conferindo…", T.texto2)
+            val (c1, t1) = try { Servidor.http("POST", "/dono/entrar", JSONObject().put("chave", tok).put("codigo", Licenca.codigo()).toString()) } catch (e: Exception) { Pair(0, "") }
+            if (c1 == 200) {
+                Store.putStr("dono_passe", try { JSONObject(t1).optString("passe") } catch (e: Exception) { "" })
+            } else {
+                val (code, _) = try { Servidor.http("GET", "/admin/saude", null, tok) } catch (e: Exception) { Pair(0, "") }
+                if (code == 401) { con.aviso(if (c1 == 429) "Muitas tentativas. Tente de novo mais tarde." else "Chave errada."); return }
+                if (code != 200) { con.aviso("Sem conexão com o servidor. Tente de novo."); return }
+                Store.putStr("admin_token", tok)
+            }
+            con.ok("Pronto: este celular é do dono. A Área do dono aparece em Ferramentas > Manutenção.")
+        }
+        when (con.escolher("O que fazer?", listOf(
+            "Avisos de venda e erros neste celular" + if (Dono.ligado()) " (ligado)" else "",
+            "Print da tela nos erros (deste celular)" + if (Relatorio.printLigado()) " (ligado)" else " (desligado)",
+            "Abrir o painel",
+            "Sair da área do dono neste celular"))) {
+            0 -> Dono.executar(con)
+            1 -> Relatorio.configurar(con)
+            2 -> { try { con.ctx.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://serpyratoolkit.pages.dev/painel")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }; con.ok("Abrindo o painel") }
+            3 -> if (con.ask("Sair da área do dono? Os avisos de venda neste celular também param.", "Sair", "Cancelar")) {
+                Store.putStr("admin_token", ""); Store.putStr("dono_token", ""); Store.putStr("dono_passe", ""); Dono.agendar(con.ctx); con.ok("Pronto: a área do dono sumiu deste celular.")
+            }
+        }
     }
 }
 
