@@ -225,6 +225,7 @@ object ModoCompleto {
     }
 
     private fun falhou(etapa: String) {
+        Uso.modoCompleto(false, etapa)
         Relatorio.falha("modo completo: " + etapa, Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE + " · tela: " + Robo.textosNaTela().take(12).joinToString(" | ").take(140))
     }
 
@@ -261,6 +262,7 @@ object ModoCompleto {
         while (System.currentTimeMillis() < fim && !con.cancelado) { if (Interno.pronto()) break; con.sleep(1000) }
         CodigoFlutuante.fechar()
         if (Interno.pronto()) {
+            Uso.modoCompleto(true, "")
             try { ctx.getSystemService(android.app.NotificationManager::class.java).cancel(Interno.NOTIF) } catch (e: Exception) { }
             con.ok("Modo completo ativado! O app agora faz tudo sozinho, sem o Shizuku.")
             return true

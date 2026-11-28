@@ -432,3 +432,96 @@ class AtalhoWidget : AppWidgetProvider() {
         }
     }
 }
+
+// ============================================================
+// Convite discreto para avaliar no site (de vez em quando, nunca insistente)
+// ============================================================
+object Avaliar {
+    const val LINK = "https://serpyratoolkit.pages.dev/#avaliacoes"
+    private const val DIA = 86_400_000L
+
+    fun abrir(ctx: Context) {
+        Store.putBool("avaliou", true)
+        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LINK)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+    }
+
+    /** Mostra o convite? So depois de uns dias de uso, no maximo 3 vezes, com 20 dias entre uma e outra. */
+    fun mostrar(): Boolean {
+        val agora = System.currentTimeMillis()
+        val inicio = Store.str("inst_em").toLongOrNull() ?: run { Store.putStr("inst_em", agora.toString()); return false }
+        if (Store.bool("avaliou", false) || Store.int("aval_vezes", 0) >= 3) return false
+        if (agora - inicio < 4 * DIA) return false
+        val usou = Store.lerArr("sessoes.json").length() >= 2 || Store.int("nota_fps", -1) >= 0
+        if (!usou) return false
+        val ult = Store.str("aval_fechou").toLongOrNull() ?: 0L
+        return agora - ult >= 20 * DIA
+    }
+
+    fun fechar() {
+        Store.putStr("aval_fechou", System.currentTimeMillis().toString())
+        Store.putInt("aval_vezes", Store.int("aval_vezes", 0) + 1)
+    }
+}
+
+/** Contagens anonimas para o painel: quantos abriram o app no dia e como foi a ativacao do modo completo. */
+object Uso {
+    private fun mandar(o: JSONObject) {
+        if (!Vendedor.automatico()) return
+        Thread { try { Servidor.http("POST", "/evento", o.put("codigo", Licenca.codigo()).toString()) } catch (e: Exception) { } }.start()
+    }
+    fun abriu() {
+        val hoje = (System.currentTimeMillis() / 86_400_000L).toString()
+        if (Store.str("uso_dia") == hoje) return
+        Store.putStr("uso_dia", hoje)
+        mandar(JSONObject().put("tipo", "abriu").put("pro", Pro.ativo()))
+    }
+    fun modoCompleto(ok: Boolean, etapa: String) = mandar(JSONObject().put("tipo", "mc").put("ok", ok).put("marca", Build.MANUFACTURER).put("etapa", etapa))
+}
+
+/** Canal de testes: recebe as versoes novas antes de todo mundo (ramo "beta" do GitHub). */
+object Testes {
+    const val RAW = "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/beta/"
+    fun ligado() = Store.bool("canal_beta", false)
+
+    fun configurar(con: Console) {
+        con.titulo("Versões de teste")
+        if (ligado()) {
+            con.linha("Você está recebendo as versões de teste. Obrigado por ajudar!", T.verde)
+            if (con.ask("Voltar para as versões normais? (a próxima versão normal entra por cima quando sair)", "Voltar ao normal", "Continuar testando", importante = true)) {
+                Store.putBool("canal_beta", false); con.ok("Pronto: você volta a receber só as versões normais.")
+            }
+            return
+        }
+        con.linha("Quem testa recebe as novidades antes de todo mundo. Em troca, a versão pode ter algum erro: se acontecer, use Relatar um problema.", T.texto2)
+        if (con.ask("Quer receber as versões de teste?", "Quero testar", "Agora não", importante = true)) {
+            Store.putBool("canal_beta", true)
+            con.ok("Ativado. Quando sair uma versão de teste, o app avisa como sempre.")
+            Thread { try { Atualizador.verificar() } catch (e: Exception) { } }.start()
+        }
+    }
+}
+
+/** Botoes prontos que outros jogadores publicaram para cada jogo. */
+object Comunidade {
+    class Pacote(val id: String, val nome: String, val autor: String, val n: Int, val baixados: Int)
+
+    fun listar(pkg: String): List<Pacote>? = try {
+        val (code, t) = Servidor.http("GET", "/botoes?jogo=" + Uri.encode(pkg), null)
+        if (code != 200) null else {
+            val a = JSONObject(t).optJSONArray("botoes")
+            if (a == null) emptyList() else (0 until a.length()).map { val o = a.getJSONObject(it); Pacote(o.optString("id"), o.optString("nome"), o.optString("autor"), o.optInt("n"), o.optInt("baixados")) }
+        }
+    } catch (e: Exception) { null }
+
+    fun baixar(id: String): String? = try {
+        val (code, t) = Servidor.http("GET", "/botoes/um?id=" + Uri.encode(id), null)
+        if (code == 200) JSONObject(t).optString("codigo").takeIf { it.isNotBlank() } else null
+    } catch (e: Exception) { null }
+
+    /** Devolve null se deu certo, ou a mensagem de erro. */
+    fun publicar(pkg: String, jogo: String, nome: String, autor: String, codigo: String, n: Int): String? = try {
+        val (code, t) = Servidor.http("POST", "/botoes", JSONObject().put("celular", Licenca.codigo()).put("pkg", pkg).put("jogo", jogo).put("nome", nome)
+            .put("autor", autor).put("botoes", codigo).put("n", n).toString())
+        if (code == 200) null else (try { JSONObject(t).optString("erro") } catch (e: Exception) { "" }).ifEmpty { "Sem conexão. Tente de novo." }
+    } catch (e: Exception) { "Sem conexão. Tente de novo." }
+}

@@ -224,6 +224,7 @@ class MainActivity : Activity() {
         Thread {
             Relatorio.enviar()
             Integridade.conferir()
+            Uso.abriu()
             if (!Priv.permitido()) try { if (Interno.religar(applicationContext)) runOnUiThread { atualizarInicio() } } catch (e: Throwable) { }
             try { Mensagens.conferir(applicationContext) } catch (e: Throwable) { }
             if (Promo.atualizar()) runOnUiThread { atualizarInicio() }
@@ -334,6 +335,7 @@ class MainActivity : Activity() {
         super.onResume()
         Atualizador.visivel = true
         Atualizador.tela = java.lang.ref.WeakReference(this)
+        Relatorio.tela = java.lang.ref.WeakReference(this)
         if (Modo.definido()) Atualizador.aoAbrir(this)
         voltaLatch?.countDown()
         if (!naTarefa && pilha.isNotEmpty()) mostrar()
@@ -366,7 +368,7 @@ class MainActivity : Activity() {
 
     private fun voltar() {
         if (naTarefa) { mostrar(); return }
-        if (pilha.size > 1) { pilha.removeAt(pilha.size - 1); mostrar() } else finish()
+        if (pilha.size > 1) { pilha.removeAt(pilha.size - 1); mostrar() } else if (abaAtual != "inicio") irAba("inicio") else finish()
     }
 
     @Deprecated("Deprecated in Java")
@@ -380,7 +382,9 @@ class MainActivity : Activity() {
 
     fun raiz(conteudo: View, rolar: Boolean = true): View {
         val f = FrameLayout(this)
-        f.setBackgroundColor(T.bg)
+        f.background = GradeFundo(this)
+        val comAbas = !naTarefa && pilha.size == 1
+        if (comAbas) conteudo.setPadding(conteudo.paddingLeft, conteudo.paddingTop, conteudo.paddingRight, conteudo.paddingBottom + Ui.dp(this, 92))
         if (rolar) {
             val sv = ScrollView(this)
             sv.isFillViewport = true
@@ -388,11 +392,95 @@ class MainActivity : Activity() {
             sv.addView(conteudo)
             f.addView(sv)
         } else f.addView(conteudo)
+        if (comAbas) {
+            val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 66), Gravity.BOTTOM)
+            lp.setMargins(Ui.dp(this, 12), 0, Ui.dp(this, 12), Ui.dp(this, 12))
+            f.addView(barraAbas(), lp)
+        }
         Ui.insets(f)
         return f
     }
 
+    // ---------------- abas (Inicio, Jogos, Ferramentas, Pro) ----------------
+    var abaAtual = "inicio"
+    fun irAba(a: String) {
+        abaAtual = a
+        Relatorio.passo(when (a) { "jogos" -> "Jogos"; "ferramentas" -> "Ferramentas"; "pro" -> "Pro"; else -> "Início" })
+        pilha.clear()
+        pilha.add(when (a) { "jogos" -> { { telaJogos() } }; "ferramentas" -> { { telaFerramentas() } }; "pro" -> { { telaPro() } }; else -> { { telaInicio() } } })
+        mostrar()
+    }
+
+    private fun barraAbas(): View {
+        val bar = Ui.horizontal(this)
+        bar.background = Ui.forma(this, T.surface2, 22, T.outline, 2)
+        bar.elevation = Ui.dpf(this, 8f)
+        for ((id, rot, ic) in listOf(Triple("inicio", "Início", R.drawable.ic_inicio), Triple("jogos", "Jogos", R.drawable.ic_jogo), Triple("ferramentas", "Ferramentas", R.drawable.ic_manutencao), Triple("pro", "Pro", R.drawable.ic_estrela))) {
+            val cor = if (id == abaAtual) T.verde else T.texto2
+            val it = Ui.vertical(this)
+            it.gravity = Gravity.CENTER
+            it.addView(Ui.icone(this, ic, cor, 22))
+            val t = Ui.texto(this, rot, 11.5f, cor, if (id == abaAtual) Ui.negrito else Ui.medio)
+            t.setPadding(0, Ui.dp(this, 3), 0, 0)
+            it.addView(t)
+            it.background = Ui.clicavel(this, Ui.forma(this, 0x00000000, 18), 18)
+            it.isClickable = true
+            it.contentDescription = rot
+            it.setOnClickListener { if (id != abaAtual || pilha.size > 1) irAba(id) }
+            bar.addView(it, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
+        }
+        return bar
+    }
+
+    private fun telaJogos() {
+        val col = coluna()
+        col.addView(Ui.tituloCromo(this, "Jogos", 26f))
+        col.addView(Ui.texto(this, "Tudo para a partida, num lugar só.", 13.5f, T.texto2))
+        CentralJogos.faixa(this)?.let { fx -> col.addView(Ui.secao(this, "Meus jogos")); col.addView(fx) }
+        col.addView(Ui.secao(this, "Para jogar"))
+        val itens = listOf(
+            Item("Preparar e jogar", "Memória, limpeza e Modo Jogo com um toque", R.drawable.ic_jogo, T.verde, acao = { Preparar.executar(it, null) }),
+            Item("Modo Jogo", "FPS e calor na tela, sem notificações atrapalhando", R.drawable.ic_jogo, T.verde, acao = { ModoJogo.executar(it) }),
+            Item("Teclado e controles", "Botões por cima do jogo, como num emulador", R.drawable.ic_jogo_teclado, T.lilas, acao = { TecladoJogo.iniciar(it) }),
+            Item("Mira na tela", "Mira fixa no centro para jogos de tiro", R.drawable.ic_fps_mira, T.vermelho, acao = { MiraTela.executar(it) }),
+            Item("Tuner de jogos", "Resolução, FPS e driver por jogo", R.drawable.ic_fps, T.azul, tela = { it.abrirTela { it.telaTuner() } }),
+            Item("Calculadora de sensibilidade", "Sensibilidade do Free Fire para a sua tela", R.drawable.ic_fps_mira, T.azul, acao = { Sensibilidade.executar(it) })
+        )
+        for (i in itens) col.addView(Ui.linhaMenu(this, i.icone, i.cor, i.titulo, i.desc, i.selo, i.corSelo) { abrirItem(i) })
+        setContentView(raiz(col))
+    }
+
+    private fun telaFerramentas() {
+        val col = coluna()
+        col.addView(Ui.tituloCromo(this, "Ferramentas", 26f))
+        col.addView(Ui.texto(this, "Desempenho, limpeza, rede, calor e segurança.", 13.5f, T.texto2))
+        col.addView(Ui.secao(this, "Tudo em sequência"))
+        col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } })
+        col.addView(Ui.secao(this, "Ferramentas"))
+        val fora = setOf("Tuner de jogos", "Teclado e controles", "Mira na tela", "SerpyraToolkit Pro")
+        val cats = Menus.categorias().filter { it.titulo !in fora }
+        var i = 0
+        while (i < cats.size) {
+            val linha = Ui.horizontal(this)
+            linha.gravity = Gravity.TOP
+            for (k in 0..1) {
+                if (k == 1) linha.addView(Ui.espaco(this, 10, 1))
+                val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                if (i + k < cats.size) { val it = cats[i + k]; linha.addView(Ui.bloco(this, it.icone, it.cor, it.titulo, it.desc) { abrirItem(it) }, lp) }
+                else linha.addView(View(this), lp)
+            }
+            col.addView(linha, Ui.linhaLp(this, 0, 10))
+            i += 2
+        }
+        val rod = Ui.texto(this, "Tudo o que o app muda pode ser desfeito.", 12f, T.texto3)
+        rod.gravity = Gravity.CENTER
+        rod.setPadding(0, Ui.dp(this, 14), 0, 0)
+        col.addView(rod, Ui.linhaLp(this))
+        setContentView(raiz(col))
+    }
+
     fun barraTopo(titulo: String, sub: String, podeVoltar: Boolean = true): View {
+        Relatorio.passo(titulo)
         val l = Ui.horizontal(this)
         l.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 14))
         if (podeVoltar) {
@@ -407,7 +495,7 @@ class MainActivity : Activity() {
             l.addView(Ui.espaco(this, 14, 1))
         }
         val col = Ui.vertical(this)
-        col.addView(Ui.texto(this, titulo, 21f, T.texto, Ui.negrito))
+        col.addView(Ui.tituloCromo(this, titulo, if (titulo.length > 16) 17f else 20f))
         if (sub.isNotEmpty()) col.addView(Ui.texto(this, sub, 13f, T.texto2))
         l.addView(col, Ui.peso())
         return l
@@ -450,20 +538,21 @@ class MainActivity : Activity() {
     }
 
     private fun telaInicio() {
+        Relatorio.passo("Início")
         val col = coluna()
-        // cabecalho
+        // cabecalho: estrela, nome cromado e selo do Pro / acesso
         val cab = Ui.horizontal(this)
-        val tcol = Ui.vertical(this)
-        tcol.addView(Ui.titulo1(this, "SerpyraToolkit"))
-        tcol.addView(Ui.texto(this, "Versão ${BuildConfig.VERSION_NAME}  ·  desempenho, jogos e segurança", 13f, T.texto2))
-        cab.addView(tcol, Ui.peso())
+        cab.addView(Ui.estrela(this, T.verde, 22))
+        cab.addView(Ui.espaco(this, 8, 1))
+        cab.addView(Ui.tituloCromo(this, "SerpyraToolkit", 20f), Ui.peso())
         val nivel = Acesso.nivel()
-        val chip = Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
+        val chip = if (Pro.ativo()) Ui.texto(this, "PRO", 17f, T.bg, Ui.pixel).also { it.background = Ui.forma(this, T.verde, 50); it.setPadding(Ui.dp(this, 10), Ui.dp(this, 1), Ui.dp(this, 10), Ui.dp(this, 1)) }
+            else Ui.chip(this, "Acesso: $nivel", if (nivel == "Padrão") T.azul else T.verde)
         chip.isClickable = true
-        chip.setOnClickListener { abrirTela { telaPermissoes() } }
+        chip.setOnClickListener { if (Pro.ativo()) irAba("pro") else abrirTela { telaPermissoes() } }
         cab.addView(chip)
         col.addView(cab)
-        col.addView(Ui.espaco(this, 1, 14))
+        col.addView(Ui.espaco(this, 1, 16))
 
         // faixa de promocao (o dono muda pelo painel)
         Promo.faixa(this)?.let { col.addView(it, Ui.linhaLp(this, 0, 14)) }
@@ -520,7 +609,7 @@ class MainActivity : Activity() {
         val nota = Store.int("nota_fps", -1)
         val hero = Ui.horizontal(this)
         hero.setPadding(Ui.dp(this, 18), Ui.dp(this, 18), Ui.dp(this, 18), Ui.dp(this, 18))
-        hero.background = Ui.clicavel(this, Ui.gradiente(this, 0xFF0F2A22.toInt(), 0xFF101C30.toInt(), 24), 24)
+        hero.background = Ui.clicavel(this, Ui.forma(this, T.surface2, 24, T.outline, 2), 24)
         val anel = Anel(this)
         anel.valor = nota
         anel.legenda = "de 100"
@@ -528,9 +617,9 @@ class MainActivity : Activity() {
         hero.addView(anel, LinearLayout.LayoutParams(Ui.dp(this, 92), Ui.dp(this, 92)))
         hero.addView(Ui.espaco(this, 16, 1))
         val hc = Ui.vertical(this)
-        hc.addView(Ui.texto(this, "Nota de desempenho", 12.5f, T.texto2, Ui.medio))
+        hc.addView(Ui.texto(this, "RAIO-X", 17f, T.lilas, Ui.pixel))
         val estado = when { nota < 0 -> "Ainda não avaliado"; nota >= 85 -> "Excelente"; nota >= 60 -> "Dá para melhorar"; else -> "Precisa de atenção" }
-        hc.addView(Ui.texto(this, estado, 19f, T.texto, Ui.negrito))
+        hc.addView(Ui.texto(this, estado, 18f, T.texto, Ui.negrito))
         val d = Ui.texto(this, "O Raio-X confere tudo que derruba o FPS e corrige com um toque.", 12.5f, T.texto2)
         d.setPadding(0, Ui.dp(this, 4), 0, Ui.dp(this, 10))
         hc.addView(d)
@@ -551,6 +640,44 @@ class MainActivity : Activity() {
         hero.isClickable = true
         hero.setOnClickListener { executar("Raio-X de desempenho") { RaioX.executar(it) } }
         col.addView(hero)
+
+        // botao grande: preparar e jogar
+        val prep = Ui.horizontal(this)
+        prep.setPadding(Ui.dp(this, 18), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16))
+        prep.background = Ui.clicavel(this, Ui.forma(this, T.azul, 22), 22)
+        val pc = Ui.vertical(this)
+        pc.addView(Ui.texto(this, "PREPARAR E JOGAR", 18f, T.bg, Ui.display))
+        val ult = Preparar.ultimoJogo()
+        pc.addView(Ui.texto(this, (if (ult != null) Jogos.nome(this, ult) + " · " else "") + "memória, limpeza e Modo Jogo", 13f, 0xFF1C1650.toInt(), Ui.medio))
+        prep.addView(pc, Ui.peso())
+        val play = Ui.texto(this, "▶", 18f, T.verde, Ui.negrito)
+        play.gravity = Gravity.CENTER
+        play.background = Ui.forma(this, T.bg, 50)
+        prep.addView(play, LinearLayout.LayoutParams(Ui.dp(this, 42), Ui.dp(this, 42)))
+        prep.isClickable = true
+        prep.setOnClickListener { executar("Preparar e jogar") { Preparar.executar(it, null) } }
+        col.addView(prep, Ui.linhaLp(this, 12, 0))
+
+        // acoes rapidas em "janelinhas"
+        col.addView(Ui.secao(this, "Ações rápidas"))
+        val rapidas = listOf(
+            Item("Modo Jogo", "FPS e calor na tela", R.drawable.ic_jogo, T.verde, acao = { ModoJogo.executar(it) }),
+            Item("Botões no jogo", "Como num emulador", R.drawable.ic_jogo_teclado, T.lilas, acao = { TecladoJogo.iniciar(it) }),
+            Item("Liberar memória", "Fecha o que pesa", R.drawable.ic_limpeza, T.azul, acao = { Fps.liberarRam(it) }),
+            Item("Tuner", "FPS e resolução por jogo", R.drawable.ic_fps, T.azul, tela = { it.abrirTela { it.telaTuner() } })
+        )
+        var q = 0
+        while (q < rapidas.size) {
+            val linha = Ui.horizontal(this)
+            linha.gravity = Gravity.TOP
+            for (k in 0..1) {
+                if (k == 1) linha.addView(Ui.espaco(this, 10, 1))
+                val r = rapidas[q + k]
+                linha.addView(Ui.bloco(this, r.icone, r.cor, r.titulo, r.desc) { abrirItem(r) }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            col.addView(linha, Ui.linhaLp(this, 0, 10))
+            q += 2
+        }
 
         // numeros
         col.addView(Ui.secao(this, "Agora"))
@@ -575,42 +702,27 @@ class MainActivity : Activity() {
             col.addView(fx)
         }
 
-        // acoes rapidas
-        col.addView(Ui.secao(this, "Ações rápidas"))
-        val ac = Ui.horizontal(this)
-        ac.addView(Ui.botao(this, "Modo Jogo", T.verde, true, R.drawable.ic_jogo) { executar("Modo Jogo") { ModoJogo.executar(it) } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        ac.addView(Ui.espaco(this, 10, 1))
-        ac.addView(Ui.botao(this, "Tuner", T.verde, false, R.drawable.ic_fps) { abrirTela { telaTuner() } }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        col.addView(ac)
-        col.addView(Ui.linhaMenu(this, R.drawable.ic_jogo, T.verde, "Preparar e jogar", "Memória, limpeza e Modo Jogo no último jogo, com um toque", "", T.verde) { executar("Preparar e jogar") { Preparar.executar(it, null) } }, Ui.linhaLp(this, 10, 0))
-        col.addView(Ui.linhaMenu(this, R.drawable.ic_assistente, T.verde, "Assistente", "Raio-X, limpeza, memória, segurança e rede em sequência", "", T.verde) { executar("Assistente") { Menus.assistente(it) } }, Ui.linhaLp(this, 10, 0))
-
         // assinatura
         if (!Pro.ativo()) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "SerpyraToolkit Pro", "Botões no jogo, Tuner, mira e Modo Frio · teste grátis", "Testar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
         else if (Licenca.diasRestantes() <= 3) col.addView(Ui.linhaMenu(this, R.drawable.ic_chave, T.amarelo, "Seu Pro vence em ${Licenca.diasRestantes()} dia(s)", "Renove para não perder as funções", "Renovar", T.amarelo) { abrirTela { telaPro() } }, Ui.linhaLp(this, 10, 0))
 
-        // ferramentas
-        col.addView(Ui.secao(this, "Ferramentas"))
-        val cats = Menus.categorias()
-        var i = 0
-        while (i < cats.size) {
-            val linha = Ui.horizontal(this)
-            linha.gravity = Gravity.TOP
-            for (k in 0..1) {
-                if (k == 1) linha.addView(Ui.espaco(this, 10, 1))
-                val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                if (i + k < cats.size) {
-                    val it = cats[i + k]
-                    linha.addView(Ui.bloco(this, it.icone, it.cor, it.titulo, it.desc) { abrirItem(it) }, lp)
-                } else linha.addView(View(this), lp)
-            }
-            col.addView(linha, Ui.linhaLp(this, 0, 10))
-            i += 2
+        // convite discreto para avaliar no site
+        if (Avaliar.mostrar()) {
+            val av = Ui.horizontal(this)
+            av.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 6), Ui.dp(this, 10))
+            av.background = Ui.clicavel(this, Ui.forma(this, T.surface, 16, T.outline), 16)
+            av.addView(Ui.texto(this, "★  Gostando do app? Conte o que achou no site.", 13f, T.texto2), Ui.peso())
+            val bt = Ui.texto(this, "Avaliar", 13f, T.amarelo, Ui.negrito)
+            bt.setPadding(Ui.dp(this, 8), 0, Ui.dp(this, 4), 0)
+            av.addView(bt)
+            val x = Ui.texto(this, "  ✕  ", 14f, T.texto3, Ui.negrito)
+            x.setOnClickListener { Avaliar.fechar(); mostrar() }
+            av.addView(x)
+            av.isClickable = true
+            av.setOnClickListener { Avaliar.abrir(this); mostrar() }
+            col.addView(av, Ui.linhaLp(this, 14, 0))
         }
-        val rod = Ui.texto(this, "Tudo o que o app muda pode ser desfeito.", 12f, T.texto3)
-        rod.gravity = Gravity.CENTER
-        rod.setPadding(0, Ui.dp(this, 14), 0, 0)
-        col.addView(rod, Ui.linhaLp(this))
+
         setContentView(raiz(col))
     }
 
@@ -777,6 +889,7 @@ class MainActivity : Activity() {
         col.addView(Ui.espaco(this, 1, 12))
         val con = Console(this, tv, sv)
         con.tarefa = titulo
+        Relatorio.passo("▶ $titulo")
         val barra = FrameLayout(this)
         val parar = Ui.botao(this, "Parar", T.vermelho, false) {
             con.cancelado = true

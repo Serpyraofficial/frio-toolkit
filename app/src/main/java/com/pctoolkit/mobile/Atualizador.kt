@@ -199,7 +199,7 @@ object Atualizador {
     fun verificar(): Info? {
         if (!Vendedor.automatico()) return null
         return try {
-            val c = URL(Vendedor.SERVIDOR.trimEnd('/') + "/versao?t=" + System.currentTimeMillis() / 60000).openConnection() as HttpURLConnection
+            val c = URL(if (Testes.ligado()) Testes.RAW + "apk/versao.json?t=" + System.currentTimeMillis() / 60000 else Vendedor.SERVIDOR.trimEnd('/') + "/versao?t=" + System.currentTimeMillis() / 60000).openConnection() as HttpURLConnection
             c.connectTimeout = 10000; c.readTimeout = 15000
             if (c.responseCode != 200) { c.disconnect(); return null }
             val o = org.json.JSONObject(c.inputStream.bufferedReader().readText()); c.disconnect()
@@ -370,11 +370,12 @@ object Atualizador {
     fun baixarRetomando(destino: File, i: Info, cancelado: () -> Boolean, progresso: (Int) -> Unit, novaTentativa: (Int) -> Unit = {}): Boolean {
         destino.delete()
         val servidor = Vendedor.SERVIDOR.trimEnd('/') + "/apk"
-        val direto = if (i.arquivo.isNotBlank()) "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/apk/" + i.arquivo else ""
+        val direto = if (i.arquivo.isNotBlank()) (if (Testes.ligado()) Testes.RAW else "https://raw.githubusercontent.com/Serpyraofficial/frio-toolkit/android-app/") + "apk/" + i.arquivo else ""
+        if (Testes.ligado() && direto.isEmpty()) return false
         for (tent in 1..5) {
             if (cancelado()) return false
             val ja = destino.length()
-            val url = when { ja > 0 && direto.isNotEmpty() -> direto; tent % 2 == 0 && direto.isNotEmpty() -> direto; else -> servidor }
+            val url = when { Testes.ligado() -> direto; ja > 0 && direto.isNotEmpty() -> direto; tent % 2 == 0 && direto.isNotEmpty() -> direto; else -> servidor }
             try {
                 val c = URL(url).openConnection() as HttpURLConnection
                 c.connectTimeout = 15000; c.readTimeout = 25000

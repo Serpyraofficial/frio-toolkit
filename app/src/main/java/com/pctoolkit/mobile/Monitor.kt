@@ -46,28 +46,128 @@ object Relatorio {
     private const val CHAVE = "relatorio_pendente"
     private var anterior: Thread.UncaughtExceptionHandler? = null
 
+    // tela aberta agora (para o print) e o caminho que a pessoa fez ate o erro
+    @Volatile var tela: java.lang.ref.WeakReference<android.app.Activity>? = null
+    private val rastro = ArrayDeque<String>()
+    @Volatile private var capturando = false
+
+    fun passo(s: String) {
+        val t = s.trim().take(60); if (t.isEmpty()) return
+        synchronized(rastro) { if (rastro.lastOrNull() == t) return; rastro.addLast(t); while (rastro.size > 12) rastro.removeFirst() }
+    }
+    private fun rastroAtual(): List<String> = synchronized(rastro) { rastro.toList() }
+
+    /** O dono do celular pode desligar o print nos ajustes. */
+    fun printLigado() = Store.bool("erro_print", true)
+
     /** Instala o "pegador" de travamentos. Chamado ao abrir o app. */
     fun instalar() {
         if (anterior != null) return
         anterior = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
-            try { guardar("crash", "travou (${t.name.take(20)})", e) } catch (x: Throwable) { }
+            try {
+                guardar("crash", "travou (${t.name.take(20)})", e)
+                // tenta mandar antes de o app fechar (no maximo 2,5 s)
+                val envio = Thread { try { enviar(true) } catch (x: Throwable) { } }
+                envio.start(); envio.join(2500)
+            } catch (x: Throwable) { }
             anterior?.uncaughtException(t, e)
         }
     }
 
-    fun falha(onde: String, e: Throwable) = guardar("falha", onde, e)
+    fun falha(onde: String, e: Throwable) { guardar("falha", onde, e); mandarJa() }
 
     fun falha(onde: String, msg: String) {
         val o = JSONObject().put("tipo", "falha").put("onde", onde.take(60)).put("msg", msg.take(200)).put("em", System.currentTimeMillis())
+        completar(o)
         adicionar(o)
+        mandarJa()
     }
+
+    private fun mandarJa() { Thread { try { enviar(true) } catch (e: Throwable) { } }.start() }
 
     private fun guardar(tipo: String, onde: String, e: Throwable) {
         val pilha = e.stackTrace.filter { it.className.startsWith("com.pctoolkit") }.take(6).joinToString("\n") { "${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}" }
         val o = JSONObject().put("tipo", tipo).put("onde", onde.take(60)).put("msg", (e.javaClass.simpleName + ": " + (e.message ?: "")).take(200))
             .put("pilha", pilha).put("em", System.currentTimeMillis())
+        completar(o)
         adicionar(o)
+    }
+
+    /** Junta a tela, o caminho, alguns dados do celular e o print. */
+    private fun completar(o: JSONObject) {
+        try {
+            val r = rastroAtual()
+            o.put("tela", r.lastOrNull() ?: "").put("rastro", JSONArray(r))
+            val ex = JSONObject()
+            try {
+                val am = PcApp.ctx.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                val mi = android.app.ActivityManager.MemoryInfo(); am.getMemoryInfo(mi)
+                ex.put("memoria", String.format(java.util.Locale("pt", "BR"), "%.1f de %.1f GB livres", mi.availMem / 1e9, mi.totalMem / 1e9))
+            } catch (x: Throwable) { }
+            try {
+                val bi = PcApp.ctx.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                val t = bi?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
+                val n = bi?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+                if (t > 0) ex.put("bateria", "${t / 10} °C" + if (n >= 0) " · $n%" else "")
+            } catch (x: Throwable) { }
+            try { ex.put("modoCompleto", if (Priv.permitido()) "ligado" else "desligado") } catch (x: Throwable) { }
+            try { ex.put("temPro", if (Licenca.ativo()) "sim" else "não") } catch (x: Throwable) { }
+            ex.put("rom", Build.DISPLAY.take(40))
+            o.put("extra", ex)
+            val arq = capturar()
+            if (arq.isNotEmpty()) o.put("printArq", arq)
+        } catch (x: Throwable) { }
+    }
+
+    private fun pastaPrints() = java.io.File(PcApp.ctx.cacheDir, "erro_prints").apply { mkdirs() }
+
+    /** Tira o print so da tela do proprio app (nao do jogo), escondendo campos de texto, e-mails e chaves. */
+    private fun capturar(): String {
+        if (!printLigado() || capturando) return ""
+        val a = tela?.get() ?: return ""
+        if (a.isFinishing) return ""
+        var b64 = ""
+        val fazer = {
+            capturando = true
+            try {
+                val raiz = a.window.decorView
+                val w = raiz.width; val h = raiz.height
+                if (w > 0 && h > 0) {
+                    val esc = 360f / w
+                    val bmp = android.graphics.Bitmap.createBitmap((w * esc).toInt(), (h * esc).toInt(), android.graphics.Bitmap.Config.RGB_565)
+                    val c = android.graphics.Canvas(bmp)
+                    c.scale(esc, esc)
+                    raiz.draw(c)
+                    val tinta = android.graphics.Paint().apply { color = T.surface2 }
+                    val rt = IntArray(2)
+                    val sens = Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+|[A-Za-z0-9+/=_-]{24,}")
+                    fun varrer(v: View) {
+                        if (v.visibility != View.VISIBLE) return
+                        val esconder = v is android.widget.EditText || (v is TextView && sens.containsMatchIn(v.text ?: ""))
+                        if (esconder && v.width > 0) { v.getLocationInWindow(rt); c.drawRect(rt[0].toFloat(), rt[1].toFloat(), (rt[0] + v.width).toFloat(), (rt[1] + v.height).toFloat(), tinta) }
+                        if (v is ViewGroup) for (i in 0 until v.childCount) varrer(v.getChildAt(i))
+                    }
+                    varrer(raiz)
+                    var q = 55
+                    var bytes: ByteArray
+                    do { val out = java.io.ByteArrayOutputStream(); bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, out); bytes = out.toByteArray(); q -= 15 } while (bytes.size > 110_000 && q > 15)
+                    bmp.recycle()
+                    val pasta = pastaPrints()
+                    pasta.listFiles()?.sortedBy { it.lastModified() }?.dropLast(4)?.forEach { it.delete() }
+                    val f = java.io.File(pasta, "${System.currentTimeMillis()}.b64")
+                    f.writeText(android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP))
+                    b64 = f.name
+                }
+            } catch (x: Throwable) { } finally { capturando = false }
+        }
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) fazer()
+        else {
+            val l = java.util.concurrent.CountDownLatch(1)
+            a.runOnUiThread { try { fazer() } finally { l.countDown() } }
+            try { l.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (x: Throwable) { }
+        }
+        return b64
     }
 
     @Synchronized
@@ -79,20 +179,46 @@ object Relatorio {
         PcApp.ctx.getSharedPreferences("config", Context.MODE_PRIVATE).edit().putString(CHAVE, a.toString()).commit()
     }
 
-    /** Manda o que estiver guardado (no maximo 1x a cada 10 min). */
-    fun enviar() {
+    /** Manda o que estiver guardado. Na hora do erro (imediato) espera so 20 s entre envios; ao abrir o app, 10 min. */
+    @Synchronized
+    fun enviar(imediato: Boolean = false) {
         if (!Vendedor.automatico()) return
         val txt = Store.str(CHAVE)
         if (txt.isEmpty() || txt == "[]") return
         val ult = Store.str("relatorio_em").toLongOrNull() ?: 0L
-        if (System.currentTimeMillis() - ult < 600_000L) return
+        if (System.currentTimeMillis() - ult < (if (imediato) 20_000L else 600_000L)) return
         Store.putStr("relatorio_em", System.currentTimeMillis().toString())
         try {
+            val lista = JSONArray(txt)
+            val usados = mutableListOf<java.io.File>()
+            var prints = 0
+            for (i in 0 until lista.length()) {
+                val o = lista.getJSONObject(i)
+                val nome = o.optString("printArq"); o.remove("printArq")
+                if (nome.isEmpty()) continue
+                val f = java.io.File(pastaPrints(), nome)
+                if (f.exists()) { if (prints < 2 && printLigado()) { o.put("print", f.readText()); prints++ }; usados.add(f) }
+            }
             val corpo = JSONObject().put("codigo", Licenca.codigo()).put("versao", BuildConfig.VERSION_NAME)
-                .put("modelo", (Build.MANUFACTURER + " " + Build.MODEL).take(40)).put("android", Build.VERSION.SDK_INT).put("erros", JSONArray(txt))
+                .put("modelo", (Build.MANUFACTURER + " " + Build.MODEL).take(40)).put("android", Build.VERSION.SDK_INT).put("erros", lista)
             val (code, _) = Servidor.http("POST", "/erro", corpo.toString())
-            if (code in 200..299) Store.putStr(CHAVE, "")
+            if (code in 200..299) { PcApp.ctx.getSharedPreferences("config", Context.MODE_PRIVATE).edit().putString(CHAVE, "").commit(); usados.forEach { it.delete() } }
         } catch (e: Exception) { }
+    }
+
+    /** Ajuste: mandar ou nao o print da tela junto com os erros. */
+    fun configurar(con: Console) {
+        con.titulo("Print da tela nos erros")
+        con.linha("Quando algo dá errado, o app manda para a gente o que aconteceu, para corrigir mais rápido. Junto vai um print da tela do próprio SerpyraToolkit (não do jogo nem de outros apps), com os campos de texto, e-mails e chaves cobertos.", T.texto2)
+        if (printLigado()) {
+            con.ok("Ligado: o print vai junto com os erros.")
+            if (con.ask("Desligar o print? Os erros continuam sendo avisados, só sem a imagem.", "Desligar o print", "Deixar ligado")) {
+                Store.putBool("erro_print", false); pastaPrints().listFiles()?.forEach { it.delete() }; con.ok("Desligado. Nenhum print será mandado.")
+            }
+        } else {
+            con.aviso("Desligado: os erros vão sem o print.")
+            if (con.ask("Ligar o print de novo?", "Ligar", "Deixar desligado")) { Store.putBool("erro_print", true); con.ok("Ligado.") }
+        }
     }
 
     /** Passos do funil de vendas (uma vez por dia por celular). */
