@@ -139,9 +139,10 @@ namespace SerpyraPC
         }
 
         /// <summary>Item de lista: titulo, descricao e selo Pro.</summary>
-        public static Button Item(string titulo, string sub, bool pro, bool temPro, Action acao)
+        public static Button Item(string titulo, string sub, bool pro, bool temPro, Action acao, string icone = null, Color? corIcone = null)
         {
             var g = new DockPanel();
+            if (icone != null) { var q = IconeQuadrado(icone, corIcone ?? Lilas, 42); q.Margin = new Thickness(0, 0, 14, 0); DockPanel.SetDock(q, Dock.Left); g.Children.Add(q); }
             if (pro && !temPro)
             {
                 var selo = new Border { Background = B(Verde), CornerRadius = new CornerRadius(99), Padding = new Thickness(8, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = "PRO", FontFamily = Pixel, FontSize = 16, Foreground = B(Bg) } };
@@ -171,6 +172,38 @@ namespace SerpyraPC
             tb.Tag = dica;
             return tb;
         }
+
+        // ---------- icones de linha (24x24), no mesmo estilo do app ----------
+        public static readonly System.Collections.Generic.Dictionary<string, string> Icones = new System.Collections.Generic.Dictionary<string, string>
+        {
+            ["inicio"] = "M3,11 L12,4 L21,11 L21,20 L3,20 Z",
+            ["jogo"] = "M7,7 L17,7 A4.5,4.5 0 0 1 21.4,12.4 L20.8,15.4 A2.6,2.6 0 0 1 16.3,16.6 L14.5,15 L9.5,15 L7.7,16.6 A2.6,2.6 0 0 1 3.2,15.4 L2.6,12.4 A4.5,4.5 0 0 1 7,7 Z M8,10 L8,13 M6.5,11.5 L9.5,11.5",
+            ["ferramenta"] = "M14.7,6.3 A4,4 0 0 0 9.3,11.7 L3.5,17.5 L6.5,20.5 L12.3,14.7 A4,4 0 0 0 17.7,9.3 L15.2,11.8 L12.2,8.8 Z",
+            ["escudo"] = "M12,3 L20,6 L20,11 C20,16 16.5,19.5 12,21 C7.5,19.5 4,16 4,11 L4,6 Z M9,12 L11,14 L15,10",
+            ["estrela"] = "M12,2 L14.5,9.5 L22,12 L14.5,14.5 L12,22 L9.5,14.5 L2,12 L9.5,9.5 Z",
+            ["raio"] = "M13,2 L4,14 L11,14 L10,22 L20,9 L13,9 Z",
+            ["vassoura"] = "M14,3 L21,10 M17.5,6.5 L9,15 M9,15 C6,15 4,17 3,21 C7,20 9,18 9,15 Z",
+            ["termometro"] = "M10,14 L10,4 A2,2 0 0 1 14,4 L14,14 A4,4 0 1 1 10,14 Z M12,9 L12,17",
+            ["wifi"] = "M2,9 A15,15 0 0 1 22,9 M5,12.5 A10,10 0 0 1 19,12.5 M8.5,16 A5,5 0 0 1 15.5,16 M12,19.5 L12,19.6",
+            ["fps"] = "M3.5,17 A8.5,8.5 0 1 1 20.5,17 M12,17 L16.5,10 M12,15.2 A1.8,1.8 0 1 0 12,18.8 A1.8,1.8 0 1 0 12,15.2",
+            ["sino"] = "M6,16 L6,11 A6,6 0 0 1 18,11 L18,16 L20,18 L4,18 Z M10,21 L14,21",
+            ["chat"] = "M21,15 A2,2 0 0 1 19,17 L7,17 L3,21 L3,5 A2,2 0 0 1 5,3 L19,3 A2,2 0 0 1 21,5 Z",
+            ["atualizar"] = "M20,11 A8,8 0 1 0 17.7,16.7 M20,4 L20,11 L13,11",
+            ["memoria"] = "M5,7 L19,7 L19,17 L5,17 Z M8,7 L8,4 M12,7 L12,4 M16,7 L16,4 M8,17 L8,20 M12,17 L12,20 M16,17 L16,20",
+            ["tela"] = "M3,5 L21,5 L21,16 L3,16 Z M9,20 L15,20 M12,16 L12,20",
+            ["voltar"] = "M15,5 L8,12 L15,19",
+            ["presente"] = "M20,12 L20,21 L4,21 L4,12 M2,7 L22,7 L22,12 L2,12 Z M12,21 L12,7",
+            ["olho"] = "M2,12 C5,6 19,6 22,12 C19,18 5,18 2,12 Z M12,9.5 A2.5,2.5 0 1 0 12,14.5 A2.5,2.5 0 1 0 12,9.5"
+        };
+
+        public static System.Windows.Shapes.Path Icone(string nome, Color cor, double tam = 22)
+        {
+            return new System.Windows.Shapes.Path { Data = Geometry.Parse(Icones.ContainsKey(nome) ? Icones[nome] : Icones["estrela"]), Stroke = B(cor), StrokeThickness = 1.9, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = tam, Height = tam, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Center };
+        }
+
+        /// <summary>Icone dentro de um quadrado arredondado (como no app).</summary>
+        public static Border IconeQuadrado(string nome, Color cor, double tam = 44)
+            => new Border { Width = tam, Height = tam, CornerRadius = new CornerRadius(tam * 0.3), Background = B(Color.FromArgb(0x26, cor.R, cor.G, cor.B)), BorderBrush = B(Color.FromArgb(0x55, cor.R, cor.G, cor.B)), BorderThickness = new Thickness(1), Child = Icone(nome, cor, tam * 0.5), VerticalAlignment = VerticalAlignment.Top };
 
         public static void AoEnter(TextBox tb, Action acao) => tb.KeyDown += (s, e) => { if (e.Key == Key.Enter) { acao(); e.Handled = true; } };
     }

@@ -62,7 +62,7 @@ jobs:
           Copy-Item saida/SerpyraToolkit.exe pc/dist/SerpyraToolkit-PC.exe
           $h = (Get-FileHash pc/dist/SerpyraToolkit-PC.exe -Algorithm SHA256).Hash.ToLower()
           $t = (Get-Item pc/dist/SerpyraToolkit-PC.exe).Length
-          @{ versao = '1.1'; sha256 = $h; tamanho = $t; arquivo = 'SerpyraToolkit-PC.exe' } | ConvertTo-Json | Set-Content pc/dist/versao.json -Encoding utf8
+          @{ versao = '2.0'; sha256 = $h; tamanho = $t; arquivo = 'SerpyraToolkit-PC.exe' } | ConvertTo-Json | Set-Content pc/dist/versao.json -Encoding utf8
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add pc/dist

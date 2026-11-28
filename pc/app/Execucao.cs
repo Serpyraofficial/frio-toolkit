@@ -17,7 +17,7 @@ namespace SerpyraPC
     /// </summary>
     public class Execucao : DockPanel
     {
-        readonly string acao, titulo;
+        readonly string acao, titulo, arg, arg2;
         readonly Action<int> aoTerminar;
         Process proc;
         readonly TextBlock saida = new TextBlock { TextWrapping = TextWrapping.Wrap, FontFamily = T.Mono, FontSize = 14, Foreground = T.B(T.Texto2), LineHeight = 21 };
@@ -33,9 +33,9 @@ namespace SerpyraPC
         string ultimaPergunta = "";
         static string pastaScripts;
 
-        public Execucao(string acao, string titulo, Action<int> aoTerminar)
+        public Execucao(string acao, string titulo, Action<int> aoTerminar, string arg = null, string arg2 = null)
         {
-            this.acao = acao; this.titulo = titulo; this.aoTerminar = aoTerminar;
+            this.acao = acao; this.titulo = titulo; this.aoTerminar = aoTerminar; this.arg = arg; this.arg2 = arg2;
             LastChildFill = true;
 
             // topo: titulo, status e botoes
@@ -65,7 +65,7 @@ namespace SerpyraPC
             linha.Children.Add(resposta);
             T.AoEnter(resposta, () => Responder(resposta.Text));
             pcol.Children.Add(linha);
-            pcol.Children.Add(rapidas);
+            pcol.Children.Add(new ScrollViewer { Content = rapidas, MaxHeight = 260, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
             caixaPergunta = T.Cartao(pcol, T.Azul, T.Surface2);
             caixaPergunta.Visibility = Visibility.Collapsed;
             DockPanel.SetDock(caixaPergunta, Dock.Bottom); Children.Add(caixaPergunta);
@@ -76,7 +76,7 @@ namespace SerpyraPC
             Children.Add(T.Janela(acao + ".exe", rolagem));
         }
 
-        static string PrepararScripts()
+        internal static string PrepararScripts()
         {
             if (pastaScripts != null) return pastaScripts;
             var p = Path.Combine(Licenca.Pasta, "script");
@@ -100,6 +100,8 @@ namespace SerpyraPC
                     UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                     StandardOutputEncoding = new UTF8Encoding(false), StandardErrorEncoding = new UTF8Encoding(false), WorkingDirectory = pasta
                 };
+                if (arg != null) si.EnvironmentVariables["SERPYRA_ARG"] = arg;
+                if (arg2 != null) si.EnvironmentVariables["SERPYRA_ARG2"] = arg2;
                 proc = new Process { StartInfo = si, EnableRaisingEvents = true };
                 proc.Exited += (s, e) => Dispatcher.BeginInvoke(new Action(Terminou));
                 proc.Start();
@@ -165,7 +167,8 @@ namespace SerpyraPC
                     if (fim < 0) break;
                     var marca = t.Substring(i + 2, fim - i - 2); // depois de ESC[
                     i = fim + 1;
-                    if (marca == "2J") { saida.Inlines.Clear(); }
+                    if (marca == "2J") { saida.Inlines.Clear(); inicioTela = textoTodo.Length; }
+                    else if (marca == "json") { int f3 = t.IndexOf("\u001b[/json]", i, StringComparison.Ordinal); i = f3 < 0 ? t.Length : f3 + 7; }
                     else if (marca.StartsWith("c:")) { var nome = marca.Substring(2); corAtual = nome.Length == 0 ? null : CorConsole(nome); }
                     else if (marca == "p")
                     {
@@ -228,17 +231,39 @@ namespace SerpyraPC
             rapidas.Children.Clear();
             var low = ultimaPergunta.ToLowerInvariant();
             if (low.Contains("(s/n)")) { Rapida("Sim", "S", "Lima"); Rapida("Não", "N", "Linha"); }
-            else if (low.Contains("enter")) Rapida("Continuar", "", "Lima");
+            else
+            {
+                // menus do script: as opcoes "1) texto" que apareceram desde a ultima limpeza viram botoes
+                foreach (var (num, rot) in OpcoesNaTela()) Rapida(num + "  ·  " + rot, num, "Item", true);
+                if (low.Contains("enter")) Rapida(low.Contains("cancelar") ? "Cancelar" : low.Contains("voltar") || low.Contains("menu") ? "Voltar" : "Continuar", "", "Linha");
+                if (low.StartsWith("escolha") && rapidas.Children.Count > 0 && !low.Contains("enter")) Rapida("Voltar", "", "Linha");
+            }
             caixaPergunta.Visibility = Visibility.Visible;
             resposta.Focus();
             status.Text = "Esperando sua resposta";
         }
 
-        void Rapida(string rot, string valor, string estilo)
+        void Rapida(string rot, string valor, string estilo, bool largo = false)
         {
-            var b = T.Botao(rot, estilo, () => Responder(valor), 130);
-            b.Margin = new Thickness(0, 0, 8, 0);
+            var b = T.Botao(rot, estilo, () => Responder(valor), largo ? (double?)null : 130);
+            b.Margin = new Thickness(0, 0, 8, 8);
+            if (largo) { b.HorizontalContentAlignment = HorizontalAlignment.Left; b.Padding = new Thickness(14, 9, 14, 9); b.FontWeight = FontWeights.SemiBold; }
             rapidas.Children.Add(b);
+        }
+
+        int inicioTela;
+        System.Collections.Generic.List<(string, string)> OpcoesNaTela()
+        {
+            var l = new System.Collections.Generic.List<(string, string)>();
+            var t = textoTodo.ToString(Math.Min(inicioTela, textoTodo.Length), textoTodo.Length - Math.Min(inicioTela, textoTodo.Length));
+            var vistos = new System.Collections.Generic.HashSet<string>();
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(t, @"(?m)^\s{0,4}(\d{1,2})\)\s+(.{2,90}?)\s*$"))
+            {
+                var n = m.Groups[1].Value; if (!vistos.Add(n)) continue;
+                var r = m.Groups[2].Value.Trim(); if (r.Length > 70) r = r.Substring(0, 67) + "…";
+                l.Add((n, r));
+            }
+            return l.Count <= 24 ? l : l.GetRange(0, 24);
         }
 
         void Responder(string v)
