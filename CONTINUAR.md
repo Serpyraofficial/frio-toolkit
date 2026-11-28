@@ -96,3 +96,4 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 - Workflow "Gerar PC" (windows-latest): compila, tira fotos das telas (--fotos), testa a ponte, publica pc/dist/SerpyraToolkit-PC.exe.
 - Grátis x Pro: grátis = Raio-X, Modo Jogo 2x/dia, limpeza, RAM, temperatura, tela/Hz, teste de conexão, histórico, varredura rápida, quarentena, megazord, desfazer. Pro = o resto.
 - Pendente: atualização automática do programa de PC, botão no site, certificado de assinatura (aviso do Windows).
+- 2026-11-28 15:05: site duplo Android + PC no ar (hero 'Um Pro. Dois mundos.', seção #pc, instalar no PC, dúvidas de PC). Compra pelo site removida do site (código no servidor continua, sem uso). /pc entrega pc/dist/SerpyraToolkit-PC.exe.
