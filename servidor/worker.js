@@ -34,7 +34,7 @@ const DIA_VITALICIO = 99999;
 const LICENCA_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEe1+AJ9msQvTj5AdyZO0SzXl0SNyekG3tBq3nUeQHdWSvy3u7i8k6qTJsZ8iU890vHizszVAKeAxs4fjOVXVnFQ==";
 const IND_PCT = 10, IND_DIAS = 5, RENOVA_PCT = 10, IND_MAX_MES = 15, IND_PREMIO = { s7: 2, m1: 5, m3: 10, m6: 15, a1: 30, vida: 30, f1: 5, f12: 30 }, COMISSAO_PADRAO = 20;
 const MOTIVOS = ["Caro", "Não usei muito", "Não funcionou no meu celular", "Difícil de usar", "Só queria testar", "Outro"];
-const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin", "access-control-allow-methods": "GET,POST,DELETE" };
+const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, x-admin, x-dono", "access-control-allow-methods": "GET,POST,DELETE" };
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
 function reais(c) { return "R$ " + (c / 100).toFixed(2).replace(".", ","); }
@@ -311,7 +311,8 @@ async function resgatarPresente(req, env) {
   const v = limpaCupom(b.voucher);
   if (!codigoValido(codigo)) return json({ erro: "Código do celular inválido." }, 400);
   if (!(await limitar("presente:" + codigo, 8))) return json({ erro: "Muitas tentativas. Tente de novo em uma hora." }, 429);
-  const g = await lerJson(env, "presente:" + v);
+  const cfgD = (await lerJson(env, "config")) || {};
+  const g = cfgD.donoChave && igual(v, cfgD.donoChave) ? null : await lerJson(env, "presente:" + v);
   if (!g) return json({ erro: "Código de presente não encontrado. Confira as letras." }, 404);
   if (g.usado && g.usado !== codigo) return json({ erro: "Esse presente já foi usado em outro celular." }, 409);
   if (!g.usado && !g.vitalicio) { const atual = await validadeAtual(env, codigo); if (atual >= hoje()) return json({ erro: "Você já tem o Pro ativo até " + validadeTxt(atual) + ". Use este código quando ele acabar: ele continua guardado para você." }, 409); }
@@ -615,6 +616,26 @@ async function avisarErro(env, a, base) {
       (x.pilha ? `<div style="${CAIXA}"><div style="${ROT}">Onde no código</div><pre style="white-space:pre-wrap;font-size:12px;margin:0;color:#B8BEF0">${esc(x.pilha)}</pre></div>` : "") + `<a href="https://serpyratoolkit.pages.dev/painel#erros" style="color:#C8FF6B">Abrir os erros no painel</a>`);
     await mandarEmail(env, env.AVISO_EMAIL || env.REMETENTE_EMAIL, ti, html, ti + "\n" + linhas.map(l => l.join(": ")).join("\n") + (caso.rastro && caso.rastro.length ? "\nCaminho: " + caso.rastro.join(" > ") : ""));
   } catch (e) { }
+}
+/* área do dono no app: entra com a chave do dono (definida no painel) e recebe um passe só para este celular */
+async function passeDono(env, codigo) {
+  const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(env.ADMIN_TOKEN || "")), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode("dono|" + codigo)));
+}
+async function donoEntrar(req, env) {
+  let b; try { b = await req.json(); } catch (e) { return json({ erro: "Pedido inválido." }, 400); }
+  const codigo = limpaCodigo(b.codigo), chave = limpaCupom(b.chave);
+  if (!codigoValido(codigo) || !env.ADMIN_TOKEN) return json({ erro: "Pedido inválido." }, 400);
+  if (!(await limitar("dono:" + (req.headers.get("cf-connecting-ip") || "x"), 5))) return json({ erro: "Muitas tentativas. Tente de novo em uma hora." }, 429);
+  const c = (await lerJson(env, "config")) || {};
+  if (!c.donoChave || !igual(chave, c.donoChave)) return json({ erro: "Chave errada." }, 401);
+  return json({ ok: true, passe: await passeDono(env, codigo) });
+}
+async function donoRota(req, url, env) {
+  const codigo = limpaCodigo(url.searchParams.get("codigo"));
+  if (!codigoValido(codigo) || !igual(req.headers.get("x-dono"), await passeDono(env, codigo))) return json({ erro: "Token do painel incorreto." }, 401);
+  const u = new URL(url); u.pathname = url.pathname.replace("/dono/", "/admin/");
+  return admin(new Request(u, { method: "GET", headers: { "x-admin": env.ADMIN_TOKEN } }), u, env);
 }
 async function verPrint(url, env) {
   const id = String(url.searchParams.get("id") || "");
@@ -1103,15 +1124,16 @@ async function admin(req, url, env) {
     return json({ ok: true });
   }
   if (rota === "print" && req.method === "GET") return await verPrint(url, env);
-  if (rota === "config" && req.method === "GET") return json((await lerJson(env, "config")) || {});
+  if (rota === "config" && req.method === "GET") { const c = (await lerJson(env, "config")) || {}; return json({ ...c, donoChave: undefined, donoChaveDefinida: !!c.donoChave }); }
   if (rota === "config" && req.method === "POST") {
     const b = await req.json().catch(() => ({}));
     const c = (await lerJson(env, "config")) || {};
     if ("emailErro" in b) c.emailErro = !!b.emailErro;
+    if ("donoChave" in b) { const k = limpaCupom(b.donoChave); if (k && k.length < 8) return json({ erro: "A chave do dono precisa ter pelo menos 8 letras ou números." }, 400); if (k) c.donoChave = k; else delete c.donoChave; }
     if ("relatorioDias" in b) c.relatorioDias = [7, 15, 30].includes(Number(b.relatorioDias)) ? Number(b.relatorioDias) : 15;
     await env.PCT.put("config", JSON.stringify(c));
     try { await caches.default.delete(new Request("https://cache.local/config")); } catch (e) { }
-    return json({ ok: true, config: c });
+    return json({ ok: true, config: { ...c, donoChave: undefined, donoChaveDefinida: !!c.donoChave } });
   }
   if (rota === "site" && req.method === "GET") return json(await lerSite(env));
   if (rota === "site" && req.method === "POST") {
@@ -1151,7 +1173,7 @@ async function admin(req, url, env) {
   if (rota === "saude" && req.method === "GET") {
     const faltando = ["PURIN_KEY", "LICENCA_PRIV", "BREVO_KEY", "REMETENTE_EMAIL", "ADMIN_TOKEN"].filter(k => !env[k]);
     let d1 = false; try { const d = await db(env); if (d) { await d.prepare("SELECT 1").all(); d1 = true; } } catch (e) { }
-    return json({ ok: faltando.length === 0, faltando, modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", d1, emailVendas: !!env.AVISO_POR_EMAIL, backup: !!env.BACKUP_EMAIL, avisoPara: env.AVISO_EMAIL || env.REMETENTE_EMAIL || "", config: (await lerJson(env, "config")) || {} });
+    return json({ ok: faltando.length === 0, faltando, modo: String(env.PURIN_KEY || "").startsWith("ps_test_") ? "teste" : "produção", d1, emailVendas: !!env.AVISO_POR_EMAIL, backup: !!env.BACKUP_EMAIL, avisoPara: env.AVISO_EMAIL || env.REMETENTE_EMAIL || "", config: (({ donoChave, ...r }) => ({ ...r, donoChaveDefinida: !!donoChave }))((await lerJson(env, "config")) || {}) });
   }
   return json({ erro: "Não encontrado" }, 404);
 }
@@ -1257,6 +1279,8 @@ export default {
       if (m === "GET" && p === "/promo") return await promoAtual(env);
       if (m === "POST" && p === "/erro") return await registrarErro(req, env);
       if (m === "GET" && p === "/print") return await verPrint(url, env);
+      if (m === "POST" && p === "/dono/entrar") return await donoEntrar(req, env);
+      if (m === "GET" && (p === "/dono/novas" || p === "/dono/saude")) return await donoRota(req, url, env);
       if (m === "GET" && p === "/site") return await siteConfig(env);
     if (m === "GET" && p === "/mensagens") return await mensagens(env);
     if (m === "POST" && p === "/avaliacao") return await avaliar(req, env);

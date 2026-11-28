@@ -586,6 +586,13 @@ td{border-bottom-color:#262062}
   <div class="msg" id="msgSite"></div>
  </div>
  <div class="card">
+  <div class="card-t"><span class="ic am"><svg class="i"><use href="#ic-chave"/></svg></span><h2>Chave do dono no app</h2></div>
+  <div class="card-d">As opções de dono (avisos de venda, print dos erros) ficam escondidas no app. Para abrir no seu celular: no Início do app, segure o nome <b>SerpyraToolkit</b> por 2 segundos e digite esta chave. Ninguém mais vê essas opções. Essa chave não funciona como código de presente.</div>
+  <div class="linha"><label style="flex:2 1 220px">Chave do dono<input id="cfgDono" type="password" autocomplete="off" maxlength="20" placeholder="Pelo menos 8 letras ou números"></label></div>
+  <div class="acao-l"><button class="b prin" id="btDono">Salvar chave</button><button class="b l" id="btDonoTirar">Apagar chave</button></div>
+  <div class="msg" id="msgDono"></div>
+ </div>
+ <div class="card">
   <div class="card-t"><span class="ic az"><svg class="i"><use href="#ic-resumo"/></svg></span><h2>Saúde do sistema</h2></div>
   <div class="card-d">Como estão o servidor, o banco e os e-mails agora.</div>
   <div class="er-nums" id="saude"><div class="vazio">Carregando…</div></div>
@@ -878,8 +885,10 @@ td{border-bottom-color:#262062}
   document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!$('lupa').hidden)fecharLupa()});
 
   // ===== configuracoes (e-mail de erro, intervalo do relatorio) =====
-  function configPainel(c){c=c||{};$('cfgEmailErro').checked=c.emailErro!==false;$('cfgRelDias').value=String(c.relatorioDias||15)}
+  function configPainel(c){c=c||{};msg($('msgDono'),c.donoChaveDefinida?'Chave do dono definida.':'Nenhuma chave definida ainda.',c.donoChaveDefinida?'ok':'');$('cfgEmailErro').checked=c.emailErro!==false;$('cfgRelDias').value=String(c.relatorioDias||15)}
   $('cfgEmailErro').onchange=function(){var b=this;api('POST','/admin/config',{emailErro:b.checked}).then(function(){msg($('msgRelErros'),b.checked?'Pronto: cada erro novo chega no seu e-mail na hora.':'E-mails de erro desligados. Eles continuam aparecendo aqui.','ok')}).catch(function(e){alert(e.message);b.checked=!b.checked})};
+  $('btDono').onclick=function(){var v=$('cfgDono').value.trim();if(!v){msg($('msgDono'),'Digite a chave.','erro');return}api('POST','/admin/config',{donoChave:v}).then(function(){$('cfgDono').value='';msg($('msgDono'),'Chave salva. Use no app segurando o nome SerpyraToolkit no Início.','ok')}).catch(function(e){msg($('msgDono'),e.message,'erro')})};
+  $('btDonoTirar').onclick=function(){if(!confirm('Apagar a chave do dono? Quem entrou com ela continua com acesso até sair pelo app.'))return;api('POST','/admin/config',{donoChave:''}).then(function(){msg($('msgDono'),'Chave apagada.','ok')}).catch(function(e){msg($('msgDono'),e.message,'erro')})};
   $('cfgRelDias').onchange=function(){var v=this.value;api('POST','/admin/config',{relatorioDias:v}).then(function(){msg($('msgRel'),'O relatório automático agora sai a cada '+v+' dias.','ok');relatoriosPainel()}).catch(function(e){msg($('msgRel'),e.message,'erro')})};
 
   // ===== relatorios =====
