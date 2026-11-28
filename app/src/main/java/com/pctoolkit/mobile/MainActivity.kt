@@ -492,7 +492,7 @@ class MainActivity : Activity() {
             l.addView(Ui.espaco(this, 14, 1))
         }
         val col = Ui.vertical(this)
-        col.addView(Ui.texto(this, titulo, 21f, T.texto, Ui.negrito))
+        col.addView(Ui.tituloCromo(this, titulo, if (titulo.length > 16) 17f else 20f))
         if (sub.isNotEmpty()) col.addView(Ui.texto(this, sub, 13f, T.texto2))
         l.addView(col, Ui.peso())
         return l

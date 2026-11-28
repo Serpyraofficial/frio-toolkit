@@ -1,3 +1,4 @@
+- Visual novo: mais limpo e organizado, com abas embaixo (Início, Jogos, Ferramentas e Pro)
 - Botões prontos de outros jogadores: baixe com um toque no editor de botões (Mais > Botões prontos) e publique os seus
 - Lembrete de renovação com 10% de desconto já aplicado
 - Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)
