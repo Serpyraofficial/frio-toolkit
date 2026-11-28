@@ -1,6 +1,2 @@
-- Visual novo: mais limpo e organizado, com abas embaixo (Início, Jogos, Ferramentas e Pro)
-- Botões prontos de outros jogadores: baixe com um toque no editor de botões (Mais > Botões prontos) e publique os seus
-- Lembrete de renovação com 10% de desconto já aplicado
-- Avalie o app: dê sua nota e comente direto no site (também em Manutenção > Avaliar o app)
-- Versões de teste: quem quiser recebe as novidades antes (Manutenção > Versões de teste)
-- Erros corrigidos mais rápido: quando algo falha, o app avisa a gente na hora, com um print só da tela do app (dá para desligar em Manutenção > Print da tela nos erros)
+- Barra de abas embaixo arrumada: ícones e nomes alinhados e o conteúdo não aparece mais por trás dela
+- Tela do Pro mais limpa: o campo de presente só aparece quando você toca em 🎁 É presente?

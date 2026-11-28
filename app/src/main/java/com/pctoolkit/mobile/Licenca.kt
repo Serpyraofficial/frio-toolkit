@@ -703,20 +703,32 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
     c.addView(msgCupom)
 
     // presente
+    // presente: um botaozinho que abre o campo so quando a pessoa quer (tela mais limpa)
     val cbPres = android.widget.CheckBox(this)
-    cbPres.text = "É um presente para outra pessoa"
-    cbPres.setTextColor(T.texto)
-    cbPres.isChecked = sempre
-    if (sempre) cbPres.visibility = android.view.View.GONE
+    cbPres.isChecked = false
+    cbPres.visibility = android.view.View.GONE
+    val chipPres = Ui.texto(this, "", 14f, T.texto, Ui.medio)
+    chipPres.setPadding(Ui.dp(this, 16), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 10))
+    chipPres.isClickable = true
+    val pintarChip = {
+        val on = cbPres.isChecked
+        chipPres.text = if (on) "🎁  É presente  ✓" else "🎁  É presente?"
+        chipPres.setTextColor(if (on) T.bg else T.texto)
+        chipPres.background = Ui.clicavel(this, Ui.forma(this, if (on) T.verde else T.surface2, 50, if (on) T.verde else T.outline, 2), 50)
+        chipPres.contentDescription = if (on) "Presente marcado. Toque para desmarcar" else "Marcar como presente"
+    }
+    chipPres.setOnClickListener { cbPres.isChecked = !cbPres.isChecked; pintarChip() }
+    pintarChip()
     val ep = EditText(this)
     ep.hint = "E-mail de quem vai ganhar"
     ep.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
     ep.setTextColor(T.texto); ep.setHintTextColor(T.texto3)
-    ep.visibility = if (sempre) android.view.View.VISIBLE else android.view.View.GONE
+    ep.visibility = android.view.View.GONE
     val dicaPres = Ui.texto(this, "A pessoa recebe um código por e-mail e ativa no celular dela. O seu Pro não muda.", 12f, T.texto3)
     dicaPres.visibility = ep.visibility
     cbPres.setOnCheckedChangeListener { _, marcado -> val v = if (marcado) android.view.View.VISIBLE else android.view.View.GONE; ep.visibility = v; dicaPres.visibility = v }
-    c.addView(cbPres, Ui.linhaLp(this, 8, 0))
+    c.addView(cbPres)
+    c.addView(chipPres, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(this@telaPro, 12) })
     c.addView(ep)
     c.addView(dicaPres)
 
@@ -812,6 +824,7 @@ private fun MainActivity.secaoAutomatica(col: LinearLayout, ativo: Boolean) {
             return@setOnClickListener
         }
         if (digitado.isEmpty()) { cupomOk = ""; precoCupom = -1 }
+        if (sempre && !cbPres.isChecked) { msg.text = "Você já tem o Pro vitalício. Para dar o Pro a alguém, toque em 🎁 É presente?"; msg.setTextColor(T.amarelo); return@setOnClickListener }
         val presente = if (cbPres.isChecked) ep.text.toString().trim() else ""
         if (cbPres.isChecked && !android.util.Patterns.EMAIL_ADDRESS.matcher(presente).matches()) { msg.text = "Digite o e-mail de quem vai ganhar o presente."; msg.setTextColor(T.vermelho); return@setOnClickListener }
         msg.text = "Gerando o Pix…"; msg.setTextColor(T.texto2)
