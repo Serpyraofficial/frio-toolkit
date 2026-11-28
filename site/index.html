@@ -129,6 +129,9 @@ h1{font-weight:500;font-size:clamp(38px,5.2vw,70px);line-height:.98;letter-spaci
  .lado .cel-hero{width:220px!important}
  .lado .cel-hero .app-mini{--k:.5128}
 }
+.baixar-duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin:22px auto 6px}
+.baixar-duo p{grid-column:1/-1;text-align:center;color:var(--tinta3);font-size:14.5px}
+@media(max-width:560px){.baixar-duo{grid-template-columns:1fr}}
 /* ===== secao do PC ===== */
 .pc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .pc-card{background:#0F1036;border:1.5px solid var(--linha);border-radius:18px;overflow:hidden}
@@ -141,6 +144,50 @@ h1{font-weight:500;font-size:clamp(38px,5.2vw,70px);line-height:.98;letter-spaci
 .pc-acao .nota{color:var(--tinta3);font-size:14px;max-width:560px;text-align:center}
 @media(max-width:900px){.pc-g{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.pc-g{grid-template-columns:1fr}}
+
+/* ===== trilha do PC (monitor) ===== */
+.placa-pc{background:#1F2E1A!important;border:1.5px solid #4C6A2A}
+.monitor-trilha{position:relative;width:min(100%,560px);transform:none}
+.monitor-trilha .monitor-tela{padding:10px}
+.pc-app{position:relative;aspect-ratio:16/10;border-radius:8px;overflow:hidden;display:flex;background-color:#07081A;background-image:linear-gradient(rgba(123,92,255,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(123,92,255,.13) 1px,transparent 1px);background-size:18px 18px;font-size:11px;color:#E9ECFF;text-align:left}
+.pc-lat{width:26%;background:#12113A;border-right:1.5px solid #3A3480;padding:10px 8px;display:flex;flex-direction:column;gap:5px}
+.pc-lat b{font-family:var(--fd);font-weight:900;font-size:10px;color:var(--lima);margin-bottom:6px}
+.pc-lat i{font-style:normal;padding:5px 7px;border-radius:7px;color:#B8BEF0;font-size:10.5px}
+.pc-lat i.on{background:var(--lima);color:#07081A;font-weight:700}
+.pc-cont{position:relative;flex:1}
+.trilha-pc .tela{position:absolute;inset:0;padding:12px 14px!important;display:flex;flex-direction:column;gap:7px;opacity:0;transition:opacity .45s ease}
+.trilha-pc .tela:before{content:none!important}
+.trilha-pc .tela.on{opacity:1}
+.pc-h{font-family:var(--fd);font-weight:900;font-size:14px;background:linear-gradient(180deg,#FFFFFF 0%,#C9D4FF 38%,#6E7BB8 52%,#E9EEFF 70%,#9AA8E0 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pc-cx{background:#0F1036;border:1.5px solid #3A3480;border-radius:10px;padding:8px 10px}
+.pc-nota{display:flex;gap:12px;align-items:center}
+.pc-anel{position:relative;width:52px;height:52px;flex:none}
+.pc-anel svg{width:52px;height:52px}
+.pc-anel b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--fd);font-weight:900;font-size:16px}
+.pc-t{display:block;font-size:12.5px}
+.pc-nota span{color:#B8BEF0;font-family:var(--fp);font-size:14px}
+.pc-lin{display:flex;align-items:center;gap:8px;background:#0F1036;border:1.5px solid #3A3480;border-radius:9px;padding:5px 9px;font-size:11px}
+.pc-lin i{font-style:normal;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;background:#1C1A52;color:#B8BEF0;font-size:10px;flex:none}
+.pc-lin i.ok{color:var(--lima)}.pc-lin i.av{background:#3A3214;color:#FFD166}
+.pc-lin em{margin-left:auto;font-style:normal;color:var(--lima);font-weight:700;font-size:10.5px}
+.pc-con{padding:0;overflow:hidden;font-family:ui-monospace,Consolas,monospace;font-size:10.5px}
+.pc-con .pc-bar{background:#1C1A52;border-bottom:1.5px solid #3A3480;padding:3px 9px;font-family:var(--fp);font-size:14px;color:#A99CFF}
+.pc-con p{padding:2px 10px;color:#B8BEF0}.pc-con p:nth-child(2){padding-top:7px}.pc-con p.l{color:#8CE8FF;padding-bottom:8px}
+.pc-con .v{color:var(--lima)}
+.pc-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pc-nums div{background:#0F1036;border:1.5px solid #3A3480;border-radius:9px;padding:6px 8px}
+.pc-nums b{display:block;font-family:var(--fd);font-weight:900;font-size:17px;color:var(--lima)}
+.pc-nums span{font-family:var(--fp);font-size:13px;color:#B8BEF0}
+.pc-graf{display:flex;align-items:flex-end;gap:4px;height:70px}
+.pc-graf i{flex:1;background:linear-gradient(#DDFF9E,#8C7BFF);border-radius:3px 3px 1px 1px}
+.pc-btn{margin-top:auto;align-self:flex-start;background:#8C7BFF;color:#07081A;font-family:var(--fd);font-weight:900;font-size:10px;padding:7px 12px;border-radius:9px}
+.pc-mini-wrap{display:none}
+@media(max-width:900px){
+ .pc-mini-wrap{display:block;margin-top:20px;padding:16px;border-radius:20px;background:#1F2E1A;border:1.5px solid #4C6A2A}
+ .pc-mini-wrap{overflow:hidden}
+ .pc-mini-wrap .monitor{width:540px;zoom:.56;transform:none}
+ .pc-mini-wrap .tela{opacity:1!important;position:absolute}
+}
 /* destaque controlado pelo painel */
 .destaque-site{margin-top:28px}
 .ds-in{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#12113A;border:1.5px solid var(--violeta);border-radius:20px;padding:22px 24px}
@@ -646,6 +693,76 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
  </div>
 </div>
 
+<section class="sec instalar" id="instalar">
+ <div class="w">
+  <div class="sec-cab">
+   <h2>Instale em um minuto</h2>
+   <p>Direto pelo arquivo, sem passar pela loja. No celular e no PC.</p>
+  </div>
+  <h3 class="inst-sub" style="margin-top:0">No celular Android</h3>
+  <div class="inst-g">
+   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar para Android aqui no celular. O arquivo se chama SerpyraToolkit, com o número da versão.</p></div>
+   <div><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
+   <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
+   <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
+  </div>
+  <h3 class="inst-sub">No PC com Windows</h3>
+  <div class="inst-g">
+   <div><h3>Baixe o programa</h3><p>Clique em Baixar para PC. Se o navegador disser que o arquivo não é baixado com frequência, escolha Manter.</p></div>
+   <div><h3>Abra o arquivo</h3><p>Abra o SerpyraToolkit-PC que baixou. Não precisa instalar nada além dele.</p></div>
+   <div><h3>Passe pelo aviso do Windows</h3><p>Se aparecer “O Windows protegeu o computador”, clique em Mais informações e em Executar assim mesmo.</p></div>
+   <div><h3>Permita como administrador</h3><p>O Windows pergunta se pode fazer alterações: clique em Sim. É o que deixa o programa ajustar o sistema para jogar.</p></div>
+  </div>
+  <div class="aviso-inst">
+   <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
+   <div><b>Só para Android</b><p>O app funciona em celulares Android 8 ou mais novos. Não existe versão para iPhone: o iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="novidades" id="novidades" hidden>
+ <div class="w">
+  <div class="nov-caixa exe" data-exe="novidades.txt">
+   <div><h2 id="novTit">Novidades</h2><div class="quando" id="novSub"></div></div>
+   <a class="b b-menta b-grande" href="/apk" id="novBaixar">Baixar a versão nova</a>
+   <ul id="novLista"></ul>
+  </div>
+ </div>
+</section>
+
+<section class="sec" id="avaliacoes">
+ <div class="w">
+  <div class="sec-cab"><h2>O que os jogadores acham</h2><p>Avaliações de quem usa o SerpyraToolkit. Conte a sua: elogio, reclamação ou ideia de melhoria.</p></div>
+  <div class="aval-g">
+   <div class="aval-resumo exe" data-exe="avaliar.exe">
+    <div class="aval-media" id="avMedia">–</div>
+    <div class="estrelas" id="avEst" aria-hidden="true">☆☆☆☆☆</div>
+    <div class="aval-qtd" id="avQtd">Seja o primeiro a avaliar</div>
+    <form class="aval-form" id="avForm" novalidate>
+     <fieldset style="border:0;padding:0;margin:0">
+      <legend style="font-size:15px;font-weight:600">Sua nota</legend>
+      <div class="escolha">
+       <input type="radio" name="est" id="e5" value="5"><label for="e5" title="5 estrelas">★</label>
+       <input type="radio" name="est" id="e4" value="4"><label for="e4" title="4 estrelas">★</label>
+       <input type="radio" name="est" id="e3" value="3"><label for="e3" title="3 estrelas">★</label>
+       <input type="radio" name="est" id="e2" value="2"><label for="e2" title="2 estrelas">★</label>
+       <input type="radio" name="est" id="e1" value="1"><label for="e1" title="1 estrela">★</label>
+      </div>
+     </fieldset>
+     <label for="avTexto">Comentário</label>
+     <textarea id="avTexto" maxlength="600" placeholder="O que você achou? O que podemos melhorar?"></textarea>
+     <label for="avNome">Seu nome (opcional)</label>
+     <input type="text" id="avNome" maxlength="40" placeholder="Como quer aparecer">
+     <input type="text" id="avSite" class="oculto" tabindex="-1" autocomplete="off" aria-hidden="true">
+     <button class="b b-escuro" type="submit" style="margin-top:16px;width:100%">Enviar avaliação</button>
+     <div class="aval-msg" id="avMsg" role="status"></div>
+    </form>
+   </div>
+   <div class="aval-lista" id="avLista"></div>
+  </div>
+ </div>
+</section>
+
 <section class="sec" id="como">
  <div class="w">
   <div class="sec-cab">
@@ -767,13 +884,62 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 <section class="sec" id="pc">
  <div class="w">
   <div class="sec-cab">
-   <h2>No PC, o mesmo cuidado com o seu jogo</h2>
+   <h2>No PC: do Raio-X ao jogo</h2>
    <p>Para Windows 10 e 11. Acha os seus jogos da Steam, Epic, GOG, Ubisoft, EA, Riot, Xbox, Minecraft e FiveM, e também quem joga no emulador.</p>
   </div>
-  <div class="pc-g"><div class="pc-card"><div class="tb"><span>raio_x.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Raio-X de FPS</h3><p>Nota do PC de 0 a 100 e correção com um clique: driver, energia, Windows, tela e rede.</p></div></div><div class="pc-card"><div class="tb"><span>modo_jogo.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Modo Jogo TURBO</h3><p>Fecha o que pesa, prioriza o jogo, pausa atualizações e desfaz tudo quando você sai.</p></div></div><div class="pc-card"><div class="tb"><span>fps.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Medir FPS de verdade<span class="tag">PRO</span></h3><p>FPS médio, 1% low, engasgos e se o gargalo é o processador ou a placa de vídeo.</p></div></div><div class="pc-card"><div class="tb"><span>graficos.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Gráficos prontos por jogo<span class="tag">PRO</span></h3><p>Fortnite, Valorant, CS2, Apex, LoL, Roblox, Minecraft, GTA e FiveM.</p></div></div><div class="pc-card"><div class="tb"><span>rede.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Internet para jogos<span class="tag">PRO</span></h3><p>Ping, jitter e perda, DNS mais rápido e placa de rede ajustada.</p></div></div><div class="pc-card"><div class="tb"><span>cacador.exe</span><span>_ □ ×</span></div><div class="cx"><h3>Caçador de ameaças</h3><p>Procura vírus, minerador de bitcoin e invasores, sem desligar o seu antivírus.</p></div></div></div>
+  <div class="trilha trilha-pc">
+   <div class="trilha-vis" aria-hidden="true">
+    <div class="placa2 placa-pc"></div>
+    <div class="monitor monitor-trilha"><div class="monitor-tela"><div class="pc-app">
+     <div class="pc-lat"><b>✦ SERPYRA</b><i class="on">Início</i><i>Jogos e FPS</i><i>Ferramentas</i><i>Segurança</i><i>Pro</i></div>
+     <div class="pc-cont">
+      <div class="tela on" data-tela="p0">
+       <div class="pc-h">RAIO-X DE FPS</div>
+       <div class="pc-cx pc-nota"><div class="pc-anel"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#26245A" stroke-width="3.4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#C8FF6B" stroke-width="3.4" stroke-linecap="round" pathLength="100" stroke-dasharray="92 100" transform="rotate(-90 18 18)"/></svg><b>92</b></div><div><b class="pc-t">Excelente para jogar</b><span>1 ajuste recomendado</span></div></div>
+       <div class="pc-lin"><i class="ok">✓</i>Driver de vídeo atualizado</div>
+       <div class="pc-lin"><i class="av">!</i>Plano de energia econômico<em>Corrigir</em></div>
+       <div class="pc-lin"><i class="ok">✓</i>Monitor em 144 Hz</div>
+       <div class="pc-lin"><i class="ok">✓</i>Modo de Jogo do Windows ligado</div>
+      </div>
+      <div class="tela" data-tela="p1">
+       <div class="pc-h">MODO JOGO TURBO</div>
+       <div class="pc-cx pc-con"><div class="pc-bar">modo_jogo.exe</div>
+        <p><span class="v">[ok]</span> Valorant encontrado (Riot)</p>
+        <p><span class="v">[ok]</span> 14 programas em segundo plano fechados</p>
+        <p><span class="v">[ok]</span> Atualizações pausadas durante a partida</p>
+        <p><span class="v">[ok]</span> Timer de 0,5 ms e memória livre</p>
+        <p><span class="v">[ok]</span> Prioridade alta para o jogo</p>
+        <p class="l">Jogando… quando você sair, tudo volta ao normal.</p>
+       </div>
+      </div>
+      <div class="tela" data-tela="p2">
+       <div class="pc-h">MEDIR FPS</div>
+       <div class="pc-nums"><div><b>241</b><span>FPS médio</span></div><div><b>168</b><span>1% low</span></div><div><b>0,4%</b><span>engasgos</span></div></div>
+       <div class="pc-cx pc-graf"><i style="height:62%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:74%"></i><i style="height:58%"></i><i style="height:80%"></i><i style="height:77%"></i><i style="height:84%"></i><i style="height:79%"></i><i style="height:88%"></i><i style="height:83%"></i><i style="height:90%"></i></div>
+       <div class="pc-lin"><i class="ok">↑</i>+38 FPS depois do Raio-X<em>antes x depois</em></div>
+      </div>
+      <div class="tela" data-tela="p3">
+       <div class="pc-h">GRÁFICOS POR JOGO</div>
+       <div class="pc-lin"><i class="ok">✓</i>Fortnite<em>Desempenho</em></div>
+       <div class="pc-lin"><i class="ok">✓</i>Valorant<em>Competitivo</em></div>
+       <div class="pc-lin"><i class="ok">✓</i>CS2<em>Competitivo</em></div>
+       <div class="pc-lin"><i>·</i>Minecraft<em>Equilíbrio</em></div>
+       <div class="pc-lin"><i>·</i>GTA V / FiveM<em>Equilíbrio</em></div>
+       <div class="pc-btn">Aplicar nos jogos</div>
+      </div>
+     </div>
+    </div></div><div class="monitor-pe"></div></div>
+   </div>
+   <div class="passos-txt">
+    <div class="passo on" data-passo="p0"><h3>Veja a nota do seu PC</h3><p>O Raio-X de FPS confere driver de vídeo, energia, Windows, tela e rede, dá uma nota de 0 a 100 e corrige com um clique.</p></div>
+    <div class="passo" data-passo="p1"><h3>Jogue no Modo Jogo TURBO</h3><p>Escolha o jogo: ele fecha o que pesa, pausa as atualizações e dá prioridade ao jogo. Quando você sai, tudo volta como estava.</p></div>
+    <div class="passo" data-passo="p2"><span class="tag">Pro</span><h3>Meça o FPS de verdade</h3><p>FPS médio, 1% low e engasgos, antes e depois dos ajustes. E mostra se o gargalo é o processador ou a placa de vídeo.</p></div>
+    <div class="passo" data-passo="p3"><span class="tag">Pro</span><h3>Gráficos prontos para cada jogo</h3><p>Fortnite, Valorant, CS2, Apex, LoL, Roblox, Minecraft e GTA com o melhor equilíbrio para o seu PC, sem caçar opção por opção.</p></div>
+   </div>
+  </div>
   <div class="pc-acao">
    <a class="b b-menta b-grande" href="/pc"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para PC</a>
-   <p class="nota">Também tem limpeza, temperatura ao vivo, aparência e desempenho do Windows, programas que abrem com o Windows e desfazer tudo com um clique.</p>
+   <p class="nota">Também tem limpeza, temperatura ao vivo, internet para jogos, caçador de ameaças, aparência do Windows e desfazer tudo com um clique.</p>
   </div>
  </div>
 </section>
@@ -797,7 +963,6 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Modo bateria, cuidados automáticos e backup das configurações</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Atualizações pelo próprio app</li>
     </ul>
-    <a class="b b-linha b-grande" href="/apk">Baixar grátis</a>
    </div>
    <div class="plano pro exe" data-exe="pro.exe">
     <h3>Pro</h3>
@@ -826,86 +991,24 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Seus botões abrem sozinhos junto com o jogo</li>
      <li><svg aria-hidden="true"><use href="#certo"/></svg>Limpeza avançada (duplicados, arquivos grandes, apps esquecidos) e Blindagem contra vírus</li>
     </ul>
-    <div class="compra-bts"><a class="b b-menta b-grande" href="/apk">Baixar para Android</a><a class="b b-linha b-grande" href="/pc">Baixar para PC</a></div>
-    <p class="nota">O mesmo Pro vale no celular e no PC: no PC, entre com o e-mail da compra em “Já tenho o Pro no celular”. Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
+    <p class="nota">Sem cobrança automática: cada Pix libera os dias do plano, e renovando antes de vencer os dias se somam. Trocou de celular? Passe o Pro pelo e-mail da compra.</p>
    </div>
   </div>
+  <div class="baixar-duo">
+   <a class="b b-roxo b-grande" href="/apk"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para Android</a>
+   <a class="b b-menta b-grande" href="/pc"><svg aria-hidden="true"><use href="#baixar"/></svg>Baixar para PC</a>
+   <p>Comece grátis e ative o Pro dentro do app ou do programa. Um Pro vale para os dois: no PC, use “Já tenho o Pro no celular” com o e-mail da compra.</p>
+  </div>
   <div class="extras-pro">
-   <div><b>Dê de presente</b><p>Na tela do Pro, marque “é um presente”. A pessoa recebe um código por e-mail e ativa no celular dela.</p></div>
+   <div><b>Dê de presente</b><p>Na tela do Pro, toque em 🎁 É presente?. A pessoa recebe um código por e-mail e ativa no celular dela.</p></div>
    <div><b>Indique e ganhe</b><p>Seu amigo ganha 10% de desconto com o seu código, e você ganha de 5 a 30 dias de Pro a cada compra dele (até 15 dias por mês).</p></div>
    <div><b>Tem um código?</b><p>Chave, presente, cortesia ou cupom: cole em “Tem um código?” na tela do Pro. O app reconhece sozinho.</p></div>
   </div>
  </div>
 </section>
 
-<section class="sec instalar" id="instalar">
- <div class="w">
-  <div class="sec-cab">
-   <h2>Instale em um minuto</h2>
-   <p>Direto pelo arquivo, sem passar pela loja. No celular e no PC.</p>
-  </div>
-  <div class="inst-g">
-   <div><h3>Baixe o arquivo</h3><p>Toque em Baixar para Android aqui no celular. O arquivo se chama SerpyraToolkit, com o número da versão.</p></div>
-   <div><h3>Abra o download</h3><p>Toque na notificação do download ou abra o arquivo na pasta Downloads.</p></div>
-   <div><h3>Permita a instalação</h3><p>Se o Android pedir, ative Permitir desta fonte para o navegador e volte.</p></div>
-   <div><h3>Instale e abra</h3><p>Toque em Instalar. As próximas versões chegam pelo próprio app.</p></div>
-  </div>
-  <h3 class="inst-sub">No PC com Windows</h3>
-  <div class="inst-g">
-   <div><h3>Baixe o programa</h3><p>Clique em Baixar para PC. Se o navegador disser que o arquivo não é baixado com frequência, escolha Manter.</p></div>
-   <div><h3>Abra o arquivo</h3><p>Abra o SerpyraToolkit-PC que baixou. Não precisa instalar nada além dele.</p></div>
-   <div><h3>Passe pelo aviso do Windows</h3><p>Se aparecer “O Windows protegeu o computador”, clique em Mais informações e em Executar assim mesmo.</p></div>
-   <div><h3>Permita como administrador</h3><p>O Windows pergunta se pode fazer alterações: clique em Sim. É o que deixa o programa ajustar o sistema para jogar.</p></div>
-  </div>
-  <div class="aviso-inst">
-   <div><b>Apareceu “app suspeito” ou “pode ser perigoso”?</b><p>É normal. O Android, o Play Protect e alguns antivírus mostram esse aviso para apps instalados fora da Play Store que pedem permissões avançadas, como aparecer por cima do jogo e ajustar o sistema. O SerpyraToolkit precisa dessas permissões para funcionar por completo. Toque em <b>Mais detalhes</b> e depois em <b>Instalar mesmo assim</b>. Baixe sempre por este site.</p></div>
-   <div><b>Só para Android</b><p>O app funciona em celulares Android 8 ou mais novos. Não existe versão para iPhone: o iOS não permite botões por cima de outros jogos nem os ajustes de sistema que o app faz.</p></div>
-  </div>
- </div>
-</section>
 
-<section class="novidades" id="novidades" hidden>
- <div class="w">
-  <div class="nov-caixa exe" data-exe="novidades.txt">
-   <div><h2 id="novTit">Novidades</h2><div class="quando" id="novSub"></div></div>
-   <a class="b b-menta b-grande" href="/apk" id="novBaixar">Baixar a versão nova</a>
-   <ul id="novLista"></ul>
-  </div>
- </div>
-</section>
 
-<section class="sec" id="avaliacoes">
- <div class="w">
-  <div class="sec-cab"><h2>O que os jogadores acham</h2><p>Avaliações de quem usa o SerpyraToolkit. Conte a sua: elogio, reclamação ou ideia de melhoria.</p></div>
-  <div class="aval-g">
-   <div class="aval-resumo exe" data-exe="avaliar.exe">
-    <div class="aval-media" id="avMedia">–</div>
-    <div class="estrelas" id="avEst" aria-hidden="true">☆☆☆☆☆</div>
-    <div class="aval-qtd" id="avQtd">Seja o primeiro a avaliar</div>
-    <form class="aval-form" id="avForm" novalidate>
-     <fieldset style="border:0;padding:0;margin:0">
-      <legend style="font-size:15px;font-weight:600">Sua nota</legend>
-      <div class="escolha">
-       <input type="radio" name="est" id="e5" value="5"><label for="e5" title="5 estrelas">★</label>
-       <input type="radio" name="est" id="e4" value="4"><label for="e4" title="4 estrelas">★</label>
-       <input type="radio" name="est" id="e3" value="3"><label for="e3" title="3 estrelas">★</label>
-       <input type="radio" name="est" id="e2" value="2"><label for="e2" title="2 estrelas">★</label>
-       <input type="radio" name="est" id="e1" value="1"><label for="e1" title="1 estrela">★</label>
-      </div>
-     </fieldset>
-     <label for="avTexto">Comentário</label>
-     <textarea id="avTexto" maxlength="600" placeholder="O que você achou? O que podemos melhorar?"></textarea>
-     <label for="avNome">Seu nome (opcional)</label>
-     <input type="text" id="avNome" maxlength="40" placeholder="Como quer aparecer">
-     <input type="text" id="avSite" class="oculto" tabindex="-1" autocomplete="off" aria-hidden="true">
-     <button class="b b-escuro" type="submit" style="margin-top:16px;width:100%">Enviar avaliação</button>
-     <div class="aval-msg" id="avMsg" role="status"></div>
-    </form>
-   </div>
-   <div class="aval-lista" id="avLista"></div>
-  </div>
- </div>
-</section>
 
 <section class="sec" id="duvidas">
  <div class="w">
@@ -1002,6 +1105,11 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
   var passos=document.querySelectorAll('.passo'), telas=document.querySelectorAll('.trilha .tela');
   passos.forEach(function(p){
     var t=document.querySelector('.trilha .tela[data-tela="'+p.getAttribute('data-passo')+'"]'); if(!t) return;
+    if(t.closest('.monitor-trilha')){
+      var m=t.closest('.monitor-trilha').cloneNode(true); m.classList.remove('monitor-trilha');
+      m.querySelectorAll('.tela').forEach(function(x){if(x.getAttribute('data-tela')!==t.getAttribute('data-tela'))x.remove();else{x.classList.add('on');x.removeAttribute('data-tela')}});
+      var wp=document.createElement('div'); wp.className='pc-mini-wrap'; wp.setAttribute('aria-hidden','true'); wp.appendChild(m); p.appendChild(wp); return;
+    }
     var w=document.createElement('div'); w.className='cel-mini-wrap'; w.setAttribute('aria-hidden','true');
     var c=document.createElement('div'); c.className='cel cel-mini';
     var ct=document.createElement('div'); ct.className='cel-tela';
