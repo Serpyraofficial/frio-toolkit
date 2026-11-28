@@ -88,3 +88,4 @@ Ramo: `wip-5.18`. NADA disso está publicado. O servidor no ar ainda é a versã
 - App wip-5.22 (versionCode 85, também no beta): Relatorio tira print só da tela do app (EditText, e-mails e chaves cobertos), rastro das telas, manda na hora; Manutenção > Print da tela nos erros. Privacidade atualizada.
 - 2026-11-28 13:45: 5.22 (85) lançada para todos (APK d07b88f4de, assinatura conferida, sem Acessibilidade/SMS/notificações).
 - 2026-11-28 14:20: 5.23 (86) lançada (abas alinhadas, presente atrás do botão 🎁, área do dono escondida: segurar o nome no Início + chave do dono definida no painel em Site > Chave do dono; /dono/entrar, /dono/novas, /dono/saude). Novidades: só 'Correções e melhorias'.
+- 2026-11-28 14:35: compra pelo site (pedido com site:true, codigo WEB+5, vouchers PRE por e-mail; família = 3 códigos). Janela comprar.exe no index (?comprar=<plano> abre direto).
