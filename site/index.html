@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%230E1726'/%3E%3Cpath d='M30 68a24 24 0 1 1 48 0' fill='none' stroke='%233DDC97' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M54 68 66 48' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='54' cy='68' r='5' fill='%233B5BFF'/%3E%3C/svg%3E">
 <style>
-:root{
+:root{color-scheme:dark;
   --papel:#07081A; --branco:#0F1036; --tinta:#E9ECFF; --tinta2:#B8BEF0; --tinta3:#8B90C2; --linha:#3A3480;
   --menta:#C8FF6B; --menta-esc:#C8FF6B; --azul:#8C7BFF; --azul-esc:#7563F0; --lilas:#2A2475; --tela:#07081A;
   --barra:#1C1A52; --violeta:#8C7BFF; --lima:#C8FF6B; --noite:#07081A;
@@ -108,7 +108,9 @@ h1{font-weight:500;font-size:clamp(38px,5.2vw,70px);line-height:.98;letter-spaci
 .aval-qtd{color:var(--tinta3);font-size:15px;margin-top:6px}
 .aval-form{margin-top:24px;border-top:1px solid var(--linha);padding-top:20px}
 .aval-form label{display:block;font-size:15px;font-weight:600;margin:14px 0 6px}
-.aval-form input[type=text],.aval-form textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--linha);border-radius:12px;padding:10px 12px;background:var(--papel)}
+.aval-form input[type=text],.aval-form textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--linha);border-radius:12px;padding:10px 12px;background:var(--papel);color:var(--tinta);caret-color:var(--lima)}
+.aval-form input[type=text]::placeholder,.aval-form textarea::placeholder{color:var(--tinta3)}
+.aval-form input[type=text]:focus,.aval-form textarea:focus{outline:none;border-color:var(--violeta);box-shadow:0 0 0 3px rgba(140,123,255,.25)}
 .aval-form textarea{min-height:110px;resize:vertical}
 .escolha{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}
 .escolha input{position:absolute;opacity:0;width:1px;height:1px}
