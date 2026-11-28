@@ -22,9 +22,49 @@ import android.widget.TextView
 
 /** Componentes visuais do app (design system). */
 object Ui {
-    val medio: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-    val negrito: Typeface = Typeface.create("sans-serif", Typeface.BOLD)
-    val normal: Typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+    private fun fonte(arq: String, peso: Int, reserva: Typeface): Typeface = try {
+        val b = Typeface.Builder(PcApp.ctx.assets, "fontes/$arq")
+        if (peso > 0) b.setFontVariationSettings("'wght' $peso")
+        b.build() ?: reserva
+    } catch (e: Throwable) { reserva }
+    val medio: Typeface by lazy { fonte("spacegrotesk.ttf", 500, Typeface.create("sans-serif-medium", Typeface.NORMAL)) }
+    val negrito: Typeface by lazy { fonte("spacegrotesk.ttf", 700, Typeface.create("sans-serif", Typeface.BOLD)) }
+    val normal: Typeface by lazy { fonte("spacegrotesk.ttf", 400, Typeface.create("sans-serif", Typeface.NORMAL)) }
+    /** Titulos grandes (Unbounded Black). */
+    val display: Typeface by lazy { fonte("unbounded_black.ttf", 0, Typeface.create("sans-serif-black", Typeface.BOLD)) }
+    /** Rotulos estilo tela de computador antigo (VT323). */
+    val pixel: Typeface by lazy { fonte("vt323.ttf", 0, Typeface.MONOSPACE) }
+
+    /** Letras cromadas (degrade prateado de cima para baixo). */
+    fun cromo(v: TextView): TextView {
+        v.addOnLayoutChangeListener { tv, _, _, _, _, _, _, _, _ ->
+            val t = tv as TextView
+            val h = t.textSize
+            t.paint.shader = android.graphics.LinearGradient(0f, t.paddingTop.toFloat() + t.baseline - h, 0f, t.paddingTop.toFloat() + t.baseline + h * 0.15f,
+                intArrayOf(0xFFFFFFFF.toInt(), 0xFFC9D4FF.toInt(), 0xFF6E7BB8.toInt(), 0xFFE9EEFF.toInt(), 0xFF9AA8E0.toInt()),
+                floatArrayOf(0f, 0.38f, 0.52f, 0.7f, 1f), android.graphics.Shader.TileMode.CLAMP)
+        }
+        return v
+    }
+
+    /** Titulo de tela no estilo novo: Unbounded, maiusculo e cromado. */
+    fun tituloCromo(ctx: Context, t: String, tamSp: Float = 24f): TextView {
+        val v = texto(ctx, t.uppercase(), tamSp, T.texto, display)
+        v.letterSpacing = -0.02f
+        return cromo(v)
+    }
+
+    /** Estrela de 4 pontas (simbolo do app). */
+    fun estrela(ctx: Context, cor: Int, tamDp: Int): View = object : View(ctx) {
+        private val p = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = cor }
+        override fun onDraw(c: Canvas) {
+            val w = width.toFloat(); val h = height.toFloat(); val cx = w / 2; val cy = h / 2
+            val path = android.graphics.Path()
+            path.moveTo(cx, 0f); path.lineTo(cx + w * 0.09f, cy - h * 0.09f); path.lineTo(w, cy); path.lineTo(cx + w * 0.09f, cy + h * 0.09f)
+            path.lineTo(cx, h); path.lineTo(cx - w * 0.09f, cy + h * 0.09f); path.lineTo(0f, cy); path.lineTo(cx - w * 0.09f, cy - h * 0.09f); path.close()
+            c.drawPath(path, p)
+        }
+    }.also { it.layoutParams = LinearLayout.LayoutParams(dp(ctx, tamDp), dp(ctx, tamDp)) }
 
     fun dp(ctx: Context, v: Int): Int = (v * ctx.resources.displayMetrics.density + 0.5f).toInt()
     fun dpf(ctx: Context, v: Float): Float = v * ctx.resources.displayMetrics.density
@@ -102,12 +142,33 @@ object Ui {
 
     fun peso(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
 
-    fun titulo1(ctx: Context, t: String) = texto(ctx, t, 26f, T.texto, negrito)
+    fun titulo1(ctx: Context, t: String) = tituloCromo(ctx, t, 24f)
     fun secao(ctx: Context, t: String): TextView {
-        val v = texto(ctx, t.uppercase(), 12f, T.texto3, medio)
-        v.letterSpacing = 0.12f
-        v.setPadding(dp(ctx, 4), dp(ctx, 18), 0, dp(ctx, 10))
+        val v = texto(ctx, "✦ " + t.uppercase(), 19f, T.lilas, pixel)
+        v.letterSpacing = 0.04f
+        v.setPadding(dp(ctx, 2), dp(ctx, 16), 0, dp(ctx, 8))
         return v
+    }
+
+    /** Nome de "arquivo" da janelinha: "Modo Jogo" -> "modo_jogo.exe". */
+    fun nomeExe(t: String): String = java.text.Normalizer.normalize(t.lowercase(), java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "").replace(Regex("[^a-z0-9]+"), "_").trim('_').take(16) + ".exe"
+
+    /** Janelinha estilo computador antigo: barra de titulo com o nome e um ×, e o conteudo embaixo. */
+    fun janela(ctx: Context, nome: String, conteudo: View, raioDp: Int = 18): LinearLayout {
+        val box = vertical(ctx)
+        box.background = forma(ctx, T.surface, raioDp, T.outline, 2)
+        box.clipToOutline = true
+        val barra = horizontal(ctx)
+        barra.background = GradientDrawable().also { g -> g.setColor(T.barra); val r = dpf(ctx, raioDp.toFloat()); g.cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f) }
+        barra.setPadding(dp(ctx, 12), dp(ctx, 3), dp(ctx, 12), dp(ctx, 3))
+        barra.addView(texto(ctx, nome, 16f, T.lilas, pixel), peso())
+        barra.addView(texto(ctx, "×", 16f, T.lilas, pixel))
+        box.addView(barra)
+        val linha = View(ctx); linha.setBackgroundColor(T.outline)
+        box.addView(linha, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(ctx, 2)))
+        box.addView(conteudo)
+        return box
     }
 
     /** Linha de menu: icone, titulo, descricao, selo e seta. */
@@ -142,9 +203,8 @@ object Ui {
     /** Bloco da grade da tela inicial. */
     fun bloco(ctx: Context, icone: Int, cor: Int, titulo: String, desc: String, onClick: () -> Unit): View {
         val box = vertical(ctx)
-        box.setPadding(dp(ctx, 16), dp(ctx, 16), dp(ctx, 14), dp(ctx, 16))
-        box.background = clicavel(ctx, forma(ctx, T.surface, 20, T.outline), 20)
-        box.addView(bolha(ctx, icone, cor, 42))
+        box.setPadding(dp(ctx, 14), dp(ctx, 12), dp(ctx, 12), dp(ctx, 14))
+        box.addView(bolha(ctx, icone, cor, 38))
         val t = texto(ctx, titulo, 15f, T.texto, medio)
         t.setPadding(0, dp(ctx, 12), 0, dp(ctx, 2))
         t.maxLines = 1
@@ -155,9 +215,11 @@ object Ui {
         d.ellipsize = TextUtils.TruncateAt.END
         d.minLines = 2
         box.addView(d)
-        box.isClickable = true
-        box.setOnClickListener { onClick() }
-        return box
+        val jan = janela(ctx, nomeExe(titulo), box)
+        jan.foreground = RippleDrawable(ColorStateList.valueOf(0x33FFFFFF), null, forma(ctx, 0xFFFFFFFF.toInt(), 18))
+        jan.isClickable = true
+        jan.setOnClickListener { onClick() }
+        return jan
     }
 
     fun botao(ctx: Context, t: String, cor: Int, cheio: Boolean, icone: Int = 0, onClick: () -> Unit): LinearLayout {
@@ -166,9 +228,9 @@ object Ui {
         b.setPadding(dp(ctx, 16), dp(ctx, 14), dp(ctx, 16), dp(ctx, 14))
         val fundo = if (cheio) forma(ctx, cor, 16) else forma(ctx, T.surface2, 16, T.outline)
         b.background = clicavel(ctx, fundo, 16)
-        val corTexto = if (cheio) 0xFF06120D.toInt() else T.texto
+        val corTexto = if (cheio) T.bg else T.texto
         if (icone != 0) { b.addView(icone(ctx, icone, corTexto, 20)); b.addView(espaco(ctx, 8, 1)) }
-        b.addView(texto(ctx, t, 15f, corTexto, medio))
+        b.addView(texto(ctx, t, 15f, corTexto, negrito))
         b.isClickable = true
         b.setOnClickListener { onClick() }
         return b
@@ -223,8 +285,8 @@ class Anel(ctx: Context) : View(ctx) {
         p.style = Paint.Style.FILL
         p.textAlign = Paint.Align.CENTER
         p.color = T.texto
-        p.typeface = Ui.negrito
-        p.textSize = s * 0.28f
+        p.typeface = Ui.display
+        p.textSize = s * 0.26f
         val t = if (valor >= 0) valor.toString() else "--"
         val yNum = if (legenda.isEmpty()) cy - (p.descent() + p.ascent()) / 2 else cy + s * 0.04f
         c.drawText(t, cx, yNum, p)
@@ -253,4 +315,25 @@ class Barra(ctx: Context) : View(ctx) {
         p.color = cor
         if (frac > 0f) c.drawRoundRect(RectF(0f, 0f, Math.max(h, width * frac), h), h / 2, h / 2, p)
     }
+}
+
+/** Fundo do app: azul-noite com grade violeta e um brilho no canto. */
+class GradeFundo(private val ctx: Context) : Drawable() {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c: Canvas) {
+        val b = bounds
+        c.drawColor(T.bg)
+        val passo = Ui.dpf(ctx, 26f)
+        p.color = T.grade; p.strokeWidth = Ui.dpf(ctx, 1f)
+        var x = 0f; while (x < b.width()) { c.drawLine(x, 0f, x, b.height().toFloat(), p); x += passo }
+        var y = 0f; while (y < b.height()) { c.drawLine(0f, y, b.width().toFloat(), y, p); y += passo }
+        val r = Ui.dpf(ctx, 220f)
+        p.shader = android.graphics.RadialGradient(b.width() * 0.85f, 0f, r, 0x668C7BFF, 0x008C7BFF, android.graphics.Shader.TileMode.CLAMP)
+        c.drawCircle(b.width() * 0.85f, 0f, r, p)
+        p.shader = null
+    }
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(cf: android.graphics.ColorFilter?) {}
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun getOpacity() = android.graphics.PixelFormat.OPAQUE
 }

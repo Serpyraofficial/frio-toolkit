@@ -23,15 +23,19 @@ class PcApp : Application() {
 
 /** Paleta do app (tema escuro profissional). */
 object T {
-    const val bg = 0xFF0A0E14.toInt()
-    const val surface = 0xFF121821.toInt()
-    const val surface2 = 0xFF1A222D.toInt()
-    const val outline = 0xFF263142.toInt()
-    const val texto = 0xFFE8EEF5.toInt()
-    const val texto2 = 0xFF9AA8BA.toInt()
-    const val texto3 = 0xFF66758A.toInt()
-    const val verde = 0xFF3DDC97.toInt()
-    const val azul = 0xFF4C8DFF.toInt()
+    // visual Y2K: azul-noite, violeta, cromo e verde-limao so nos destaques
+    const val bg = 0xFF07081A.toInt()
+    const val surface = 0xFF0F1036.toInt()
+    const val surface2 = 0xFF12113A.toInt()
+    const val outline = 0xFF3A3480.toInt()
+    const val barra = 0xFF1C1A52.toInt()        // barra de titulo das "janelas"
+    const val grade = 0x248C7BFF               // linhas da grade do fundo
+    const val texto = 0xFFE9ECFF.toInt()
+    const val texto2 = 0xFFB8BEF0.toInt()
+    const val texto3 = 0xFF8B90C2.toInt()
+    const val verde = 0xFFC8FF6B.toInt()
+    const val azul = 0xFF8C7BFF.toInt()
+    const val lilas = 0xFFA99CFF.toInt()
     const val roxo = 0xFFB57BFF.toInt()
     const val laranja = 0xFFFF9F45.toInt()
     const val vermelho = 0xFFFF5A6E.toInt()
