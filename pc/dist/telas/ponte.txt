@@ -1,0 +1,9 @@
+
+[c:Cyan]=== HISTORICO ===[c:]
+
+[c:Yellow]Ultimas medicoes de FPS (benchmark):[c:]
+[c:DarkGray]  nenhuma ainda (FPS > Medir FPS)[c:]
+
+[c:Yellow]Ultimas sessoes do Modo Jogo:[c:]
+[c:DarkGray]  nenhuma ainda[c:]
+
