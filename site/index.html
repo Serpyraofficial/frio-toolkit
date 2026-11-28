@@ -387,6 +387,26 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
 }
 
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.tela,.passo{transition:none}}
+
+/* telas do passo a passo no estilo novo do app */
+.trilha .cel-tela{background-color:#07081A;background-image:linear-gradient(rgba(123,92,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(123,92,255,.14) 1px,transparent 1px);background-size:20px 20px}
+.trilha .tela{padding-top:30px}
+.trilha .tela:not([data-tela="3"]):before{content:"✦ SERPYRA";font-family:var(--fd);font-weight:900;font-size:12px;color:#C8FF6B;letter-spacing:-.01em;margin-bottom:2px}
+.trilha .tela h4{font-family:var(--fd);font-weight:900;font-size:19px;text-transform:uppercase;letter-spacing:-.02em;background:linear-gradient(180deg,#FFFFFF 0%,#C9D4FF 38%,#6E7BB8 52%,#E9EEFF 70%,#9AA8E0 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.trilha .tela .sub{font-family:var(--fp);font-size:15px;color:#A99CFF;margin-top:-8px}
+.trilha .bloco,.trilha .linha-ui{border:1.5px solid #3A3480;border-radius:14px;background:#0F1036}
+.trilha .bloco{position:relative;padding-top:30px}
+.trilha .bloco:before{content:"janela.exe";position:absolute;left:0;right:0;top:0;height:20px;background:#1C1A52;border-bottom:1.5px solid #3A3480;border-radius:12px 12px 0 0;font-family:var(--fp);font-size:14px;line-height:20px;color:#A99CFF;padding:0 9px}
+.trilha .bloco:after{content:"×";position:absolute;right:9px;top:0;line-height:20px;font-family:var(--fp);font-size:14px;color:#8B90C2}
+.trilha [data-tela="0"] .bloco:before{content:"raio_x.exe"}
+.trilha [data-tela="2"] .bloco:before{content:"tuner.exe"}
+.trilha .bloco[data-exe]:before{content:attr(data-exe)}
+.trilha .linha-ui span{color:#B8BEF0}
+.trilha .chips span{border-color:#3A3480}
+.trilha .botao-ui{background:#8C7BFF;color:#07081A;font-family:var(--fd);font-weight:900;font-size:12.5px;text-transform:uppercase;border-radius:14px;padding:12px}
+.trilha [data-tela="3"]{background:linear-gradient(#141245,#2A2475 60%,#151338)!important}
+.passo h3{font-family:var(--fd);font-weight:700;font-size:24px;letter-spacing:-.02em}
+.passo .tag,.tag-pro{background:#C8FF6B!important;color:#07081A!important;font-family:var(--fp);font-size:16px!important;font-weight:400!important;padding:0 8px!important}
 </style>
 </head>
 <body>
@@ -562,10 +582,10 @@ footer{border-top:1px solid var(--linha);padding:56px 0 72px;font-size:15px}
      </div>
      <div class="tela" data-tela="1">
       <h4>Modo Jogo</h4><div class="sub">Ligado até você sair do jogo</div>
-      <div class="bloco"><b style="font-size:13px">Seu jogo</b><div class="sub" style="margin:2px 0 10px">Sessão de 42 min</div>
+      <div class="bloco" data-exe="sessao.exe"><b style="font-size:13px">Seu jogo</b><div class="sub" style="margin:2px 0 10px">Sessão de 42 min</div>
        <div class="chips"><span class="sel">Notificações em silêncio</span><span class="sel">Memória liberada</span><span class="sel">Calor vigiado</span></div></div>
-      <div class="bloco"><div style="display:flex;justify-content:space-between"><span>Temperatura</span><b>39 °C</b></div><div class="barra" style="margin-top:8px"><i style="width:48%"></i></div></div>
-      <div class="bloco"><div style="display:flex;justify-content:space-between"><span>FPS médio</span><b>88</b></div><div class="barra" style="margin-top:8px"><i style="width:88%"></i></div></div>
+      <div class="bloco" data-exe="calor.exe"><div style="display:flex;justify-content:space-between"><span>Temperatura</span><b>39 °C</b></div><div class="barra" style="margin-top:8px"><i style="width:48%"></i></div></div>
+      <div class="bloco" data-exe="fps.exe"><div style="display:flex;justify-content:space-between"><span>FPS médio</span><b>88</b></div><div class="barra" style="margin-top:8px"><i style="width:88%"></i></div></div>
       <div class="botao-ui">Abrir o jogo</div>
      </div>
      <div class="tela" data-tela="2">
