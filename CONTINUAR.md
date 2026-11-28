@@ -1,5 +1,7 @@
 # Onde parou, 28/11/2026
 
+**5.19 PUBLICADA em 28/11** (modo completo sem Shizuku: Interno.kt, Automacao.kt, ServidorEntrada.kt; sem teste em celular real; falhas vão para Erros como 'modo completo: <etapa>' com o texto da tela). Próximo: corrigir pelo que aparecer em Erros e depois o espanhol.
+
 **5.18 PUBLICADA em 28/11** (servidor, site, painel e app versionCode 80). Próximo: "Ativar modo completo" sem o Shizuku (seção no fim), depois o espanhol.
 
 ## Histórico da 5.18 (já feito)
